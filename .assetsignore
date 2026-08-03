@@ -1,0 +1,5 @@
+HANDOFF.md
+tests/
+sync-worker/
+.gitignore
+wrangler.jsonc
