@@ -3,3 +3,6 @@ tests/
 sync-worker/
 .gitignore
 wrangler.jsonc
+.assetsignore
+.git/
+.wrangler/
