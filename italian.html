@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Italian">
+<meta name="theme-color" content="#ffffff">
+<title>Italian — Riverbank</title>
+<style>
+:root{
+  --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+/* Seven palettes, each with a light and a dark variant. The mode is chosen
+   separately from the palette, so any palette can be read either way.
+   Vellum is the default; Legacy reproduces the original colours exactly. */
+html[data-palette="vellum"][data-theme="light"]{
+  --bg:#fbf7ec; --panel:#f5efdf; --ink:#2a2318; --muted:#6f6350; --faint:#988c75;
+  --line:#e3d9c1; --coral:#8c2f26; --accent-soft:#f0e3d8; --raise:#fffdf6; --again:#a3342a;
+  --again-bg:#f0ded3; --again-br:#dfb9ae; --good:#5a6b32; --good-bg:#e6e5d4; --good-br:#c7cab0;
+  --easy:#7d5f9c; --easy-bg:#ebe3e2; --easy-br:#d3c6d2; --amber:#9a7318; --warn-bg:#eee6d0;
+  --warn-br:#dccda8; --warn-ink:#7b5d18; --bad-bg:#f0ded3; --bad-br:#dfb9ae; --bad-ink:#812f25;
+  --toast:#2a2318;
+}
+html[data-palette="vellum"][data-theme="dark"]{
+  --bg:#1a160f; --panel:#241f16; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c;
+  --line:#3a3222; --coral:#d4795e; --accent-soft:#3f2a1f; --raise:#2c2519; --again:#e0796b;
+  --again-bg:#462c23; --again-br:#6d4036; --good:#a9bd72; --good-bg:#393b25; --good-br:#565c39;
+  --easy:#c3a3e0; --easy-bg:#3f353d; --easy-br:#615167; --amber:#d4a24a; --warn-bg:#43351c;
+  --warn-br:#685128; --warn-ink:#d7ab5d; --bad-bg:#462c23; --bad-br:#6d4036; --bad-ink:#e28879;
+  --toast:#241f16;
+}
+html[data-palette="catppuccin"][data-theme="light"]{
+  --bg:#eff1f5; --panel:#e6e9ef; --ink:#4c4f69; --muted:#66687d; --faint:#8a8d9b;
+  --line:#ccd0da; --coral:#de590c; --accent-soft:#f0e1db; --raise:#ffffff; --again:#d20934;
+  --again-bg:#edd2dd; --again-br:#e6a9b9; --good:#288f12; --good-bg:#d7e6d9; --good-br:#b3d7b0;
+  --easy:#8732f6; --easy-bg:#e1d7f6; --easy-br:#d0bdec; --amber:#be7208; --warn-bg:#e9e1d7;
+  --warn-br:#e3cba9; --warn-ink:#a3671b; --bad-bg:#edd2dd; --bad-br:#e6a9b9; --bad-ink:#b40836;
+  --toast:#4c4f69;
+}
+html[data-palette="catppuccin"][data-theme="dark"]{
+  --bg:#1e1e2e; --panel:#181825; --ink:#cdd6f4; --muted:#a6adc8; --faint:#6c7086;
+  --line:#45475a; --coral:#f9b58b; --accent-soft:#4b3b3f; --raise:#313244; --again:#fa86a6;
+  --again-bg:#4f344a; --again-br:#7b4861; --good:#9cef95; --good-bg:#3b4a48; --good-br:#54745d;
+  --easy:#cba2fb; --easy-bg:#43395d; --easy-br:#665386; --amber:#fce3ac; --warn-bg:#4e494a;
+  --warn-br:#7c7062; --warn-ink:#fce3b0; --bad-bg:#4f344a; --bad-br:#7b4861; --bad-ink:#fa8eb1;
+  --toast:#181825;
+}
+html[data-palette="rosepine"][data-theme="light"]{
+  --bg:#faf4ed; --panel:#fffaf3; --ink:#575279; --muted:#6b6782; --faint:#8f8a9b;
+  --line:#dfdad9; --coral:#c86a65; --accent-soft:#f6e6de; --raise:#ffffff; --again:#c25574;
+  --again-bg:#f3e0dc; --again-br:#e7c3c5; --good:#17698b; --good-bg:#dfe2df; --good-br:#b5c9cd;
+  --easy:#8f72b1; --easy-bg:#ede3e3; --easy-br:#d9ccd8; --amber:#c1760e; --warn-bg:#f4e4d0;
+  --warn-br:#e7cdac; --warn-ink:#a56c2d; --bad-bg:#f3e0dc; --bad-br:#e7c3c5; --bad-ink:#a45379;
+  --toast:#575279;
+}
+html[data-palette="rosepine"][data-theme="dark"]{
+  --bg:#191724; --panel:#1f1d2e; --ink:#e0def4; --muted:#908caa; --faint:#6e6a86;
+  --line:#403d52; --coral:#f2bab8; --accent-soft:#443743; --raise:#26233a; --again:#f8638d;
+  --again-bg:#4a273d; --again-br:#763751; --good:#92d6e2; --good-bg:#343f4e; --good-br:#4d6573;
+  --easy:#c6a2f3; --easy-bg:#3e3551; --easy-br:#60507a; --amber:#f9c274; --warn-bg:#4c3b34;
+  --warn-br:#7b5e42; --warn-ink:#fac681; --bad-bg:#4a273d; --bad-br:#763751; --bad-ink:#f9739c;
+  --toast:#1f1d2e;
+}
+html[data-palette="gruvbox"][data-theme="light"]{
+  --bg:#fbf1c7; --panel:#f2e5bc; --ink:#3c3836; --muted:#665c54; --faint:#928374;
+  --line:#e3d5ab; --coral:#a93c09; --accent-soft:#eeddb8; --raise:#fdf6da; --again:#97060c;
+  --again-bg:#edd2b0; --again-br:#dda489; --good:#7a7405; --good-bg:#ece2ad; --good-br:#d8ce85;
+  --easy:#9d3174; --easy-bg:#efdaba; --easy-br:#dcb6a6; --amber:#b97408; --warn-bg:#eedfb4;
+  --warn-br:#e0c893; --warn-ink:#996009; --bad-bg:#edd2b0; --bad-br:#dda489; --bad-ink:#840609;
+  --toast:#3c3836;
+}
+html[data-palette="gruvbox"][data-theme="dark"]{
+  --bg:#282828; --panel:#32302f; --ink:#ebdbb2; --muted:#bdae93; --faint:#928374;
+  --line:#504945; --coral:#f4872f; --accent-soft:#573a21; --raise:#3c3836; --again:#f74d39;
+  --again-bg:#5a2c27; --again-br:#873127; --good:#d1d50c; --good-bg:#4b4b25; --good-br:#6a6c21;
+  --easy:#e17d98; --easy-bg:#503b40; --easy-br:#734c56; --amber:#f7bf3b; --warn-bg:#5a4b26;
+  --warn-br:#856926; --warn-ink:#f8c651; --bad-bg:#5a2c27; --bad-br:#873127; --bad-ink:#f75e48;
+  --toast:#32302f;
+}
+html[data-palette="legacy"][data-theme="light"]{
+  --bg:#ffffff; --panel:#faf8f5; --ink:#1b1a18; --muted:#77746e; --faint:#928f89;
+  --line:#e7e3dc; --coral:#d85a30; --accent-soft:#fbeeea; --raise:#ffffff; --again:#b03b2e;
+  --again-bg:#f5e6e4; --again-br:#e6c0bc; --good:#2f7d4f; --good-bg:#e4eee8; --good-br:#bcd5c7;
+  --easy:#7a6bcf; --easy-bg:#eeecf9; --easy-br:#d4d0f0; --amber:#b07715; --warn-bg:#f5ede1;
+  --warn-br:#e6d3b4; --warn-ink:#865d16; --bad-bg:#f5e6e4; --bad-br:#e6c0bc; --bad-ink:#863228;
+  --toast:#1b1a18;
+}
+html[data-palette="legacy"][data-theme="dark"]{
+  --bg:#0e1230; --panel:#181d47; --ink:#e9ecf8; --muted:#a3abd0; --faint:#7780ab;
+  --line:#2a3169; --coral:#ff8a5c; --accent-soft:#3e2a39; --raise:#1f2555; --again:#ff8175;
+  --again-bg:#432a3f; --again-br:#73414d; --good:#5ecb92; --good-bg:#203b46; --good-br:#306059;
+  --easy:#b0a4ff; --easy-bg:#32325e; --easy-br:#524f87; --amber:#e0aa4a; --warn-bg:#3c3336;
+  --warn-br:#66523b; --warn-ink:#e1b362; --bad-bg:#432a3f; --bad-br:#73414d; --bad-ink:#fc9087;
+  --toast:#181d47;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior:none}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:16px; -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none; user-select:none;
+  touch-action:manipulation;
+}
+#app{height:100dvh;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);}
+.screen{flex:1;display:none;flex-direction:column;min-height:0}
+.screen.on{display:flex}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer}
+
+/* ---------- top bar ---------- */
+.bar{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;flex:0 0 auto}
+.bar .icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;color:var(--muted);font-size:19px}
+.bar .icon:active{background:var(--panel)}
+.bar .title{flex:1;text-align:center;font-size:15px;font-weight:500;letter-spacing:.01em}
+.counts{display:flex;gap:12px;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
+.counts b{font-weight:600}
+.c-new{color:var(--coral)} .c-lrn{color:var(--amber)} .c-due{color:var(--good)}
+
+/* ---------- card ---------- */
+.cardarea{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:16px 22px;min-height:0;position:relative;overflow:hidden}
+.prompt{font-family:var(--serif);font-size:33px;line-height:1.28;text-align:center;word-break:break-word}
+.prompt.eng{font-family:var(--sans);font-size:27px;line-height:1.32;font-weight:400}
+.multi{position:absolute;top:14px;right:16px;width:26px;height:26px;border-radius:50%;
+  border:1px solid var(--line);color:var(--faint);font-size:13px;
+  display:none;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.multi.on{display:flex}
+.rule{width:56px;height:1px;background:var(--line);margin:26px 0}
+.answer{font-size:21px;line-height:1.42;text-align:center;color:var(--ink);opacity:0;
+  transition:opacity .13s ease-out;max-width:34em}
+.answer.on{opacity:1}
+.answer .alt{display:block;margin-top:7px}
+.answer.lat{font-family:var(--serif);font-size:25px}
+.hintline{margin-top:22px;font-size:13px;color:var(--faint);height:16px}
+
+
+/* ---------- rating row ---------- */
+.rateRow{flex:0 0 auto;display:flex;gap:9px;padding:10px 12px 14px}
+.rate{position:relative;flex:1;height:60px;border-radius:15px;border:1px solid var(--line);
+  background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+/* enlarged invisible hit area — visual pill unchanged, tappable region reaches up and to the edges */
+.rate::before{content:"";position:absolute;top:-26px;bottom:-14px;left:-5px;right:-5px}
+.rate .lbl{font-size:16px;font-weight:500;line-height:1.1}
+.rate .ivl{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.1}
+.rate:active{filter:brightness(.94)}
+#bAgain{background:var(--again-bg);border-color:var(--again-br)} #bAgain .lbl{color:var(--again)}
+#bGood{background:var(--good-bg);border-color:var(--good-br)}   #bGood .lbl{color:var(--good)}
+#bEasy{background:var(--easy-bg);border-color:var(--easy-br)}   #bEasy .lbl{color:var(--easy)}
+.revealRow{flex:0 0 auto;padding:10px 12px 14px}
+.revealBtn{position:relative;width:100%;height:60px;border-radius:15px;border:1px solid var(--line);
+  background:var(--panel);font-size:16px;color:var(--muted)}
+.revealBtn::before{content:"";position:absolute;top:-26px;bottom:-14px;left:-5px;right:-5px}
+.hidden{display:none !important}
+
+/* ---------- home ---------- */
+.home{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 18px 28px}
+.wordmark{font-family:var(--serif);font-size:30px;margin:6px 0 2px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+.dirs{display:flex;gap:10px;margin-bottom:20px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.chips.hide{display:none}
+.chip{position:relative;padding:9px 15px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);font-size:14px;color:var(--muted)}
+.chip::before{content:"";position:absolute;top:-7px;bottom:-7px;left:-3px;right:-3px}
+.chip.on{background:var(--accent-soft);border-color:var(--coral);color:var(--coral)}
+.partPickerBtn{display:flex;align-items:center;justify-content:space-between;width:100%;
+  padding:12px 15px;margin-bottom:16px;border:1px solid var(--line);border-radius:13px;
+  background:var(--panel);font-size:15px;color:var(--ink);font-family:inherit}
+.partPickerBtn::after{content:"";width:7px;height:7px;border-right:2px solid var(--faint);
+  border-bottom:2px solid var(--faint);transform:rotate(45deg);margin-left:8px;flex:0 0 auto}
+.partPickerBtn.hide{display:none}
+.sheetOverlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;
+  justify-content:center;z-index:50}
+.sheetOverlay.hidden{display:none}
+.sheetCard{width:100%;max-width:520px;max-height:80vh;background:var(--bg);border-radius:18px 18px 0 0;
+  display:flex;flex-direction:column;overflow:hidden}
+.sheetBar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
+  border-bottom:1px solid var(--line)}
+.sheetTitle{font-family:var(--serif);font-size:19px}
+.sheetDone{background:none;border:none;color:var(--coral);font-size:15px;font-weight:500;font-family:inherit}
+.sheetActions{padding:12px 18px 0}
+.sheetActions .act{margin-top:0}
+.sheetList{overflow-y:auto;padding:6px 18px 18px}
+.partRow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 0;
+  border-bottom:1px solid var(--line);background:none;border-left:none;border-right:none;border-top:none;
+  font-size:15px;color:var(--ink);font-family:inherit;text-align:left}
+.partRow:last-child{border-bottom:none}
+.partRow .prMark{flex:0 0 auto;font-size:17px;color:var(--faint);width:20px}
+.partRow.cur .prMark{color:var(--coral)}
+.partRow .prLbl{flex:1}
+.partRow .prCnt{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.dir{flex:1;border:1px solid var(--line);border-radius:14px;padding:13px 12px;background:var(--panel);text-align:left}
+.dir.sel{border-color:var(--coral);background:var(--accent-soft)}
+.dir .dt{font-size:15px;font-weight:500;margin-bottom:5px}
+.dir .dd{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.startBtn{position:relative;width:100%;height:58px;border-radius:15px;background:var(--coral);color:#fff;
+  font-size:17px;font-weight:500;margin-bottom:18px}
+.startBtn::before{content:"";position:absolute;top:-16px;bottom:-12px;left:-6px;right:-6px}
+.startBtn:disabled{background:var(--panel);color:var(--faint);border:1px solid var(--line)}
+.toast{color:#fff}
+.sect{margin-top:26px}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);
+  border-radius:14px;background:var(--panel);padding:0 6px;height:56px;margin-bottom:12px}
+.stepper .sl{padding-left:10px;font-size:15px;color:var(--muted)}
+.stepper .sv{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums;min-width:2.6em;text-align:center}
+.stepper button{position:relative;width:52px;height:46px;border-radius:11px;font-size:23px;color:var(--coral)}
+.stepper button::before{content:"";position:absolute;top:-8px;bottom:-8px;left:-4px;right:-4px}
+.stepper button:active{background:var(--raise)}
+.pace{font-size:14.5px;line-height:1.62;color:var(--ink)}
+.pace .n{font-weight:600;font-variant-numeric:tabular-nums}
+.pace .cost{color:var(--muted);margin-top:7px;display:block}
+.motto{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.motto .la{font-family:var(--serif);font-style:italic;font-size:17.5px;line-height:1.45}
+.motto .en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+.sect h2{font-size:13px;font-weight:500;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.07em;margin:0 0 11px}
+.strip{display:flex;flex-wrap:wrap;gap:5px}
+.dot{width:15px;height:15px;border-radius:4px;background:var(--panel);border:1px solid var(--line)}
+.dot.did{background:var(--coral);border-color:var(--coral)}
+.dot.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--coral)}
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.calTitle{font-size:14.5px;font-weight:500}
+.calNav{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:none;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink)}
+.calNav:active{background:var(--panel)}
+.calDow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px;
+  font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
+.calCell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;
+  font-size:12.5px;font-variant-numeric:tabular-nums;background:var(--panel);border:1px solid var(--line)}
+.calCell.out{color:var(--faint);opacity:.35;border-color:transparent;background:none}
+.calCell.did{background:var(--accent-soft);border-color:var(--coral);color:var(--coral);font-weight:600}
+.calCell.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--coral)}
+.calCell.sel{border-color:var(--ink);border-width:2px}
+.statRow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.statRow:last-child{border-bottom:none}
+.statRow span{color:var(--muted)}
+.statRow b{font-weight:500;font-variant-numeric:tabular-nums}
+
+.searchInput{width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit;margin:12px 0}
+.wordRow{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.wordRow:last-child{border-bottom:none}
+.wordRow .wrTop{display:flex;align-items:center;gap:9px}
+.wordRow .stDot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.wordRow .term{flex:1}
+.wordRow .gloss{display:none;margin:6px 0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.4}
+.wordRow.revealed .gloss{display:block}
+.stackbar{display:flex;height:20px;border-radius:7px;overflow:hidden;background:var(--panel);margin-top:4px}
+.stackbar>div{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:12px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.s-unseen{background:var(--line)}
+.s-learning{background:var(--amber)}
+.s-young{background:var(--good);opacity:.5}
+.s-mature{background:var(--good)}
+.wpart{margin-top:22px}
+.wpart h3{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:500;
+  color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:0 0 9px}
+.wpart h3 b{font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+.wgrid{display:flex;flex-wrap:wrap;gap:3px}
+.wbox{width:9px;height:9px;border-radius:2px}
+.build{margin:30px 0 8px;text-align:center;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);padding:8px;cursor:pointer}
+.logv{font-size:13px;font-weight:600;color:var(--coral);margin:16px 0 6px;font-family:var(--sans)}
+.logv:first-child{margin-top:0}
+.logi{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 4px;padding-left:14px;
+  text-indent:-14px}
+.logi::before{content:"— ";color:var(--faint)}
+.swatch{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;
+  margin-right:7px;border:1px solid var(--line)}
+.fold{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.fold summary{font-size:13px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;
+  list-style:none;cursor:pointer;padding:6px 0}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:" +";color:var(--faint)}
+.fold[open] summary::after{content:" \2212"}
+.note{font-size:13px;color:var(--muted);line-height:1.55;margin-top:12px}
+.note.warnish{color:#b06a00}
+.note.bad{color:#c0392b}
+.warn{background:var(--warn-bg);border:1px solid var(--warn-br);border-radius:12px;padding:11px 13px;
+  font-size:13.5px;line-height:1.5;color:var(--warn-ink);margin-bottom:16px}
+.warn.bad{background:var(--bad-bg);border-color:var(--bad-br);color:var(--bad-ink)}
+
+/* ---------- settings ---------- */
+.set{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 18px 40px}
+.field{padding:14px 0;border-bottom:1px solid var(--line)}
+.field label{display:block;font-size:15px;margin-bottom:5px}
+.field .fh{font-size:13px;color:var(--muted);line-height:1.5;margin-top:6px}
+.field input[type=number],.field input[type=text],.field input[type=password]{
+  width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit}
+.field input[type=range]{width:100%;height:34px}
+.field textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit;resize:vertical}
+.hpField{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+.feedbackRow{display:flex;justify-content:flex-end;margin-top:6px}
+.feedbackRow .fh{margin:0}
+.field .sel{width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 10px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit}
+.setGroup{margin-bottom:6px}
+.setGroup+.setGroup{margin-top:8px}
+.setGroupTitle{font-family:var(--serif);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--faint);padding:16px 0 4px}
+.swatchRow{display:flex;flex-wrap:wrap;gap:10px}
+.palSwatch{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;
+  background:transparent;border:none;padding:6px 2px;border-radius:11px;font-family:inherit}
+.palSwatch .swatchDot{display:block;width:34px;height:34px;border-radius:50%}
+.palSwatch .swatchLbl{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.25}
+.palSwatch.cur{background:var(--accent-soft)}
+.palSwatch.cur .swatchLbl{color:var(--ink);font-weight:500}
+.act{position:relative;width:100%;height:52px;border-radius:13px;border:1px solid var(--line);
+  background:var(--panel);font-size:16px;margin-top:11px}
+.act::before{content:"";position:absolute;top:-9px;bottom:-9px;left:-4px;right:-4px}
+.act.danger{color:var(--again)}
+.act.primary{background:var(--coral);color:#fff;border-color:var(--coral)}
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 30px;text-align:center;gap:8px}
+.done .big{font-family:var(--serif);font-size:27px}
+.done .small{font-size:14.5px;color:var(--muted);line-height:1.6}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom));
+  background:var(--toast);color:#fff;font-size:14px;padding:11px 17px;border-radius:11px;opacity:0;
+  transition:opacity .2s;pointer-events:none;z-index:50;max-width:84%;text-align:center}
+.toast.on{opacity:.95}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+/* wide screens (iPad, Mac, phones in landscape): keep a phone-width column
+   centred, roomier type. Placed last in the stylesheet deliberately — at
+   equal specificity the later rule wins regardless of the media query, so
+   this block must come after the unconditional .prompt/.answer rules above
+   or its font-size boost is silently overridden and landscape never scales. */
+@media (min-width:700px){
+  #app{max-width:600px;margin:0 auto}
+  .prompt{font-size:38px}
+  .prompt.eng{font-size:30px}
+  .answer{font-size:23px}
+  .answer.lat{font-size:28px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ HOME ============ -->
+  <section id="scHome" class="screen on">
+    <div class="bar">
+      <button class="icon" id="toStats" aria-label="Stats">&#9638;</button>
+      <div class="title"></div>
+      <button class="icon" id="toSettings" aria-label="Settings">&#9881;</button>
+    </div>
+    <div class="home">
+      <div class="wordmark" id="wordmark"></div>
+      <div class="sub" id="homeSub">—</div>
+      <div id="homeWarn"></div>
+
+      <button class="partPickerBtn" id="partPickerBtn">All parts</button>
+      <div class="chips" id="bchips"></div>
+      <div class="dirs">
+        <button class="dir sel" id="dirLtoE"><div class="dt" id="dtL"></div><div class="dd" id="ddL">—</div></button>
+        <button class="dir" id="dirEtoL"><div class="dt" id="dtE"></div><div class="dd" id="ddE">—</div></button>
+      </div>
+      <div class="stepper">
+        <span class="sl">New words today</span>
+        <div style="display:flex;align-items:center">
+          <button id="capMinus" aria-label="Fewer">&minus;</button>
+          <span class="sv" id="capVal">25</span>
+          <button id="capPlus" aria-label="More">+</button>
+        </div>
+      </div>
+      <button class="startBtn" id="startBtn">Start</button>
+
+      <div class="sect">
+        <h2>Study days</h2>
+        <div class="strip" id="strip"></div>
+        <div class="note" id="syncAge"></div>
+        <div class="note" id="streakNote">—</div>
+        <details class="fold" id="calFold">
+          <summary>Full calendar</summary>
+          <div class="calHead">
+            <button class="calNav" id="calPrev" aria-label="Previous month">&#8249;</button>
+            <div class="calTitle" id="calTitle">—</div>
+            <button class="calNav" id="calNext" aria-label="Next month">&#8250;</button>
+          </div>
+          <div class="calDow" id="calDow"></div>
+          <div class="calGrid" id="calGrid"></div>
+          <div class="note" id="calDetail">Tap a day to see its count.</div>
+          <div class="note" id="longStreakNote">—</div>
+        </details>
+      </div>
+
+      <div class="sect">
+        <h2>Pace</h2>
+        <div class="pace" id="pace"></div>
+        <div class="motto"><div class="la" id="mottoLa"></div><div class="en" id="mottoEn"></div></div>
+      </div>
+
+      <div class="sect">
+        <h2>The whole syllabus</h2>
+        <div id="syllabus"></div>
+        <button class="chip" id="toBrowse" style="margin-top:12px">Browse the full list &#8594;</button>
+        <details class="fold" id="partFold">
+          <summary>By part</summary>
+          <div id="partBody"></div>
+        </details>
+        <details class="fold" id="trueFold">
+          <summary>How well the model is predicting you</summary>
+          <div id="trueBody"></div>
+        </details>
+        <details class="fold" id="fcFold">
+          <summary>The next fortnight</summary>
+          <div id="fcBody"></div>
+        </details>
+      </div>
+
+      <div class="sect">
+        <h2>Where you stand</h2>
+        <div id="statList"></div>
+        <details class="fold" id="timingFold">
+          <summary>Timing</summary>
+          <div id="timingBody"></div>
+        </details>
+      </div>
+
+      <div class="build" id="buildTag"></div>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section id="scStats" class="screen">
+    <div class="bar">
+      <button class="icon" id="statsBack" aria-label="Back">&#8249;</button>
+      <div class="title">Stats</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="home">
+      <div class="dirs">
+        <button class="dir sel" id="statsDirL"><div class="dt" id="sdtL"></div><div class="dd" id="sddL">—</div></button>
+        <button class="dir" id="statsDirE"><div class="dt" id="sdtE"></div><div class="dd" id="sddE">—</div></button>
+      </div>
+      <div class="sect" style="margin-top:8px">
+        <h2>Where you stand</h2>
+        <div class="stackbar" id="statsBar"></div>
+        <div class="legend" id="statsLegend"></div>
+        <div class="note">Every word in the list, whether you've met it yet or not — not just the part currently switched on.</div>
+      </div>
+      <div class="sect">
+        <h2>By part</h2>
+        <div id="statsGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BROWSE ============ -->
+  <section id="scBrowse" class="screen">
+    <div class="bar">
+      <button class="icon" id="browseBack" aria-label="Back">&#8249;</button>
+      <div class="title">Word list</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="home">
+      <div class="dirs">
+        <button class="dir sel" id="browseDirL"><div class="dt" id="bdtL"></div><div class="dd" id="bddL">—</div></button>
+        <button class="dir" id="browseDirE"><div class="dt" id="bdtE"></div><div class="dd" id="bddE">—</div></button>
+      </div>
+      <input type="text" class="searchInput" id="browseSearch" placeholder="Search…" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="partPickerBtn" id="browsePartBtn">All parts</button>
+      <div class="chips" id="browseStatusChips"></div>
+      <div id="browseResults"></div>
+    </div>
+  </section>
+
+  <!-- ============ CHANGELOG ============ -->
+  <section id="scLog" class="screen">
+    <div class="bar">
+      <button class="icon" id="logBack" aria-label="Back">&#8249;</button>
+      <div class="title">What changed</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="set">
+      <div id="logBody"></div>
+    </div>
+  </section>
+
+  <!-- ============ STUDY ============ -->
+  <section id="scStudy" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome" aria-label="Back">&#8249;</button>
+      <div class="title"><div class="counts" id="counts"></div></div>
+      <button class="icon" id="undoBtn" aria-label="Undo">&#8630;</button>
+    </div>
+    <div class="cardarea" id="cardArea">
+      <div class="multi" id="multi">2</div>
+      <div class="prompt" id="prompt"></div>
+      <div class="rule"></div>
+      <div class="answer" id="answer"></div>
+      <div class="hintline" id="hintline"></div>
+    </div>
+    <div class="revealRow" id="revealRow">
+      <button class="revealBtn" id="revealBtn">Show answer</button>
+    </div>
+    <div class="rateRow hidden" id="rateRow">
+      <button class="rate" id="bAgain"><span class="lbl">Again</span><span class="ivl" id="iAgain"></span></button>
+      <button class="rate" id="bGood"><span class="lbl">Good</span><span class="ivl" id="iGood"></span></button>
+      <button class="rate" id="bEasy"><span class="lbl">Easy</span><span class="ivl" id="iEasy"></span></button>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section id="scDone" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome2" aria-label="Back">&#8249;</button>
+      <div class="title"></div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="done">
+      <div class="big" id="doneBig">Nothing due</div>
+      <div class="small" id="doneSmall"></div>
+      <button class="act" id="doneMore" style="max-width:230px;margin-top:20px">Ten more words</button>
+      <button class="act" id="doneBack" style="max-width:230px">Back</button>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="scSet" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome3" aria-label="Back">&#8249;</button>
+      <div class="title">Settings</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="set">
+      <div class="setGroup">
+        <div class="setGroupTitle">Pace</div>
+        <div class="field">
+          <label for="fNew">New words a day</label>
+          <input type="number" id="fNew" min="0" max="200" step="5" inputmode="numeric">
+          <div class="fh">Limits how many new words appear each day.</div>
+        </div>
+        <div class="field">
+          <label for="fRet">Target retention — <b id="fRetVal">90%</b></label>
+          <input type="range" id="fRet" min="80" max="95" step="1">
+          <div class="fh">How often you want to remember words when they're due.</div>
+        </div>
+        <div class="field">
+          <label for="fRoll">A study day begins at</label>
+          <select id="fRoll" class="sel">
+            <option value="0">Midnight</option>
+            <option value="3">3am</option>
+            <option value="4">4am</option>
+            <option value="6">6am</option>
+          </select>
+          <div class="fh">The hour each day's words unlock.</div>
+        </div>
+        <div class="field">
+          <label for="fGate">Unlock the reverse direction after</label>
+          <input type="number" id="fGate" min="0" max="180" step="7" inputmode="numeric">
+          <div class="fh">Days a word must settle before its reverse direction appears.</div>
+        </div>
+        <div class="field">
+          <label for="fRevDay">Weekly review day</label>
+          <select id="fRevDay" class="sel">
+            <option value="-1">None — spread reviews evenly</option>
+            <option value="0">Sunday</option><option value="1">Monday</option>
+            <option value="2">Tuesday</option><option value="3">Wednesday</option>
+            <option value="4">Thursday</option><option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+          <div class="fh">Shifts some reviews onto your chosen weekday.</div>
+        </div>
+        <div class="field">
+          <label for="fWeak">Introduce unseen words before shaky ones</label>
+          <select id="fWeak" class="sel">
+            <option value="0">No — work through in list order</option>
+            <option value="1">Yes — hardest first</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Appearance</div>
+        <div class="field">
+          <label>Theme</label>
+          <div class="swatchRow" id="fPalSwatches"></div>
+          <select id="fTheme" class="sel" style="margin-top:9px">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="auto">Match the system</option>
+          </select>
+          <select id="fRot" class="sel" style="margin-top:9px">
+            <option value="off">Keep this theme</option>
+            <option value="daily">A different theme each day</option>
+          </select>
+          <button class="act" id="surpriseBtn">Surprise me</button>
+          <div class="fh" id="palNote">—</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Backup &amp; sync</div>
+        <div class="field">
+          <label>Backups</label>
+          <button class="act" id="expBtn">Export a backup file</button>
+          <button class="act" id="impBtn">Restore from a file</button>
+          <input type="file" id="impFile" accept="application/json,.json" class="hidden">
+          <div class="fh" id="backupNote">—</div>
+        </div>
+        <div class="field">
+          <label for="fDevice">This device's name</label>
+          <input type="text" id="fDevice" placeholder="e.g. iPhone, iPad, Mac" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <div class="fh">Helps you tell your devices apart.</div>
+        </div>
+        <div class="field">
+          <label for="fSyncCode">Sync code</label>
+          <input type="text" id="fSyncCode" placeholder="tap Get a code, or type one from another device" autocapitalize="characters" autocorrect="off" spellcheck="false">
+          <button class="act" id="syncNewBtn">Get a code for this device</button>
+          <button class="act" id="pushBtn">Sync now</button>
+          <button class="act" id="pullBtn">Pull from sync</button>
+          <div class="fh">Enter the same code on every device to keep them in step.</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Feedback</div>
+        <div class="field" style="border-bottom:none">
+          <label for="fFeedback">Suggestions</label>
+          <textarea id="fFeedback" maxlength="500" rows="4" placeholder="What would make this better?"></textarea>
+          <input type="text" id="fFeedbackHp" name="website" tabindex="-1" autocomplete="off" class="hpField" aria-hidden="true">
+          <div class="feedbackRow">
+            <span class="fh" id="feedbackCount">0/500</span>
+          </div>
+          <button class="act" id="feedbackSendBtn">Send</button>
+          <div class="fh">Goes straight to the developer, not shown to anyone else.</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="field" style="border-bottom:none">
+          <a class="act" href="manual.html" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit">Guide</a>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Danger zone</div>
+        <div class="field" style="border-bottom:none">
+          <label>Start over</label>
+          <button class="act danger" id="resetBtn">Erase all progress</button>
+          <div class="fh">Backs up then erases everything on this device.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="sheetOverlay hidden" id="partSheet">
+  <div class="sheetCard">
+    <div class="sheetBar">
+      <span class="sheetTitle" id="partSheetTitle">Parts</span>
+      <button class="sheetDone" id="partSheetDone">Done</button>
+    </div>
+    <div class="sheetActions" id="partSheetActions">
+      <button class="act" id="partSheetAll">Select all</button>
+    </div>
+    <div class="sheetList" id="partSheetList"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA=[["Parli italiano?","Do you speak Italian?","2. Building a sentence",-1],["Perché studi italiano?","Why do you study Italian?","2. Building a sentence",-1],["Non parlo spagnolo.","I don't speak Spanish.","3. Negatives",-1],["Non guardo mai la televisione.","I never watch television.","3. Negatives",-1],["e","and","4. Essential small words",-1],["ma","but","4. Essential small words",-1],["però","however","4. Essential small words",-1],["perché","why / because","4. Essential small words",-1],["quindi","so / therefore","4. Essential small words",-1],["anche","also","4. Essential small words",-1],["oppure","or","4. Essential small words",-1],["se","if","4. Essential small words",-1],["quando","when","4. Essential small words",-1],["mentre","while","4. Essential small words",-1],["prima","first / before","4. Essential small words",-1],["poi","then","4. Essential small words",-1],["dopo","afterwards","4. Essential small words",-1],["infine","finally","4. Essential small words",-1],["sempre","always","4. Essential small words",-1],["spesso","often","4. Essential small words",-1],["di solito","usually","4. Essential small words",-1],["a volte","sometimes","4. Essential small words",-1],["raramente","rarely","4. Essential small words",-1],["mai","never","4. Essential small words",-1],["ogni giorno","every day","4. Essential small words",-1],["molto","very / a lot","4. Essential small words",-1],["abbastanza","quite / enough","4. Essential small words",-1],["troppo","too much","4. Essential small words",-1],["poco","little / not much","4. Essential small words",-1],["più","more","4. Essential small words",-1],["meno","less","4. Essential small words",-1],["chi?","who?","4. Essential small words",-1],["cosa? / che cosa?","what?","4. Essential small words",-1],["dove?","where?","4. Essential small words",-1],["quando?","when?","4. Essential small words",-1],["come?","how?","4. Essential small words",-1],["perché?","why?","4. Essential small words",-1],["quale?","which?","4. Essential small words",-1],["quanto?","how much?","4. Essential small words",-1],["quanti / quante?","how many?","4. Essential small words",-1],["a che ora?","at what time?","4. Essential small words",-1],["con chi?","with whom?","4. Essential small words",-1],["io","I","5. Subject pronouns and essere/avere",-1],["tu","you (informal)","5. Subject pronouns and essere/avere",-1],["lui","he","5. Subject pronouns and essere/avere",-1],["lei","she","5. Subject pronouns and essere/avere",-1],["Lei","you (formal)","5. Subject pronouns and essere/avere",-1],["noi","we","5. Subject pronouns and essere/avere",-1],["voi","you (plural)","5. Subject pronouns and essere/avere",-1],["loro","they","5. Subject pronouns and essere/avere",-1],["essere","to be","5. Subject pronouns and essere/avere",-1],["sono (essere)","I am","5. Subject pronouns and essere/avere",-1],["sei (essere)","you are","5. Subject pronouns and essere/avere",-1],["è (essere)","he/she is","5. Subject pronouns and essere/avere",-1],["siamo (essere)","we are","5. Subject pronouns and essere/avere",-1],["siete (essere)","you (pl.) are","5. Subject pronouns and essere/avere",-1],["sono (essere)","they are","5. Subject pronouns and essere/avere",-1],["avere","to have","5. Subject pronouns and essere/avere",-1],["ho (avere)","I have","5. Subject pronouns and essere/avere",-1],["hai (avere)","you have","5. Subject pronouns and essere/avere",-1],["ha (avere)","he/she has","5. Subject pronouns and essere/avere",-1],["abbiamo (avere)","we have","5. Subject pronouns and essere/avere",-1],["avete (avere)","you (pl.) have","5. Subject pronouns and essere/avere",-1],["hanno (avere)","they have","5. Subject pronouns and essere/avere",-1],["Ho quindici anni.","I am fifteen.","5. Subject pronouns and essere/avere",-1],["Ho fame.","I am hungry.","5. Subject pronouns and essere/avere",-1],["Ho sete.","I am thirsty.","5. Subject pronouns and essere/avere",-1],["Ho caldo.","I am hot.","5. Subject pronouns and essere/avere",-1],["Ho freddo.","I am cold.","5. Subject pronouns and essere/avere",-1],["Ho sonno.","I am sleepy.","5. Subject pronouns and essere/avere",-1],["Ho paura.","I am afraid.","5. Subject pronouns and essere/avere",-1],["Ho fretta.","I am in a hurry.","5. Subject pronouns and essere/avere",-1],["Hai ragione.","You are right.","5. Subject pronouns and essere/avere",-1],["Ciao!","Hello!","6. Introductions",-1],["Buongiorno!","Good morning/day!","6. Introductions",-1],["Come ti chiami?","What is your name?","6. Introductions",-1],["Mi chiamo…","My name is…","6. Introductions",-1],["Come stai?","How are you?","6. Introductions",-1],["Sto bene.","I am well.","6. Introductions",-1],["Piacere!","Nice to meet you!","6. Introductions",-1],["Di dove sei?","Where are you from?","6. Introductions",-1],["Sono inglese.","I am English.","6. Introductions",-1],["Dove abiti?","Where do you live?","6. Introductions",-1],["Abito a…","I live in…","6. Introductions",-1],["Ho … anni.","I am … years old.","6. Introductions",-1],["Parlo…","I speak…","6. Introductions",-1],["Studio…","I study…","6. Introductions",-1],["ragazzo italiano","Italian boy","7. Gender and plurals",-1],["ragazza italiana","Italian girl","7. Gender and plurals",-1],["ragazzi italiani","Italian boys/mixed group","7. Gender and plurals",-1],["ragazze italiane","Italian girls","7. Gender and plurals",-1],["lezione interessante","interesting lesson","7. Gender and plurals",-1],["lezioni interessanti","interesting lessons","7. Gender and plurals",-1],["un libro","a book","8. Articles",-1],["una scuola","a school","8. Articles",-1],["un'amica","a friend, f.","8. Articles",-1],["il libro → i libri","the book → the books","8. Articles",-1],["lo studente → gli studenti","the student → the students","8. Articles",-1],["l'amico → gli amici","the friend → the friends (m.)","8. Articles",-1],["la scuola → le scuole","the school → the schools","8. Articles",-1],["l'amica → le amiche","the friend → the friends (f.)","8. Articles",-1],["parlare","to speak","9. Present-tense verbs",-1],["parlo (parlare)","I speak","9. Present-tense verbs",-1],["parli (parlare)","you speak","9. Present-tense verbs",-1],["parla (parlare)","he/she speaks","9. Present-tense verbs",-1],["parliamo (parlare)","we speak","9. Present-tense verbs",-1],["parlate (parlare)","you (pl.) speak","9. Present-tense verbs",-1],["parlano (parlare)","they speak","9. Present-tense verbs",-1],["leggere","to read","9. Present-tense verbs",-1],["leggo (leggere)","I read","9. Present-tense verbs",-1],["leggi (leggere)","you read","9. Present-tense verbs",-1],["legge (leggere)","he/she reads","9. Present-tense verbs",-1],["leggiamo (leggere)","we read","9. Present-tense verbs",-1],["leggete (leggere)","you (pl.) read","9. Present-tense verbs",-1],["leggono (leggere)","they read","9. Present-tense verbs",-1],["dormire","to sleep","9. Present-tense verbs",-1],["dormo (dormire)","I sleep","9. Present-tense verbs",-1],["dormi (dormire)","you sleep","9. Present-tense verbs",-1],["dorme (dormire)","he/she sleeps","9. Present-tense verbs",-1],["dormiamo (dormire)","we sleep","9. Present-tense verbs",-1],["dormite (dormire)","you (pl.) sleep","9. Present-tense verbs",-1],["dormono (dormire)","they sleep","9. Present-tense verbs",-1],["abitare","to live","10. Core verbs",-1],["andare","to go","10. Core verbs",-1],["arrivare","to arrive","10. Core verbs",-1],["parlare","to speak","10. Core verbs",-1],["studiare","to study","10. Core verbs",-1],["lavorare","to work","10. Core verbs",-1],["mangiare","to eat","10. Core verbs",-1],["bere","to drink","10. Core verbs",-1],["dormire","to sleep","10. Core verbs",-1],["leggere","to read","10. Core verbs",-1],["scrivere","to write","10. Core verbs",-1],["ascoltare","to listen","10. Core verbs",-1],["guardare","to watch","10. Core verbs",-1],["giocare","to play","10. Core verbs",-1],["fare","to do / make","10. Core verbs",-1],["uscire","to go out","10. Core verbs",-1],["vedere","to see","10. Core verbs",-1],["prendere","to take","10. Core verbs",-1],["incontrare","to meet","10. Core verbs",-1],["visitare","to visit","10. Core verbs",-1],["imparare","to learn","10. Core verbs",-1],["capire","to understand","10. Core verbs",-1],["finire","to finish","10. Core verbs",-1],["vado (andare)","I go","10. Core verbs",-1],["vai (andare)","you go","10. Core verbs",-1],["va (andare)","he/she goes","10. Core verbs",-1],["andiamo (andare)","we go","10. Core verbs",-1],["andate (andare)","you (pl.) go","10. Core verbs",-1],["vanno (andare)","they go","10. Core verbs",-1],["faccio (fare)","I do / make","10. Core verbs",-1],["fai (fare)","you do / make","10. Core verbs",-1],["fa (fare)","he/she does / makes","10. Core verbs",-1],["facciamo (fare)","we do / make","10. Core verbs",-1],["fate (fare)","you (pl.) do / make","10. Core verbs",-1],["fanno (fare)","they do / make","10. Core verbs",-1],["fare i compiti","to do homework","10. Core verbs",-1],["fare sport","to do sport","10. Core verbs",-1],["fare colazione","to have breakfast","10. Core verbs",-1],["fare una passeggiata","to go for a walk","10. Core verbs",-1],["volere","want","11. Modal verbs",-1],["voglio (volere)","I want","11. Modal verbs",-1],["vuoi (volere)","you want","11. Modal verbs",-1],["vuole (volere)","he/she wants","11. Modal verbs",-1],["vogliamo (volere)","we want","11. Modal verbs",-1],["volete (volere)","you (pl.) want","11. Modal verbs",-1],["vogliono (volere)","they want","11. Modal verbs",-1],["potere","can","11. Modal verbs",-1],["posso (potere)","I can","11. Modal verbs",-1],["puoi (potere)","you can","11. Modal verbs",-1],["può (potere)","he/she can","11. Modal verbs",-1],["possiamo (potere)","we can","11. Modal verbs",-1],["potete (potere)","you (pl.) can","11. Modal verbs",-1],["possono (potere)","they can","11. Modal verbs",-1],["dovere","must","11. Modal verbs",-1],["devo (dovere)","I must","11. Modal verbs",-1],["devi (dovere)","you must","11. Modal verbs",-1],["deve (dovere)","he/she must","11. Modal verbs",-1],["dobbiamo (dovere)","we must","11. Modal verbs",-1],["dovete (dovere)","you (pl.) must","11. Modal verbs",-1],["devono (dovere)","they must","11. Modal verbs",-1],["Devo studiare","I have to study","11. Modal verbs",-1],["Posso uscire?","Can I go out?","11. Modal verbs",-1],["Vorrei…","I would like…","11. Modal verbs",-1],["Puoi aiutarmi?","Can you help me?","11. Modal verbs",-1],["Devo fare i compiti.","I have to do my homework.","11. Modal verbs",-1],["Mi piace il cinema.","I like the cinema.","12. Piacere and preferire",-1],["Mi piacciono i libri.","I like books.","12. Piacere and preferire",-1],["preferire","to prefer","12. Piacere and preferire",-1],["preferisco (preferire)","I prefer","12. Piacere and preferire",-1],["preferisci (preferire)","you prefer","12. Piacere and preferire",-1],["preferisce (preferire)","he/she prefers","12. Piacere and preferire",-1],["preferiamo (preferire)","we prefer","12. Piacere and preferire",-1],["preferite (preferire)","you (pl.) prefer","12. Piacere and preferire",-1],["preferiscono (preferire)","they prefer","12. Piacere and preferire",-1],["Preferisco il cinema al teatro.","I prefer cinema to theatre.","12. Piacere and preferire",-1],["parlo","I speak / I am speaking","13. Tense map",-1],["ho parlato","I spoke / I have spoken","13. Tense map",-1],["parlavo","I used to speak / was speaking","13. Tense map",-1],["parlerò","I will speak","13. Tense map",-1],["parlerei","I would speak","13. Tense map",-1],["vado","I go","13. Tense map",-1],["sono andato/a","I went","13. Tense map",-1],["andavo","I used to go","13. Tense map",-1],["andrò","I will go","13. Tense map",-1],["andrei","I would go","13. Tense map",-1],["Domani vado a Roma.","Tomorrow I'm going to Rome.","13. Tense map",-1],["fare → fatto","done/made","14. Completed past: passato prossimo",-1],["leggere → letto","read","14. Completed past: passato prossimo",-1],["scrivere → scritto","written","14. Completed past: passato prossimo",-1],["vedere → visto","seen","14. Completed past: passato prossimo",-1],["prendere → preso","taken","14. Completed past: passato prossimo",-1],["dire → detto","said","14. Completed past: passato prossimo",-1],["bere → bevuto","drunk","14. Completed past: passato prossimo",-1],["Marco è andato.","Marco went. (m. sg.)","14. Completed past: passato prossimo",-1],["Sofia è andata.","Sofia went. (f. sg.)","14. Completed past: passato prossimo",-1],["I ragazzi sono andati.","The boys went. (m. pl.)","14. Completed past: passato prossimo",-1],["Le ragazze sono andate.","The girls went. (f. pl.)","14. Completed past: passato prossimo",-1],["parlavo","I used to speak / was speaking","15. Imperfect, future and conditional",-1],["giocavo","I used to play","15. Imperfect, future and conditional",-1],["avevo","I had / was … years old","15. Imperfect, future and conditional",-1],["ero","I was","15. Imperfect, future and conditional",-1],["Da piccolo giocavo a calcio.","As a child I used to play football.","15. Imperfect, future and conditional",-1],["Studiavo quando hai telefonato.","I was studying when you called.","15. Imperfect, future and conditional",-1],["parlerò","I will speak","15. Imperfect, future and conditional",-1],["studieremo","we will study","15. Imperfect, future and conditional",-1],["sarà","it will be","15. Imperfect, future and conditional",-1],["andrò","I will go","15. Imperfect, future and conditional",-1],["farò","I will do","15. Imperfect, future and conditional",-1],["parlerei","I would speak","15. Imperfect, future and conditional",-1],["andrei","I would go","15. Imperfect, future and conditional",-1],["vorrei","I would like","15. Imperfect, future and conditional",-1],["potrei","I could","15. Imperfect, future and conditional",-1],["dovrei","I should","15. Imperfect, future and conditional",-1],["zero","0","16. Numbers",-1],["uno","1","16. Numbers",-1],["due","2","16. Numbers",-1],["tre","3","16. Numbers",-1],["quattro","4","16. Numbers",-1],["cinque","5","16. Numbers",-1],["sei","6","16. Numbers",-1],["sette","7","16. Numbers",-1],["otto","8","16. Numbers",-1],["nove","9","16. Numbers",-1],["dieci","10","16. Numbers",-1],["undici","11","16. Numbers",-1],["dodici","12","16. Numbers",-1],["tredici","13","16. Numbers",-1],["quattordici","14","16. Numbers",-1],["quindici","15","16. Numbers",-1],["sedici","16","16. Numbers",-1],["diciassette","17","16. Numbers",-1],["diciotto","18","16. Numbers",-1],["diciannove","19","16. Numbers",-1],["venti","20","16. Numbers",-1],["trenta","30","16. Numbers",-1],["quaranta","40","16. Numbers",-1],["cinquanta","50","16. Numbers",-1],["sessanta","60","16. Numbers",-1],["settanta","70","16. Numbers",-1],["ottanta","80","16. Numbers",-1],["novanta","90","16. Numbers",-1],["cento","100","16. Numbers",-1],["mille","1000","16. Numbers",-1],["ventuno","21","16. Numbers",-1],["trentacinque","35","16. Numbers",-1],["novantanove","99","16. Numbers",-1],["primo","first","16. Numbers",-1],["secondo","second","16. Numbers",-1],["terzo","third","16. Numbers",-1],["quarto","fourth","16. Numbers",-1],["quinto","fifth","16. Numbers",-1],["lunedì","Monday","17. Days, months and dates",-1],["martedì","Tuesday","17. Days, months and dates",-1],["mercoledì","Wednesday","17. Days, months and dates",-1],["giovedì","Thursday","17. Days, months and dates",-1],["venerdì","Friday","17. Days, months and dates",-1],["sabato","Saturday","17. Days, months and dates",-1],["domenica","Sunday","17. Days, months and dates",-1],["gennaio","January","17. Days, months and dates",-1],["febbraio","February","17. Days, months and dates",-1],["marzo","March","17. Days, months and dates",-1],["aprile","April","17. Days, months and dates",-1],["maggio","May","17. Days, months and dates",-1],["giugno","June","17. Days, months and dates",-1],["luglio","July","17. Days, months and dates",-1],["agosto","August","17. Days, months and dates",-1],["settembre","September","17. Days, months and dates",-1],["ottobre","October","17. Days, months and dates",-1],["novembre","November","17. Days, months and dates",-1],["dicembre","December","17. Days, months and dates",-1],["Oggi è il venti luglio.","Today is 20 July.","17. Days, months and dates",-1],["il primo agosto","the first of August","17. Days, months and dates",-1],["Che giorno è oggi?","What day is it?","17. Days, months and dates",-1],["Qual è la data di oggi?","What is today's date?","17. Days, months and dates",-1],["Quando è il tuo compleanno?","When is your birthday?","17. Days, months and dates",-1],["Che ora è?","What time is it?","18. Time",-1],["È l'una.","It is one o'clock.","18. Time",-1],["Sono le due.","It is two o'clock.","18. Time",-1],["Sono le tre e cinque.","It is 3:05.","18. Time",-1],["Sono le quattro e un quarto.","It is 4:15.","18. Time",-1],["Sono le cinque e mezza.","It is 5:30.","18. Time",-1],["Sono le sei meno un quarto.","It is 5:45.","18. Time",-1],["A che ora…?","At what time…?","18. Time",-1],["alle otto","at eight","18. Time",-1],["a mezzogiorno","at midday","18. Time",-1],["a mezzanotte","at midnight","18. Time",-1],["la madre / la mamma","mother / mum","19. Family and people",-1],["il padre / il papà","father / dad","19. Family and people",-1],["i genitori","parents","19. Family and people",-1],["il fratello","brother","19. Family and people",-1],["la sorella","sister","19. Family and people",-1],["il figlio / la figlia","son / daughter","19. Family and people",-1],["il nonno / la nonna","grandfather / grandmother","19. Family and people",-1],["lo zio / la zia","uncle / aunt","19. Family and people",-1],["il cugino / la cugina","cousin","19. Family and people",-1],["l'amico / l'amica","friend","19. Family and people",-1],["alto / basso","tall / short","19. Family and people",-1],["giovane / anziano","young / elderly","19. Family and people",-1],["simpatico","likeable","19. Family and people",-1],["gentile","kind","19. Family and people",-1],["divertente","amusing","19. Family and people",-1],["intelligente","intelligent","19. Family and people",-1],["socievole","sociable","19. Family and people",-1],["tranquillo","calm","19. Family and people",-1],["severo","strict","19. Family and people",-1],["la scuola","school","20. School",-1],["il collegio","boarding school","20. School",-1],["la classe","class","20. School",-1],["la materia","subject","20. School",-1],["la lezione","lesson","20. School",-1],["l'insegnante","teacher","20. School",-1],["i compiti","homework","20. School",-1],["l'esame","exam","20. School",-1],["il voto","mark / grade","20. School",-1],["l'orario","timetable","20. School",-1],["la pausa","break","20. School",-1],["la mensa","canteen","20. School",-1],["l'italiano","Italian","20. School",-1],["l'inglese","English","20. School",-1],["il francese","French","20. School",-1],["il tedesco","German","20. School",-1],["la matematica","maths","20. School",-1],["la storia","history","20. School",-1],["la geografia","geography","20. School",-1],["le scienze","science","20. School",-1],["l'arte","art","20. School",-1],["la musica","music","20. School",-1],["l'informatica","IT","20. School",-1],["l'educazione fisica","PE","20. School",-1],["La mia materia preferita è…","My favourite subject is…","20. School",-1],["Trovo la matematica difficile.","I find maths difficult.","20. School",-1],["Mi piace la storia perché è interessante.","I like history because it's interesting.","20. School",-1],["svegliarsi","to wake up","21. Daily routine",-1],["alzarsi","to get up","21. Daily routine",-1],["lavarsi","to wash","21. Daily routine",-1],["vestirsi","to get dressed","21. Daily routine",-1],["fare colazione","to have breakfast","21. Daily routine",-1],["andare a scuola","to go to school","21. Daily routine",-1],["cominciare","to begin","21. Daily routine",-1],["finire","to finish","21. Daily routine",-1],["tornare a casa","to return home","21. Daily routine",-1],["cenare","to have dinner","21. Daily routine",-1],["andare a letto","to go to bed","21. Daily routine",-1],["Prima mi sveglio, poi faccio colazione. Dopo vado a scuola. La sera faccio i compiti e infine vado a letto.","First I wake up, then I have breakfast. Afterwards I go to school. In the evening I do homework and finally I go to bed.","21. Daily routine",-1],["la colazione","breakfast","22. Food and drink",-1],["il pranzo","lunch","22. Food and drink",-1],["la cena","dinner","22. Food and drink",-1],["il pane","bread","22. Food and drink",-1],["la pasta","pasta","22. Food and drink",-1],["il riso","rice","22. Food and drink",-1],["la carne","meat","22. Food and drink",-1],["il pesce","fish","22. Food and drink",-1],["la verdura","vegetables","22. Food and drink",-1],["la frutta","fruit","22. Food and drink",-1],["il formaggio","cheese","22. Food and drink",-1],["la pizza","pizza","22. Food and drink",-1],["l'acqua","water","22. Food and drink",-1],["il latte","milk","22. Food and drink",-1],["il succo","juice","22. Food and drink",-1],["il caffè","coffee","22. Food and drink",-1],["Vorrei una pizza, per favore.","I would like a pizza, please.","22. Food and drink",-1],["Che cosa vuoi mangiare?","What do you want to eat?","22. Food and drink",-1],["Prendo la pasta.","I'll have the pasta.","22. Food and drink",-1],["È delizioso.","It's delicious.","22. Food and drink",-1],["Non mangio carne.","I don't eat meat.","22. Food and drink",-1],["Il conto, per favore.","The bill, please.","22. Food and drink",-1],["la casa","house / home","23. Home and places",-1],["la camera","bedroom","23. Home and places",-1],["la cucina","kitchen","23. Home and places",-1],["il bagno","bathroom","23. Home and places",-1],["il soggiorno","living room","23. Home and places",-1],["il giardino","garden","23. Home and places",-1],["il centro","town centre","23. Home and places",-1],["il negozio","shop","23. Home and places",-1],["il supermercato","supermarket","23. Home and places",-1],["la stazione","station","23. Home and places",-1],["il ristorante","restaurant","23. Home and places",-1],["il cinema","cinema","23. Home and places",-1],["il parco","park","23. Home and places",-1],["la biblioteca","library","23. Home and places",-1],["l'ospedale","hospital","23. Home and places",-1],["la chiesa","church","23. Home and places",-1],["a destra","on the right","23. Home and places",-1],["a sinistra","on the left","23. Home and places",-1],["dritto","straight ahead","23. Home and places",-1],["vicino a","near","23. Home and places",-1],["lontano da","far from","23. Home and places",-1],["davanti a","in front of","23. Home and places",-1],["dietro","behind","23. Home and places",-1],["a","to / at","24. Prepositions",-1],["di","of / from","24. Prepositions",-1],["da","from / by / at someone's house","24. Prepositions",-1],["in","in / to","24. Prepositions",-1],["con","with","24. Prepositions",-1],["su","on / about","24. Prepositions",-1],["per","for / through","24. Prepositions",-1],["tra / fra","between / in","24. Prepositions",-1],["a casa","at home","24. Prepositions",-1],["a scuola","at school","24. Prepositions",-1],["in classe","in class","24. Prepositions",-1],["in centro","in the town centre","24. Prepositions",-1],["giocare a calcio","to play football","24. Prepositions",-1],["andare al cinema","to go to the cinema","24. Prepositions",-1],["parlare di musica","to talk about music","24. Prepositions",-1],["al cinema","at/to the cinema","24. Prepositions",-1],["alla stazione","at/to the station","24. Prepositions",-1],["nel centro","in the centre","24. Prepositions",-1],["nella scuola","in the school","24. Prepositions",-1],["interessante","interesting","25. Opinions and feelings",-1],["divertente","enjoyable","25. Opinions and feelings",-1],["noioso","boring","25. Opinions and feelings",-1],["facile","easy","25. Opinions and feelings",-1],["difficile","difficult","25. Opinions and feelings",-1],["utile","useful","25. Opinions and feelings",-1],["inutile","useless","25. Opinions and feelings",-1],["rilassante","relaxing","25. Opinions and feelings",-1],["stressante","stressful","25. Opinions and feelings",-1],["emozionante","exciting","25. Opinions and feelings",-1],["importante","important","25. Opinions and feelings",-1],["necessario","necessary","25. Opinions and feelings",-1],["fantastico","fantastic","25. Opinions and feelings",-1],["terribile","terrible","25. Opinions and feelings",-1],["contento","happy","25. Opinions and feelings",-1],["stanco","tired","25. Opinions and feelings",-1],["preoccupato","worried","25. Opinions and feelings",-1],["Secondo me…","In my opinion…","25. Opinions and feelings",-1],["Penso che…","I think that…","25. Opinions and feelings",-1],["Credo che…","I believe that…","25. Opinions and feelings",-1],["Mi piace… perché…","I like… because…","25. Opinions and feelings",-1],["La cosa migliore è…","The best thing is…","25. Opinions and feelings",-1],["Il problema è che…","The problem is that…","25. Opinions and feelings",-1],["Anche se…","Even though…","25. Opinions and feelings",-1],["Quando ho tempo…","When I have time…","25. Opinions and feelings",-1],["Se posso…","If I can…","25. Opinions and feelings",-1],["Studio italiano a casa. Mi piace perché è interessante e utile. Però la grammatica è a volte difficile. Ieri ho imparato nuovi verbi e domani studierò i numeri.","I study Italian at home. I like it because it's interesting and useful. However the grammar is sometimes difficult. Yesterday I learned new verbs and tomorrow I will study numbers.","25. Opinions and feelings",-1],["chiamarsi","to be called","26. Reflexive verbs",-1],["mi chiamo (chiamarsi)","I am called / my name is","26. Reflexive verbs",-1],["ti chiami (chiamarsi)","you are called / your name is","26. Reflexive verbs",-1],["si chiama (chiamarsi)","he/she is called / his/her name is","26. Reflexive verbs",-1],["ci chiamiamo (chiamarsi)","we are called / our names are","26. Reflexive verbs",-1],["vi chiamate (chiamarsi)","you (pl.) are called / your names are","26. Reflexive verbs",-1],["si chiamano (chiamarsi)","they are called / their names are","26. Reflexive verbs",-1],["svegliarsi","to wake up","26. Reflexive verbs",-1],["alzarsi","to get up","26. Reflexive verbs",-1],["lavarsi","to wash oneself","26. Reflexive verbs",-1],["vestirsi","to get dressed","26. Reflexive verbs",-1],["addormentarsi","to fall asleep","26. Reflexive verbs",-1],["sentirsi","to feel","26. Reflexive verbs",-1],["divertirsi","to have fun","26. Reflexive verbs",-1],["annoiarsi","to get bored","26. Reflexive verbs",-1],["arrabbiarsi","to get angry","26. Reflexive verbs",-1],["prepararsi","to get ready","26. Reflexive verbs",-1],["truccarsi","to put on makeup","26. Reflexive verbs",-1],["pettinarsi","to comb one's hair","26. Reflexive verbs",-1],["riposarsi","to rest","26. Reflexive verbs",-1],["Mi sono svegliato/a alle sette.","I woke up at seven.","26. Reflexive verbs",-1],["Si sono divertiti alla festa.","They had fun at the party.","26. Reflexive verbs",-1],["Vedo il libro. → Lo vedo.","I see the book. → I see it.","27. Direct object pronouns",-1],["Mangio la mela. → La mangio.","I eat the apple. → I eat it.","27. Direct object pronouns",-1],["Voglio vederlo. / Lo voglio vedere.","I want to see it.","27. Direct object pronouns",-1],["Gli scrivo una lettera.","I write him a letter.","28. Indirect object pronouns",-1],["Le telefono domani.","I'll call her tomorrow.","28. Indirect object pronouns",-1],["Mi piace il cinema.","I like the cinema. (lit. \"the cinema is pleasing to me\")","28. Indirect object pronouns",-1],["Quanti libri hai? Ne ho tre.","How many books do you have? I have three of them.","29. Ne and ci",-1],["Vai a Roma? Sì, ci vado.","Are you going to Rome? Yes, I'm going there.","29. Ne and ci",-1],["Non ci penso mai.","I never think about it.","29. Ne and ci",-1],["Non parlare!","Don't speak!","30. Imperative (informal commands)",-1],["Marco è più alto di Luca.","Marco is taller than Luca.","31. Comparatives and superlatives",-1],["È meno interessante di prima.","It's less interesting than before.","31. Comparatives and superlatives",-1],["È bravo come te.","He's as good as you.","31. Comparatives and superlatives",-1],["È il più alto della classe.","He's the tallest in the class.","31. Comparatives and superlatives",-1],["bellissimo","very beautiful","31. Comparatives and superlatives",-1],["buonissima","very good","31. Comparatives and superlatives",-1],["Ieri sono andato al cinema.","Yesterday I went to the cinema.","32. Passato prossimo vs imperfetto",-1],["Da piccolo giocavo spesso a calcio.","As a child I often used to play football.","32. Passato prossimo vs imperfetto",-1],["Quando ero giovane, abitavo a Milano.","When I was young, I lived in Milan.","32. Passato prossimo vs imperfetto",-1],["Mentre guardavo la TV, è arrivato Marco.","While I was watching TV, Marco arrived.","32. Passato prossimo vs imperfetto",-1],["dire","to say","33. More irregular present-tense verbs",-1],["dico (dire)","I say","33. More irregular present-tense verbs",-1],["dici (dire)","you say","33. More irregular present-tense verbs",-1],["dice (dire)","he/she says","33. More irregular present-tense verbs",-1],["diciamo (dire)","we say","33. More irregular present-tense verbs",-1],["dite (dire)","you (pl.) say","33. More irregular present-tense verbs",-1],["dicono (dire)","they say","33. More irregular present-tense verbs",-1],["uscire","to go out","33. More irregular present-tense verbs",-1],["esco (uscire)","I go out","33. More irregular present-tense verbs",-1],["esci (uscire)","you go out","33. More irregular present-tense verbs",-1],["esce (uscire)","he/she goes out","33. More irregular present-tense verbs",-1],["usciamo (uscire)","we go out","33. More irregular present-tense verbs",-1],["uscite (uscire)","you (pl.) go out","33. More irregular present-tense verbs",-1],["escono (uscire)","they go out","33. More irregular present-tense verbs",-1],["venire","to come","33. More irregular present-tense verbs",-1],["vengo (venire)","I come","33. More irregular present-tense verbs",-1],["vieni (venire)","you come","33. More irregular present-tense verbs",-1],["viene (venire)","he/she comes","33. More irregular present-tense verbs",-1],["veniamo (venire)","we come","33. More irregular present-tense verbs",-1],["venite (venire)","you (pl.) come","33. More irregular present-tense verbs",-1],["vengono (venire)","they come","33. More irregular present-tense verbs",-1],["dare","to give","33. More irregular present-tense verbs",-1],["do (dare)","I give","33. More irregular present-tense verbs",-1],["dai (dare)","you give","33. More irregular present-tense verbs",-1],["dà (dare)","he/she gives","33. More irregular present-tense verbs",-1],["diamo (dare)","we give","33. More irregular present-tense verbs",-1],["date (dare)","you (pl.) give","33. More irregular present-tense verbs",-1],["danno (dare)","they give","33. More irregular present-tense verbs",-1],["stare","to stay","33. More irregular present-tense verbs",-1],["sto (stare)","I stay","33. More irregular present-tense verbs",-1],["stai (stare)","you stay","33. More irregular present-tense verbs",-1],["sta (stare)","he/she stays","33. More irregular present-tense verbs",-1],["stiamo (stare)","we stay","33. More irregular present-tense verbs",-1],["state (stare)","you (pl.) stay","33. More irregular present-tense verbs",-1],["stanno (stare)","they stay","33. More irregular present-tense verbs",-1],["sapere","to know a fact","33. More irregular present-tense verbs",-1],["so (sapere)","I know","33. More irregular present-tense verbs",-1],["sai (sapere)","you know","33. More irregular present-tense verbs",-1],["sa (sapere)","he/she knows","33. More irregular present-tense verbs",-1],["sappiamo (sapere)","we know","33. More irregular present-tense verbs",-1],["sapete (sapere)","you (pl.) know","33. More irregular present-tense verbs",-1],["sanno (sapere)","they know","33. More irregular present-tense verbs",-1],["conoscere","to know a person/place","33. More irregular present-tense verbs",-1],["conosco (conoscere)","I know","33. More irregular present-tense verbs",-1],["conosci (conoscere)","you know","33. More irregular present-tense verbs",-1],["conosce (conoscere)","he/she knows","33. More irregular present-tense verbs",-1],["conosciamo (conoscere)","we know","33. More irregular present-tense verbs",-1],["conoscete (conoscere)","you (pl.) know","33. More irregular present-tense verbs",-1],["conoscono (conoscere)","they know","33. More irregular present-tense verbs",-1],["Che tempo fa?","What's the weather like?","34. Weather",-1],["Fa caldo.","It's hot.","34. Weather",-1],["Fa freddo.","It's cold.","34. Weather",-1],["C'è il sole.","It's sunny.","34. Weather",-1],["Piove.","It's raining.","34. Weather",-1],["Nevica.","It's snowing.","34. Weather",-1],["C'è vento.","It's windy.","34. Weather",-1],["È nuvoloso.","It's cloudy.","34. Weather",-1],["la primavera","spring","34. Weather",-1],["l'estate","summer","34. Weather",-1],["l'autunno","autumn","34. Weather",-1],["l'inverno","winter","34. Weather",-1],["i vestiti","clothes","35. Clothes and shopping",-1],["la maglietta","t-shirt","35. Clothes and shopping",-1],["i pantaloni","trousers","35. Clothes and shopping",-1],["la gonna","skirt","35. Clothes and shopping",-1],["il vestito","dress","35. Clothes and shopping",-1],["le scarpe","shoes","35. Clothes and shopping",-1],["la giacca","jacket","35. Clothes and shopping",-1],["Quanto costa?","How much does it cost?","35. Clothes and shopping",-1],["Vorrei comprare…","I would like to buy…","35. Clothes and shopping",-1],["Di che colore?","What colour?","35. Clothes and shopping",-1],["rosso","red","35. Clothes and shopping",-1],["blu","blue","35. Clothes and shopping",-1],["verde","green","35. Clothes and shopping",-1],["giallo","yellow","35. Clothes and shopping",-1],["nero","black","35. Clothes and shopping",-1],["bianco","white","35. Clothes and shopping",-1],["grigio","gray","35. Clothes and shopping",-1],["marrone","brown","35. Clothes and shopping",-1],["viola","purple","35. Clothes and shopping",-1],["arancione","orange","35. Clothes and shopping",-1],["il treno","train","36. Travel and transport",-1],["l'autobus","bus","36. Travel and transport",-1],["la macchina","car","36. Travel and transport",-1],["l'aereo","plane","36. Travel and transport",-1],["la bicicletta","bicycle","36. Travel and transport",-1],["a piedi","on foot","36. Travel and transport",-1],["la stazione","station","36. Travel and transport",-1],["l'aeroporto","airport","36. Travel and transport",-1],["il biglietto","ticket","36. Travel and transport",-1],["Come si va a…?","How do you get to…?","36. Travel and transport",-1],["Un biglietto per…, per favore.","A ticket to…, please.","36. Travel and transport",-1],["partire","to leave","36. Travel and transport",-1],["arrivare","to arrive","36. Travel and transport",-1],["viaggiare","to travel","36. Travel and transport",-1],["la testa","head","37. Body and health",-1],["il braccio","arm","37. Body and health",-1],["la mano","hand","37. Body and health",-1],["la gamba","leg","37. Body and health",-1],["il piede","foot","37. Body and health",-1],["lo stomaco","stomach","37. Body and health",-1],["Mi fa male la testa.","My head hurts.","37. Body and health",-1],["Sto male.","I feel unwell.","37. Body and health",-1],["Sto bene.","I feel well.","37. Body and health",-1],["il dottore","doctor","37. Body and health",-1],["la farmacia","pharmacy","37. Body and health",-1],["la medicina","medicine","37. Body and health",-1],["il calcio","football","38. Hobbies and sports",-1],["il tennis","tennis","38. Hobbies and sports",-1],["il nuoto","swimming","38. Hobbies and sports",-1],["la pallacanestro","basketball","38. Hobbies and sports",-1],["suonare uno strumento","to play an instrument","38. Hobbies and sports",-1],["dipingere","to paint","38. Hobbies and sports",-1],["disegnare","to draw","38. Hobbies and sports",-1],["ballare","to dance","38. Hobbies and sports",-1],["cantare","to sing","38. Hobbies and sports",-1],["cucinare","to cook","38. Hobbies and sports",-1],["il telefono","phone","39. Technology and communication",-1],["il computer","computer","39. Technology and communication",-1],["internet","internet","39. Technology and communication",-1],["il messaggio","message","39. Technology and communication",-1],["l'email","email","39. Technology and communication",-1],["i social media","social media","39. Technology and communication",-1],["il sito web","website","39. Technology and communication",-1],["mandare un messaggio","to send a message","39. Technology and communication",-1],["chiamare","to call","39. Technology and communication",-1],["rispondere","to reply","39. Technology and communication",-1],["scaricare","to download","39. Technology and communication",-1],["caricare","to upload","39. Technology and communication",-1],["infatti","in fact","40. Connectives for fluency",-1],["inoltre","furthermore","40. Connectives for fluency",-1],["tuttavia / comunque","however / anyway","40. Connectives for fluency",-1],["cioè","that is, meaning","40. Connectives for fluency",-1],["insomma","in short","40. Connectives for fluency",-1],["d'altra parte","on the other hand","40. Connectives for fluency",-1],["alla fine","in the end","40. Connectives for fluency",-1]];
+const DECK={"name": "Riverbank", "fwd": "Italian → English", "rev": "English → Italian", "mottos": [["Chi va piano va sano e va lontano.", "Slow and steady wins the race. (lit. who goes slowly goes safely and far)"], ["Roma non fu fatta in un giorno.", "Rome wasn't built in a day."], ["Sbagliando si impara.", "You learn by making mistakes."], ["La pratica vale più della grammatica.", "Practice is worth more than grammar."], ["Chi dorme non piglia pesci.", "The early bird catches the worm. (lit. who sleeps catches no fish)"], ["Poco a poco si va lontano.", "Little by little, you go far."], ["Non c'è due senza tre.", "Bad (or good) things come in threes."], ["Il lupo perde il pelo ma non il vizio.", "Old habits die hard. (lit. the wolf loses its fur but not its vice)"], ["Volere è potere.", "Where there's a will, there's a way. (lit. to want is to be able)"], ["Tutte le strade portano a Roma.", "All roads lead to Rome."]]};
+
+
+/* ======================= FSRS ======================= */
+const P=[0.212,1.2931,2.3065,8.2956,6.4133,0.8334,3.0194,0.001,1.8722,0.1666,0.796,
+         1.4835,0.0614,0.2629,1.6483,0.6014,1.8729,0.5425,0.0912,0.0658,0.1542];
+const DECAY=-P[20], FACTOR=Math.pow(0.9,1/DECAY)-1;
+const MIN=60000, HOUR=3600000, DAY=86400000;
+let ROLL_OVR=null;      // set while normalise() walks a state that carries its own rollover
+const ROLL_H=()=>(ROLL_OVR!=null)?ROLL_OVR:(S&&S.settings&&S.settings.rollover!=null)?S.settings.rollover:4;
+const dayKey=ts=>Math.floor((ts-new Date(ts).getTimezoneOffset()*60000-ROLL_H()*HOUR)/DAY);
+/* The timestamp at which study-day k begins. Two passes settle the timezone
+   offset, which matters only where the rollover straddles a DST change. */
+function dayStart(k){
+  const off=ROLL_H()*HOUR;
+  let t=k*DAY+off;
+  for(let i=0;i<3;i++) t=k*DAY+off+new Date(t).getTimezoneOffset()*60000;
+  return t;
+}
+// the study-day key for a plain Gregorian calendar date -- local noon is
+// safely inside the day regardless of rollover hour, so this reuses dayKey's
+// own rollover-aware bucketing rather than reimplementing it for the calendar
+function dayKeyForDate(y,m,day){ return dayKey(new Date(y,m,day,12,0,0).getTime()); }
+// a Gregorian month as weeks of 7 cells (Sun-Sat), padded with inMonth:false
+// cells so every week is a full row; pure date math, no S or DOM access
+function monthMatrix(y,m){
+  const first=new Date(y,m,1), start=first.getDay(),
+        days=new Date(y,m+1,0).getDate(), prevDays=new Date(y,m,0).getDate();
+  const cells=[];
+  for(let i=0;i<start;i++) cells.push({y,m:m-1,d:prevDays-start+1+i,inMonth:false});
+  for(let d=1;d<=days;d++) cells.push({y,m,d,inMonth:true});
+  while(cells.length%7!==0) cells.push({y,m:m+1,d:cells.length-start-days+1,inMonth:false});
+  const weeks=[];
+  for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
+  return weeks;
+}
+const LEARN_STEPS=[1*MIN,10*MIN], RELEARN_STEPS=[10*MIN];
+const S_MIN=0.001;
+const AGAIN=1, HARD=2, GOOD=3, EASY=4;
+const clampD=d=>Math.min(Math.max(d,1),10);
+const clampS=s=>Math.max(s,S_MIN);
+const initS=r=>clampS(P[r-1]);
+const initD=(r,clamp)=>{const d=P[4]-Math.exp(P[5]*(r-1))+1; return clamp?clampD(d):d;};
+
+function retrievability(c,now){
+  if(c.s==null||c.last==null) return 0;
+  const el=Math.max((now-c.last)/DAY,0);
+  return Math.pow(1+FACTOR*el/c.s, DECAY);
+}
+function nextInterval(s,st){
+  let d=(s/FACTOR)*(Math.pow(st.retention,1/DECAY)-1);
+  d=Math.round(d);
+  return Math.min(Math.max(d,1),st.maxIvl);
+}
+function shortTermS(s,r){
+  let inc=Math.exp(P[17]*(r-3+P[18]))*Math.pow(s,-P[19]);
+  if(r===GOOD||r===EASY) inc=Math.max(inc,1);
+  return clampS(s*inc);
+}
+function nextD(d,r){
+  const a1=initD(EASY,false);
+  const delta=-(P[6]*(r-3));
+  const a2=d+(10-d)*delta/9;
+  return clampD(P[7]*a1+(1-P[7])*a2);
+}
+function forgetS(d,s,R){
+  const long=P[11]*Math.pow(d,-P[12])*(Math.pow(s+1,P[13])-1)*Math.exp((1-R)*P[14]);
+  const short=s/Math.exp(P[17]*P[18]);
+  return Math.min(long,short);
+}
+function recallS(d,s,R,r){
+  const hard=(r===HARD)?P[15]:1, easy=(r===EASY)?P[16]:1;
+  return s*(1+Math.exp(P[8])*(11-d)*Math.pow(s,-P[9])*(Math.exp((1-R)*P[10])-1)*hard*easy);
+}
+function nextS(d,s,R,r){
+  return clampS(r===AGAIN?forgetS(d,s,R):recallS(d,s,R,r));
+}
+
+// c.st: 'L' learning, 'R' review, 'X' relearning
+function schedule(card,rating,now,st){
+  const c=Object.assign({},card);
+  // study days elapsed, not raw milliseconds: a review at 22:30 and another at
+  // 05:30 the next morning is one day apart, not zero
+  const daysSince=(c.last!=null)?(dayKey(now)-dayKey(c.last)):null;
+  let ivl=0;
+  const toReview=()=>{c.st='R';c.step=null;ivl=nextInterval(c.s,st)*DAY;};
+  const steps=(c.st==='L')?LEARN_STEPS:RELEARN_STEPS;
+
+  if(c.st==='L'||c.st==='X'){
+    if(c.s==null||c.d==null){ c.s=initS(rating); c.d=initD(rating,true); }
+    else if(daysSince!=null&&daysSince<1){ c.s=shortTermS(c.s,rating); c.d=nextD(c.d,rating); }
+    else { c.s=nextS(c.d,c.s,retrievability(c,now),rating); c.d=nextD(c.d,rating); }
+    if(steps.length===0||(c.step>=steps.length&&rating!==AGAIN)) toReview();
+    else if(rating===AGAIN){ c.step=0; ivl=steps[0]; }
+    else if(rating===GOOD){
+      if(c.step+1===steps.length) toReview();
+      else { c.step+=1; ivl=steps[c.step]; }
+    }
+    else if(rating===HARD){ c.step=Math.min(c.step|0,steps.length-1); ivl=steps[c.step]; }
+    else toReview();                                    // Easy
+  } else {                                              // Review
+    if(daysSince!=null&&daysSince<1) c.s=shortTermS(c.s,rating);
+    else c.s=nextS(c.d,c.s,retrievability(c,now),rating);
+    c.d=nextD(c.d,rating);
+    if(rating===AGAIN){
+      c.lapses=(c.lapses||0)+1;
+      if(RELEARN_STEPS.length===0) ivl=nextInterval(c.s,st)*DAY;
+      else { c.st='X'; c.step=0; ivl=RELEARN_STEPS[0]; }
+    } else ivl=nextInterval(c.s,st)*DAY;
+  }
+  // ---- drill layer: same-day repetition and consecutive-day requirement ----
+  const dk=dayKey(now);
+  const drillN=st.drillDays|0;
+  const inDrill=(drillN>0 && (c.streak|0)<drillN) || card.st==='L' || card.st==='X';
+  if(rating===AGAIN){ c.streak=0; }
+  else if(c.lastDay!==dk){ c.streak=(c.streak|0)+1; }
+  c.lastDay=dk;
+  if(st.requireEasy && inDrill && (rating===GOOD||rating===HARD)){
+    ivl=10*MIN;                                   // Good is not enough to clear the day
+    c.st=card.st; c.step=card.step; c.streak=card.streak|0; c.lastDay=card.lastDay;
+  } else if(drillN>0 && (c.streak|0)<drillN && rating!==AGAIN && ivl>DAY){
+    ivl=DAY;                                      // hold at one day until the run is complete
+  }
+  c.last=now; c.due=now+ivl; c.reps=(c.reps||0)+1;
+  // ---- weekly review day: nudge mid-range intervals onto the chosen weekday ----
+  if(st.reviewDay>=0 && ivl>=3*DAY && ivl<=21*DAY){
+    const d0=new Date(c.due); let delta=(st.reviewDay-d0.getDay());
+    if(delta>3) delta-=7; if(delta<-3) delta+=7;
+    if(c.due+delta*DAY>now+2*DAY) c.due+=delta*DAY;
+  }
+  // ---- review cards are due by day, not by clock ----
+  // Everything scheduled for a given study day unlocks together at the rollover,
+  // so a batch studied at 14:00 is not held back until 14:00 the next day.
+  // Learning steps are left on minutes.
+  if(c.st==='R' && c.due-now>=DAY){
+    const ivlDays=Math.max(Math.round((c.due-now)/DAY),1);
+    c.due=dayStart(dayKey(now)+ivlDays);
+  }
+  return {card:c, ivl:c.due-now};
+}
+
+/* ======================= data model ======================= */
+const KEY='riverbank.italian.v1';                     // a study day starts at the rollover hour in settings
+const DECK_ID='italian';                              // sent alongside feedback so it can be traced to a deck
+const today=()=>dayKey(Date.now());
+
+const norm=s=>s.trim().toLowerCase().replace(/\s+/g,' ');
+
+// build the two card sets from DATA: rows are [term, gloss, section, seed]
+const CARDS=[];               // {id, dir, idx:[entry indices], q, a, sec}
+(function build(){
+  DATA.forEach((row,i)=>{
+    CARDS.push({id:'L'+i, dir:'L', idx:[i], q:row[0], a:row[1], sec:row[2], seed:row[3]});
+  });
+  const groups={};
+  DATA.forEach((row,i)=>{ (groups[norm(row[1])] ||= []).push(i); });
+  Object.keys(groups).forEach(k=>{
+    const g=groups[k];
+    CARDS.push({id:'E'+g[0], dir:'E', idx:g, q:DATA[g[0]][1],
+                a:g.map(i=>DATA[i][0]), sec:DATA[g[0]][2], seed:-1});
+  });
+})();
+const SECTIONS=[...new Set(DATA.map(r=>r[2]))];
+// audit bucket per card; a merged reverse card takes its weakest member
+const BUCKET_NAME={2:'known',1:'shaky',0:'unseen'};
+CARDS.forEach(c=>{
+  const seeds=c.idx.map(i=>{const v=DATA[i][3]; return (v===2||v===1)?v:0;});
+  c.bucket=BUCKET_NAME[Math.min.apply(null,seeds)];
+});
+const HAS_BUCKETS=CARDS.some(c=>c.bucket!=='unseen');
+const BY_ID={}; CARDS.forEach(c=>BY_ID[c.id]=c);
+const SIBLINGS={};            // entry index -> [card ids]
+CARDS.forEach(c=>c.idx.forEach(i=>(SIBLINGS[i] ||= []).push(c.id)));
+
+const defaults={
+  version:2, created:Date.now(),
+  settings:{useTiming:true, newPerDay:50, retention:0.90, maxIvl:36500, rollover:4, syncCode:'', deviceName:'', knownDays:21, weakFirst:false, requireEasy:true, drillDays:3, reviewDay:-1, gateDays:14},
+  dir:'L', parts:null, buckets:['shaky','unseen'], theme:'light', palette:'vellum', rotate:'off', rotDay:null, rotSeen:[], cards:{}, log:[], days:{}, sinceExport:0, lastExport:null,
+  deck:KEY, lastSync:null, syncedLogLen:null, lastDevice:null
+};
+let S=null;
+
+function freshCard(c){
+  const st={id:c.id, st:'L', step:0, s:null, d:null, due:0, last:null,
+            reps:0, lapses:0, buried:0, streak:0, lastDay:null};
+  if(c.dir==='L'&&(c.seed===1||c.seed===2)){
+    st.st='R'; st.step=null;
+    st.s = c.seed===1 ? 1.0 : Math.max(S.settings.knownDays||21,1);
+    st.d = initD(c.seed===1?AGAIN:GOOD,true);
+    // last/due are stamped at materialisation, not here: freshCard must stay
+    // deterministic so that peek() returns the same answer every call
+  }
+  return st;
+}
+function cardState(id){                       // materialise: use when writing
+  let cs=S.cards[id];
+  if(!cs){
+    cs=S.cards[id]=freshCard(BY_ID[id]);
+    // a seeded card needs a review date, or the model reads it as fully
+    // forgotten and over-rewards the first pass
+    if(cs.st==='R'&&cs.s!=null&&cs.last==null){
+      cs.last=Date.now();
+      cs.due=dayStart(dayKey(cs.last)+Math.max(Math.round(cs.s),1));
+    }
+  }
+  return cs;
+}
+function peek(id){                            // read-only: does not write to the store
+  return S.cards[id] || freshCard(BY_ID[id]);
+}
+function previewCard(id){                     // the card exactly as rate() will schedule it:
+  const cs=peek(id);                          // cardState() stamps a seeded card's review date
+  if(cs.st==='R'&&cs.s!=null&&cs.last==null){ // at materialisation, so the preview must too,
+    const c=Object.assign({},cs);             // or the buttons promise years where the true
+    c.last=Date.now();                        // result is a day
+    c.due=dayStart(dayKey(c.last)+Math.max(Math.round(c.s),1));
+    return c;
+  }
+  return cs;
+}
+
+/* ======================= storage ======================= */
+let idb=null;
+function openIDB(){
+  return new Promise(res=>{
+    try{
+      const r=indexedDB.open('vocabula',1);
+      r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+      r.onsuccess=()=>{idb=r.result;res(idb);};
+      r.onerror=()=>res(null);
+    }catch(e){res(null);}
+  });
+}
+function idbPut(v){
+  if(!idb) return;
+  try{ idb.transaction('kv','readwrite').objectStore('kv').put(v,KEY); }catch(e){}
+}
+function idbGet(){
+  return new Promise(res=>{
+    if(!idb) return res(null);
+    try{
+      const r=idb.transaction('kv','readonly').objectStore('kv').get(KEY);
+      r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null);
+    }catch(e){res(null);}
+  });
+}
+let storageOK=true, saveTimer=null;
+function save(){
+  S.lastSave=Date.now();
+  const json=JSON.stringify(S);
+  try{
+    localStorage.setItem(KEY,json);
+    storageOK = localStorage.getItem(KEY)===json;   // read-back check
+  }catch(e){ storageOK=false; }
+  idbPut(S);
+  clearTimeout(saveTimer);
+  if(S.settings.syncCode) saveTimer=setTimeout(()=>pushSync(true),6000);
+  // #homeWarn lives inside scHome, so this is wasted work unless it is on screen --
+  // and save() runs on EVERY rating. With dir 'E' and the gate on, renderWarn()
+  // builds the whole reverse queue and may then walk every card's gate, per rating,
+  // to update a banner you cannot see while studying. renderHome() calls
+  // renderWarn(qE) itself, so the banner is always rebuilt on arriving home.
+  if($('scHome').classList.contains('on')) renderWarn();
+}
+function normalise(o){
+  if(!o||typeof o!=='object') return null;
+  // card ids are the same shape in both decks, so only this stamp can tell them apart
+  if(o.deck&&o.deck!==KEY) return null;
+  const s=Object.assign({},defaults,o);
+  s.deck=KEY;
+  s.settings=Object.assign({},defaults.settings,o.settings||{});
+  s.cards=o.cards&&typeof o.cards==='object'?o.cards:{};
+  s.log=Array.isArray(o.log)?o.log:[];
+  s.days=o.days&&typeof o.days==='object'?o.days:{};
+  // snap with the state's own rollover: during load() the global S is not yet
+  // assigned, and the default hour would drag every due date onto the wrong day
+  ROLL_OVR=(s.settings.rollover!=null)?s.settings.rollover:4;
+  try{
+    for(const k in s.cards){
+      const c=s.cards[k];
+      if(!c||!BY_ID[k]){ delete s.cards[k]; continue; }
+      c.reps|=0; c.lapses|=0; c.buried|=0;
+      if(typeof c.due!=='number') c.due=0;
+      if(c.st!=='L'&&c.st!=='R'&&c.st!=='X') c.st='L';
+      // one-time migration: review cards move onto the day boundary. This only
+      // ever moves a due date earlier within its own day, never to another day.
+      if(c.st==='R'&&c.due>0) c.due=dayStart(dayKey(c.due));
+    }
+  } finally { ROLL_OVR=null; }
+  return s;
+}
+async function load(){
+  await openIDB();
+  let a=null,b=null;
+  try{ a=normalise(JSON.parse(localStorage.getItem(KEY))); }catch(e){}
+  b=normalise(await idbGet());
+  if(a&&b) S=(b.log.length>a.log.length)?b:a;
+  else S=a||b||JSON.parse(JSON.stringify(defaults));
+  if(!a&&!b) save();
+}
+
+/* ======================= queue ======================= */
+function activeParts(){ return (S.parts&&S.parts.length)?S.parts:SECTIONS; }
+// a reverse card unlocks only once every forward sibling is holding
+function gateOpen(c){
+  const g=S.settings.gateDays|0;
+  if(c.dir!=='E'||g<=0) return true;
+  return c.idx.every(i=>{
+    const fs=S.cards['L'+i];
+    return fs && fs.reps>0 && fs.st==='R' && fs.s>=g;
+  });
+}
+const BUILD='2026.08.02.0';
+const AHEAD=20*MIN;              // serve a pending learning card early if nothing else remains
+const BUCKETS=['known','shaky','unseen'];
+function activeBuckets(){ return (S.buckets&&S.buckets.length)?S.buckets:BUCKETS; }
+function available(cs,c,now,d){
+  if(cs.buried>d) return false;
+  if(!activeParts().includes(c.sec)) return false;
+  if(cs.reps===0&&!activeBuckets().includes(c.bucket)) return false;   // filter applies to new words only
+  if(cs.reps===0&&!gateOpen(c)) return false;
+  return true;
+}
+function buildQueue(dir){
+  const now=Date.now(), d=today();
+  const learn=[], due=[], fresh=[], seeded=[];
+  // the allowance is spent per direction: introducing forward words must not
+  // starve the reverse direction. Older records only counted a total, which
+  // was always forward-only in practice.
+  const rd=S.days[d]||{};
+  const introducedToday=(rd['intro'+dir]!=null)?rd['intro'+dir]
+                       :(dir==='L'?(rd.intro||0):0);
+  const capToday=(S.days[d]&&S.days[d].cap!=null)?S.days[d].cap:S.settings.newPerDay;
+  for(const c of CARDS){
+    if(c.dir!==dir) continue;
+    const cs=peek(c.id);
+    if(!available(cs,c,now,d)) continue;
+    if(cs.reps===0){ (cs.s!=null?seeded:fresh).push(c.id); continue; }
+    // A review card held on a short step by the drill layer is not in 'L' or 'X',
+    // but it is still a within-session card. Both kinds get the learn-ahead, or a
+    // day can end with cards pending that the queue refuses to serve.
+    if(cs.due<=now){ ((cs.st==='L'||cs.st==='X')?learn:due).push(c.id); }
+    else if(cs.due<=now+AHEAD) learn.push(c.id);
+  }
+  due.sort((a,b)=>peek(a).due-peek(b).due);
+  learn.sort((a,b)=>peek(a).due-peek(b).due);
+  const room=Math.max(capToday-introducedToday,0);
+  const order=S.settings.weakFirst ? fresh.concat(seeded) : seeded.concat(fresh);
+  const intro=order.slice(0,room);
+  return {learn,due,intro,seededTotal:seeded.length,freshTotal:fresh.length};
+}
+let Q=null, current=null, revealAt=0, shownAt=0, thinkMs=null, undoStack=[], donePoll=null, cardDirty=false;
+let calY=null, calM=null, calSelDk=null;   // calendar fold's own state -- not persisted, not S.dir-linked
+let browseDir='L', browseQuery='', browsePart=null, browseStatus='all';   // browse screen's own state
+let partSheetMode='home';                            // which picker the part sheet is currently serving
+
+function refresh(){ Q=buildQueue(S.dir); }
+
+function pick(){
+  refresh();
+  const now=Date.now();
+  const ready=Q.learn.filter(id=>peek(id).due<=now);
+  if(ready.length) return ready[0];
+  if(Q.due.length) return Q.due[0];
+  if(Q.intro.length) return Q.intro[0];
+  if(Q.learn.length) return Q.learn[0];      // learn ahead: nothing else is left today
+  return null;
+}
+// like pick(), but never opens the day's fresh new-word budget: donePoll uses
+// this to resume work that was already pending, not to silently start a new
+// study day the moment the rollover hour passes while the phone is face-down
+function pickSoon(){
+  refresh();
+  const now=Date.now();
+  const ready=Q.learn.filter(id=>peek(id).due<=now);
+  if(ready.length) return ready[0];
+  if(Q.due.length) return Q.due[0];
+  if(Q.learn.length) return Q.learn[0];
+  return null;
+}
+
+/* ======================= UI ======================= */
+const $=id=>document.getElementById(id);
+const PALETTES={
+  vellum:     'Vellum',
+  catppuccin: 'Catppuccin',
+  rosepine:   'Rose Pine',
+  gruvbox:    'Gruvbox',
+  legacy:     'Legacy'
+};
+const PAL_KEYS=Object.keys(PALETTES);
+/* Daily rotation walks a shuffled cycle: every theme appears once before any
+   repeats, and the cycle reshuffles when it runs out. */
+function rollTheme(){
+  if(!S||S.rotate!=='daily') return;
+  const d=today();
+  if(S.rotDay===d) return;
+  let pool=PAL_KEYS.filter(k=>!(S.rotSeen||[]).includes(k) && k!==S.palette);
+  if(!pool.length){ S.rotSeen=[]; pool=PAL_KEYS.filter(k=>k!==S.palette); }
+  S.palette=pool[Math.floor(Math.random()*pool.length)];
+  S.rotSeen=(S.rotSeen||[]).concat([S.palette]);
+  S.rotDay=d;
+  try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}   // survive a reload
+}
+function surprise(){
+  const pool=PAL_KEYS.filter(k=>k!==S.palette);
+  S.palette=pool[Math.floor(Math.random()*pool.length)];
+  if(S.rotate==='daily'){ S.rotDay=today(); S.rotSeen=(S.rotSeen||[]).concat([S.palette]); }
+  save(); applyTheme(); renderSet(); renderHome();
+  toast(PALETTES[S.palette]);
+}
+function applyTheme(){
+  let t=S.theme||'light';
+  if(t==='auto') t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  rollTheme();                                   // daily rotation, if switched on
+  const p=PALETTES[S.palette]?S.palette:'vellum';
+  document.documentElement.dataset.theme=t;
+  document.documentElement.dataset.palette=p;
+  // read the palette's own background back out rather than hard-coding fourteen values
+  const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#ffffff';
+  const m=document.querySelector('meta[name=theme-color]');
+  if(m) m.setAttribute('content', bg);
+  document.documentElement.style.background = bg;
+}
+const show=name=>{
+  ['scHome','scStudy','scDone','scSet','scLog','scStats','scBrowse'].forEach(s=>$(s).classList.toggle('on',s===name));
+};
+function toast(msg,ms){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),ms||2200);
+}
+function fmtIvl(ms){
+  if(ms<HOUR) return Math.max(1,Math.round(ms/MIN))+'m';
+  if(ms<DAY)  return Math.round(ms/HOUR)+'h';
+  const d=Math.round(ms/DAY);
+  if(d<31) return d+'d';
+  if(d<365) return Math.round(d/30.4)+'mo';
+  const y=d/365; return (y<10?y.toFixed(1):Math.round(y))+'y';
+}
+function renderCounts(){
+  const n=Q.intro.length, l=Q.learn.length, r=Q.due.length;
+  $('counts').innerHTML='<span class="c-new"><b>'+n+'</b> new</span>'+
+                        '<span class="c-lrn"><b>'+l+'</b> learning</span>'+
+                        '<span class="c-due"><b>'+r+'</b> due</span>';
+}
+function renderCard(){
+  const c=BY_ID[current], cs=peek(current);
+  $('prompt').className='prompt'+(c.dir==='E'?' eng':'');
+  $('prompt').style.fontFamily=(c.dir==='E')?'':'var(--serif)';
+  $('prompt').textContent=c.q;
+  const m=$('multi');
+  if(c.dir==='E'&&c.idx.length>1){ m.textContent=c.idx.length; m.classList.add('on'); }
+  else m.classList.remove('on');
+  const ans=$('answer');
+  ans.className='answer'+(c.dir==='E'?' lat':'');
+  ans.innerHTML='';
+  if(c.dir==='E') c.a.forEach((x,i)=>{
+    const el=document.createElement('span'); el.className=i?'alt':''; el.textContent=x; ans.appendChild(el);
+  });
+  else ans.textContent=c.a;
+  $('hintline').textContent = cs.reps===0 ? 'first time' : '';
+  $('revealRow').classList.remove('hidden');
+  $('rateRow').classList.add('hidden');
+  ans.classList.remove('on');
+  shownAt=Date.now(); thinkMs=null; cardDirty=false;
+  renderCounts();
+}
+// shared by reveal() and rate(): a tap landing within `ms` of `ref` is
+// treated as the tail of a fast double-tap rather than a deliberate one --
+// see rate()'s own use below for why this matters in both directions
+function tooSoonAfter(now,ref,ms){ return (now-ref)<ms; }
+function reveal(){
+  if(!$('rateRow').classList.contains('hidden')) return;
+  // a fast double-tap can land its second click on this card's own reveal
+  // control right after next() has just swapped it in -- see rate()'s
+  // symmetric guard and HANDOFF.md for the full mechanism
+  if(tooSoonAfter(Date.now(),shownAt,260)) return;
+  $('answer').classList.add('on');
+  $('revealRow').classList.add('hidden');
+  $('rateRow').classList.remove('hidden');
+  revealAt=Date.now();
+  const t=revealAt-shownAt;
+  thinkMs=(cardDirty||t<120||t>300000)?null:t;    // discard if you looked away
+  const cs=previewCard(current), now=Date.now(), st=S.settings;
+  [[AGAIN,'iAgain'],[GOOD,'iGood'],[EASY,'iEasy']].forEach(([r,el])=>{
+    $(el).textContent=fmtIvl(schedule(cs,adjustGrade(r,thinkMs),now,st).ivl);
+  });
+}
+const BRACKETS=[['instant',0,2000],['under 10s',2000,10000],['10 to 30s',10000,30000],['over 30s',30000,Infinity]];
+function bracketOf(ms){ return ms==null?-1:BRACKETS.findIndex(b=>ms>=b[1]&&ms<b[2]); }
+// hesitation maps onto the grade, never straight onto the interval:
+// the scheduler is fitted to grades, so this keeps the adjustment on-model
+function adjustGrade(r,ms){
+  if(!S.settings.useTiming||ms==null||r===AGAIN) return r;
+  const b=bracketOf(ms);
+  if(b===3) return r===EASY?GOOD:(r===GOOD?HARD:r);
+  if(b===2) return r===EASY?GOOD:r;
+  return r;
+}
+function rate(pressed){
+  if(tooSoonAfter(Date.now(),revealAt,260)) return; // guard: the reveal tap must not grade
+  const r=adjustGrade(pressed,thinkMs);
+  const now=Date.now(), c=BY_ID[current], cs=cardState(current);
+  const frame={id:current, before:JSON.parse(JSON.stringify(cs)),
+               dk:today(),                    // the day this rating belonged to
+               day:JSON.parse(JSON.stringify(S.days[today()]||{})), logLen:S.log.length, buried:[]};
+  undoStack.push(frame);
+  if(undoStack.length>40) undoStack.shift();
+  const first=cs.reps===0;
+  const res=schedule(cs,r,now,st_());
+  S.cards[current]=res.card;
+  S.log.push([current,r,now,Math.round(res.ivl/1000),thinkMs]);
+  if(r!==pressed) toast(pressed===EASY?'Recorded as Good — that one took a while':'Recorded as Hard — that one took a while',1600);
+  const d=today();
+  const rec=S.days[d]||(S.days[d]={n:0,intro:0,ok:0,tot:0});
+  rec.n++;
+  if(first){ rec.intro=(rec.intro|0)+1; rec['intro'+c.dir]=(rec['intro'+c.dir]|0)+1; }
+  // relearning cards are real reviews too, and were being left out of the rate
+  if(cs.st==='R'||cs.st==='X'){ rec.tot++; if(r!==AGAIN) rec.ok++; }
+  // bury the same word in the other direction until tomorrow
+  c.idx.forEach(i=>(SIBLINGS[i]||[]).forEach(sid=>{
+    if(sid!==current&&BY_ID[sid].dir!==c.dir){
+      const s2=cardState(sid);
+      if(s2.buried<d+1){ frame.buried.push([sid,s2.buried]); s2.buried=d+1; }
+    }
+  }));
+  S.sinceExport=(S.sinceExport||0)+1;
+  save();          // save() schedules the gist push; nothing else fires per rating
+  next();
+}
+const st_=()=>S.settings;
+function next(){
+  current=pick();
+  if(!current){ renderDone(); return; }
+  renderCard();
+}
+function undo(){
+  const u=undoStack.pop();
+  if(!u){ toast('Nothing to undo'); return; }
+  S.cards[u.id]=u.before;
+  (u.buried||[]).forEach(([sid,v])=>{ if(S.cards[sid]) S.cards[sid].buried=v; });
+  // restore into the day the rating belonged to, not whichever day it is now
+  { const d0=(u.dk!=null)?u.dk:today(), keep=(S.days[d0]&&S.days[d0].cap!=null)?S.days[d0].cap:null;
+    S.days[d0]=(u.day&&u.day.n!=null)?u.day:{n:0,intro:0,ok:0,tot:0};
+    if(keep!=null) S.days[d0].cap=keep; }              // the day's allowance is a setting, not a rating
+  S.log.length=u.logLen;
+  S.sinceExport=Math.max((S.sinceExport||1)-1,0);
+  save();
+  current=u.id;
+  show('scStudy'); renderCard();
+}
+function renderDone(){
+  refresh();
+  const d=today(), rec=S.days[d]||{n:0};
+  const soon=Q.learn.length;
+  const ap0=activeParts();
+  const tomorrow=CARDS.filter(c=>c.dir===S.dir&&ap0.includes(c.sec)).reduce((n,c)=>{
+    const cs=S.cards[c.id]; if(!cs||cs.reps===0) return n;
+    return n+((cs.due>Date.now()&&dayKey(cs.due)<=d+1)?1:0);
+  },0);
+  $('doneBig').textContent = soon? 'Almost there' : 'Nothing due';
+  $('doneSmall').innerHTML = soon
+    ? (soon+' word'+(soon===1?' is':'s are')+' still in short-term steps — they come back in a minute or two.')
+    : (rec.n||0)+' ratings today.<br>'+tomorrow+' due tomorrow in this direction.';
+  const ap=activeParts(); const anyNew=CARDS.some(c=>c.dir===S.dir&&ap.includes(c.sec)&&(!S.cards[c.id]||S.cards[c.id].reps===0));
+  $('doneMore').classList.toggle('hidden',!anyNew);
+  show('scDone');
+  clearInterval(donePoll);
+  if(soon) donePoll=setInterval(()=>{
+    if(!$('scDone').classList.contains('on')){clearInterval(donePoll);return;}
+    // a backgrounded tab still fires this, throttled: pointless work, and on a
+    // phone the whole point of the poll (bring the card up in front of you) is
+    // impossible while the screen is off. visibilitychange re-renders on return.
+    if(document.hidden) return;
+    const id=pickSoon();
+    if(id){ clearInterval(donePoll); current=id; renderCard(); show('scStudy'); }
+    else if(!Q.learn.length){ clearInterval(donePoll); renderDone(); } // the wait was for these cards, not a new day
+  },5000);
+}
+
+/* ======================= home ======================= */
+function dirStats(dir){
+  const ap=activeParts(); const all=CARDS.filter(c=>c.dir===dir&&ap.includes(c.sec));
+  let unseen=0,learning=0,young=0,mature=0;
+  all.forEach(c=>{
+    const cs=S.cards[c.id];
+    if(!cs||cs.reps===0){unseen++;return;}
+    if(cs.st!=='R') learning++;
+    else if(cs.s<21) young++;
+    else mature++;
+  });
+  return {total:all.length,unseen,learning,young,mature};
+}
+// same four-way split as dirStats, but per word (not aggregate only) and
+// ignoring part chips on purpose -- see the comment above partTable/expectedAt:
+// the stats page asks what you know of the whole list, not the active slice.
+function statusOf(cs){
+  if(!cs||cs.reps===0) return 'unseen';
+  if(cs.st!=='R') return 'learning';
+  return cs.s<21 ? 'young' : 'mature';
+}
+const STATUS_ORDER=['unseen','learning','young','mature'];
+const STATUS_LABEL={unseen:'Still to meet',learning:'In short-term steps',
+  young:'Settling (under 3 weeks)',mature:'Holding (3 weeks or more)'};
+function wholeSyllabusStats(dir){
+  const totals={unseen:0,learning:0,young:0,mature:0};
+  const bySec={};
+  CARDS.forEach(c=>{
+    if(c.dir!==dir) return;
+    const st=statusOf(S.cards[c.id]);
+    totals[st]++;
+    const sec=bySec[c.sec]||(bySec[c.sec]={cards:[]});
+    sec.cards.push({id:c.id,st:st});
+  });
+  return {totals,bySec};
+}
+// browse screen: group a card array by part, in SECTIONS order, alphabetised
+// within each part -- every DATA term already starts with its headword, so a
+// plain locale sort needs no custom sort key
+function groupByPart(cards){
+  const bySec={};
+  cards.forEach(c=>(bySec[c.sec] ||= []).push(c));
+  const out=[];
+  SECTIONS.forEach(sec=>{ if(bySec[sec]) out.push({sec,cards:bySec[sec].slice().sort((a,b)=>a.q.localeCompare(b.q))}); });
+  return out;
+}
+// case-insensitive substring match against the term being browsed to, not
+// the gloss -- the direction toggle already covers "search by the other side"
+function filterWords(cards,query){
+  const q=query.trim().toLowerCase();
+  if(!q) return cards;
+  return cards.filter(c=>c.q.toLowerCase().includes(q));
+}
+function renderStats(){
+  const dir=S.dir;
+  $('statsDirL').classList.toggle('sel',dir==='L');
+  $('statsDirE').classList.toggle('sel',dir==='E');
+  $('sdtL').textContent=DECK.fwd; $('sdtE').textContent=DECK.rev;
+  $('sddL').textContent=CARDS.filter(c=>c.dir==='L').length+' words';
+  $('sddE').textContent=CARDS.filter(c=>c.dir==='E').length+' words';
+
+  const {totals,bySec}=wholeSyllabusStats(dir);
+  const total=CARDS.filter(c=>c.dir===dir).length;
+
+  let barHtml='';
+  STATUS_ORDER.forEach(k=>{
+    const n=totals[k]; if(!n) return;
+    barHtml+='<div class="s-'+k+'" style="width:'+(100*n/total)+'%" title="'+STATUS_LABEL[k]+': '+n+'"></div>';
+  });
+  $('statsBar').innerHTML=barHtml;
+
+  let legendHtml='';
+  STATUS_ORDER.forEach(k=>{
+    const n=totals[k]; if(!n) return;
+    legendHtml+='<span><i class="sw s-'+k+'"></i>'+STATUS_LABEL[k]+' — '+n+' ('+Math.round(100*n/total)+'%)</span>';
+  });
+  $('statsLegend').innerHTML=legendHtml;
+
+  let gridHtml='';
+  SECTIONS.forEach(sec=>{
+    const s=bySec[sec]; if(!s) return;
+    const met=s.cards.filter(c=>c.st!=='unseen').length;
+    gridHtml+='<div class="wpart"><h3><span>'+sec+'</span><b>'+met+' / '+s.cards.length+'</b></h3><div class="wgrid">';
+    s.cards.forEach(c=>{ gridHtml+='<div class="wbox s-'+c.st+'"></div>'; });
+    gridHtml+='</div></div>';
+  });
+  $('statsGrid').innerHTML=gridHtml||'<div class="note">No words to show.</div>';
+}
+function wordRowHtml(c){
+  const st=statusOf(S.cards[c.id]), gloss=(c.dir==='E')?c.a.join(', '):c.a;
+  return '<div class="wordRow" data-id="'+c.id+'"><div class="wrTop"><i class="stDot s-'+st+'"></i>'+
+    '<span class="term">'+escHtml(c.q)+'</span></div><div class="gloss">'+escHtml(gloss)+'</div></div>';
+}
+// how many cards of the given direction fall under each part -- used only to
+// make the picker sheet's rows more informative, not for any filtering logic
+function partCounts(dir){
+  const counts={};
+  CARDS.forEach(c=>{ if(c.dir===dir) counts[c.sec]=(counts[c.sec]||0)+1; });
+  return counts;
+}
+// One picker sheet, two modes: 'home' multi-selects S.parts (which parts are
+// in rotation), 'browse' single-selects browsePart (which part to look at).
+// Replaces what used to be a chip per part -- fine at 6-8 parts, unusable at
+// the 30-40 a study-guide-style deck can have.
+function openPartSheet(mode){
+  partSheetMode=mode;
+  $('partSheetActions').style.display = mode==='home' ? 'block' : 'none';
+  renderPartSheet();
+  $('partSheet').classList.remove('hidden');
+}
+function closePartSheet(){ $('partSheet').classList.add('hidden'); }
+function renderPartSheet(){
+  const dir=partSheetMode==='home'?S.dir:browseDir;
+  const counts=partCounts(dir);
+  let html='';
+  if(partSheetMode==='browse'){
+    html+='<button type="button" class="partRow'+(!browsePart?' cur':'')+'" data-sec="">'+
+      '<span class="prMark">'+(!browsePart?'&#9679;':'&#9675;')+'</span>'+
+      '<span class="prLbl">All parts</span></button>';
+  }
+  const ap=partSheetMode==='home'?activeParts():null;
+  SECTIONS.forEach(sec=>{
+    const isCur = partSheetMode==='home' ? ap.includes(sec) : (browsePart===sec);
+    const mark = partSheetMode==='home' ? (isCur?'&#9745;':'&#9744;') : (isCur?'&#9679;':'&#9675;');
+    html+='<button type="button" class="partRow'+(isCur?' cur':'')+'" data-sec="'+escHtml(sec)+'">'+
+      '<span class="prMark">'+mark+'</span><span class="prLbl">'+escHtml(sec)+'</span>'+
+      '<span class="prCnt">'+(counts[sec]||0)+'</span></button>';
+  });
+  $('partSheetList').innerHTML=html;
+}
+function renderBrowsePartChips(){
+  const btn=$('browsePartBtn');
+  if(SECTIONS.length<2){ btn.classList.add('hide'); return; }
+  btn.classList.remove('hide');
+  btn.textContent = browsePart || 'All parts';
+  if(partSheetMode==='browse') renderPartSheet();
+}
+function renderBrowseStatusChips(){
+  const box=$('browseStatusChips'); box.innerHTML='';
+  const mk=(key,label)=>{
+    const b=document.createElement('button');
+    b.className='chip'+(browseStatus===key?' on':''); b.textContent=label;
+    b.addEventListener('click',e=>{ e.preventDefault(); browseStatus=key; renderBrowse(); });
+    box.appendChild(b);
+  };
+  mk('all','All');
+  STATUS_ORDER.forEach(k=>mk(k,STATUS_LABEL[k]));
+}
+// purely a read over CARDS/S.cards -- no new fields on S, no duplicate word
+// index; groupByPart/filterWords/statusOf already exist for the Stats screen
+function renderBrowse(){
+  $('browseDirL').classList.toggle('sel',browseDir==='L');
+  $('browseDirE').classList.toggle('sel',browseDir==='E');
+  $('bdtL').textContent=DECK.fwd; $('bdtE').textContent=DECK.rev;
+  $('bddL').textContent=CARDS.filter(c=>c.dir==='L').length+' words';
+  $('bddE').textContent=CARDS.filter(c=>c.dir==='E').length+' words';
+  renderBrowsePartChips();
+  renderBrowseStatusChips();
+  let cards=CARDS.filter(c=>c.dir===browseDir);
+  if(browsePart) cards=cards.filter(c=>c.sec===browsePart);
+  if(browseStatus!=='all') cards=cards.filter(c=>statusOf(S.cards[c.id])===browseStatus);
+  cards=filterWords(cards,browseQuery);
+  const groups=groupByPart(cards);
+  const openAll=!!browseQuery||browseStatus!=='all'||!!browsePart;
+  let html='';
+  groups.forEach(g=>{
+    html+='<details class="fold"'+(openAll?' open':'')+'><summary>'+g.sec+' ('+g.cards.length+')</summary><div>'+
+      g.cards.map(wordRowHtml).join('')+'</div></details>';
+  });
+  $('browseResults').innerHTML = html || '<div class="note">No words match.</div>';
+}
+function renderChips(){
+  const btn=$('partPickerBtn');
+  if(SECTIONS.length<2){ btn.classList.add('hide'); return; }
+  btn.classList.remove('hide');
+  const ap=activeParts();
+  btn.textContent = ap.length>=SECTIONS.length ? 'All parts'
+    : ap.length===1 ? ap[0]
+    : ap.length+' parts';
+  if(partSheetMode==='home') renderPartSheet();
+}
+function renderBucketChips(){
+  const box=$('bchips');
+  if(!HAS_BUCKETS){ box.classList.add('hide'); return; }
+  box.classList.remove('hide'); box.innerHTML='';
+  const ap=activeParts(), ab=activeBuckets(), dir=S.dir;
+  const label={known:'Known',shaky:'Shaky',unseen:'Unseen'};
+  BUCKETS.forEach(bk=>{
+    const n=CARDS.filter(c=>c.dir===dir&&ap.includes(c.sec)&&c.bucket===bk
+                            &&(!S.cards[c.id]||S.cards[c.id].reps===0)).length;
+    const b=document.createElement('button');
+    b.className='chip'+(ab.includes(bk)?' on':'');
+    b.innerHTML=label[bk]+' <span style="opacity:.65">'+n+'</span>';
+    b.addEventListener('click',e=>{
+      e.preventDefault();
+      let cur=activeBuckets().slice();
+      cur = cur.includes(bk) ? cur.filter(x=>x!==bk) : cur.concat([bk]);
+      if(!cur.length) cur=[bk];
+      S.buckets=BUCKETS.filter(x=>cur.includes(x));
+      save(); renderHome();
+    });
+    box.appendChild(b);
+  });
+}
+// {studied, intro, reviewed} for one study day -- reviewed is every rating
+// that wasn't a word's first-ever rep, so it covers both true spaced reviews
+// and same-day repeats of a word introduced earlier that same day
+function dayStatsFor(days,dk){
+  const rec=days[dk];
+  if(!rec||!rec.n) return {studied:false,intro:0,reviewed:0};
+  return {studied:true,intro:rec.intro||0,reviewed:rec.n-(rec.intro||0)};
+}
+function currentStreak(days,todayKey){
+  let streak=0;
+  for(let k=todayKey;;k--){
+    if(days[k]&&days[k].n) streak++;
+    else { if(k!==todayKey) break; }
+    if(todayKey-k>3650) break;
+  }
+  return streak;
+}
+function longestStreak(days,todayKey){
+  let best=0,run=0;
+  for(let k=todayKey-3650;k<=todayKey;k++){
+    if(days[k]&&days[k].n){ run++; best=Math.max(best,run); } else run=0;
+  }
+  return best;
+}
+function renderHome(){
+  refresh();                                    // Q = buildQueue(S.dir) -- reused below,
+                                                 // rather than building that same direction again
+  $('wordmark').textContent=DECK.name;
+  $('dtL').textContent=DECK.fwd; $('dtE').textContent=DECK.rev;
+  renderChips(); renderBucketChips();
+  const other=buildQueue(S.dir==='L'?'E':'L');
+  const qL=S.dir==='L'?Q:other, qE=S.dir==='E'?Q:other;
+  $('ddL').textContent=qL.due.length+qL.learn.length+qL.intro.length+' ready';
+  $('ddE').textContent=qE.due.length+qE.learn.length+qE.intro.length+' ready';
+  $('dirLtoE').classList.toggle('sel',S.dir==='L');
+  $('dirEtoL').classList.toggle('sel',S.dir==='E');
+  const q=Q;
+  const n=q.due.length+q.learn.length+q.intro.length;
+  $('startBtn').textContent=n?('Study '+n+' word'+(n===1?'':'s')):'Nothing due';
+  $('startBtn').disabled=!n;
+  const d=today(), rec=S.days[d]||{n:0};
+  $('homeSub').textContent=rec.n?(rec.n+' rated today'):'Nothing rated today yet';
+
+  // study-day strip, last 35 days
+  const strip=$('strip'); strip.innerHTML='';
+  for(let i=34;i>=0;i--){
+    const k=d-i, el=document.createElement('div');
+    el.className='dot'+((S.days[k]&&S.days[k].n)?' did':'')+(i===0?' today':'');
+    strip.appendChild(el);
+  }
+  const streak=currentStreak(S.days,d);
+  const s2=dirStats(S.dir);
+  $('capVal').textContent=(S.days[d]&&S.days[d].cap!=null)?S.days[d].cap:S.settings.newPerDay;
+  renderSync();
+  renderPace();
+  renderSyllabus();
+  if($('calFold').open) renderCalendar();       // stay fresh if left open across a study session
+  renderWarn(qE);                               // already computed above -- don't build it again
+  $('buildTag').textContent='Version '+BUILD+' · '+PALETTES[S.palette||'vellum'];
+  $('streakNote').textContent = streak? (streak+' day'+(streak===1?'':'s')+' running') : 'No streak yet — the first day starts it.';
+
+  const seen=s2.total-s2.unseen;
+  const lat=latencyStats();
+  const ret=(()=>{ let ok=0,tot=0; for(const k in S.days){ if(d-k<=30){ ok+=S.days[k].ok||0; tot+=S.days[k].tot||0; } }
+                   return tot?Math.round(100*ok/tot)+'%':'—'; })();
+  $('statList').innerHTML=
+    row('In rotation',seen+' of '+s2.total)+
+    row('Still to meet',s2.unseen)+
+    row('In short-term steps',s2.learning)+
+    row('Settling (under 3 weeks)',s2.young)+
+    row('Holding (3 weeks or more)',s2.mature)+
+    row('Recall rate, last 30 days',ret);
+  $('timingBody').innerHTML = lat.n<15
+    ? '<div class="note">Not enough answers yet — this fills in after about fifteen.</div>'
+    : row('Typical time to recall',(lat.med/1000).toFixed(1)+'s')+
+      BRACKETS.map((b,i)=>row(b[0][0].toUpperCase()+b[0].slice(1),
+        lat.counts[i]+' ('+Math.round(100*lat.counts[i]/lat.n)+'%)')).join('')+
+      '<div class="note">Time from seeing the word to revealing the answer, across your last '+lat.n+
+      ' successful answers in this direction. Failures are excluded.</div>';
+}
+// unlike renderCard()'s $('prompt').textContent=c.q (always safe), this row is
+// built as an HTML string -- today's word list has no &/</> in it to prove it,
+// but escape anyway rather than lean on that staying true forever
+function escHtml(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+// only called when the fold is opened and by the nav buttons -- not on every
+// renderHome(), since it's collapsed most of the time (see HANDOFF.md)
+function renderCalendar(){
+  const now=new Date();
+  if(calY==null){ calY=now.getFullYear(); calM=now.getMonth(); }
+  $('calTitle').textContent=new Date(calY,calM,1).toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const sun=new Date(); sun.setDate(sun.getDate()-sun.getDay());   // most recent Sunday, any week works
+  $('calDow').innerHTML=[0,1,2,3,4,5,6].map(i=>
+    '<div>'+new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+i).toLocaleDateString(undefined,{weekday:'narrow'})+'</div>'
+  ).join('');
+  const d0=today();
+  let gh='';
+  monthMatrix(calY,calM).forEach(week=>week.forEach(cell=>{
+    if(!cell.inMonth){ gh+='<div class="calCell out">'+cell.d+'</div>'; return; }
+    const dk=dayKeyForDate(cell.y,cell.m,cell.d);
+    const st=dayStatsFor(S.days,dk);
+    const cls=['calCell'];
+    if(st.studied) cls.push('did');
+    if(dk===d0) cls.push('today');
+    if(dk===calSelDk) cls.push('sel');
+    gh+='<div class="'+cls.join(' ')+'" data-dk="'+dk+'">'+cell.d+'</div>';
+  }));
+  $('calGrid').innerHTML=gh;
+  showCalDetail(calSelDk);
+  const ls=longestStreak(S.days,d0);
+  $('longStreakNote').textContent = ls>1 ? ('Longest streak so far: '+ls+' days') : '';
+}
+function showCalDetail(dk){
+  const el=$('calDetail');
+  if(dk==null){ el.textContent='Tap a day to see its count.'; return; }
+  const st=dayStatsFor(S.days,dk);
+  const label=new Date(dayStart(dk)).toLocaleDateString(undefined,{day:'numeric',month:'long'});
+  el.textContent = st.studied ? (label+' — '+st.intro+' new, '+st.reviewed+' reviewed') : (label+' — no study');
+}
+const MOTTOS=DECK.mottos; function renderPace(){
+  const ap=activeParts(); const dir=S.dir, all=CARDS.filter(c=>c.dir===dir&&ap.includes(c.sec));
+  const met=all.filter(c=>S.cards[c.id]&&S.cards[c.id].reps>0).length;
+  const left=all.length-met, d=today();
+  // observed pace: mean introductions across the last 14 days that had any study
+  let sum=0,n=0;
+  for(let k=d;k>d-14;k--){ const r=S.days[k]; if(r&&r.n){ sum+=(r.intro||0); n++; } }
+  const capToday=(S.days[d]&&S.days[d].cap!=null)?S.days[d].cap:S.settings.newPerDay;
+  const rate=n?Math.max(sum/n,1):capToday;
+  const daysNeeded=left?Math.ceil(left/rate):0;
+  const finish=new Date(Date.now()+daysNeeded*DAY);
+  const fmt=dt=>dt.toLocaleDateString(undefined,{day:'numeric',month:'long'});
+  const dirName=dir==='L'?DECK.fwd:DECK.rev;
+  let h='';
+  if(!left){
+    h='<span class="n">'+all.length+'</span> of '+all.length+' met in '+dirName+
+      '. Everything now is upkeep.';
+  } else {
+    h='<span class="n">'+met+'</span> of '+all.length+' met in '+dirName+
+      ', <span class="n">'+left+'</span> to go.'+
+      ' At '+(n?'your recent pace of '+Math.round(rate):capToday)+' a day the last one arrives <b>'+fmt(finish)+'</b>.';
+    const skip=new Date(Date.now()+(daysNeeded+1)*DAY);
+    if(fmt(skip)!==fmt(finish)) h+='<span class="cost">A day off moves that to '+fmt(skip)+'.</span>';
+    else h+='<span class="cost">Every day off pushes that date back.</span>';
+  }
+  $('pace').innerHTML=h;
+  const m=MOTTOS[((d%MOTTOS.length)+MOTTOS.length)%MOTTOS.length];
+  $('mottoLa').textContent=m[0]; $('mottoEn').textContent=m[1];
+}
+function latencyStats(){
+  const pre=S.dir==='L'?'L':'E';
+  const v=[], counts=[0,0,0,0];
+  for(let i=S.log.length-1;i>=0&&v.length<200;i--){
+    const e=S.log[i];
+    if(e[4]==null||String(e[0])[0]!==pre||e[1]===AGAIN) continue;
+    v.push(e[4]); const b=bracketOf(e[4]); if(b>=0) counts[b]++;
+  }
+  if(v.length<15) return {med:0,n:v.length,counts:counts};
+  const sorted=v.slice().sort((a,b)=>a-b);
+  return {med:sorted[Math.floor(sorted.length/2)], n:v.length, counts:counts};
+}
+const row=(a,b)=>'<div class="statRow"><span>'+a+'</span><b>'+b+'</b></div>';
+
+/* ================= syllabus stats =================
+   Everything here ignores the part chips on purpose: the question is what you
+   know of the whole list, not of the slice currently switched on.            */
+function expectedAt(dir,when){
+  let sum=0,total=0,met=0;
+  for(const c of CARDS){
+    if(c.dir!==dir) continue;
+    total++;
+    const cs=S.cards[c.id];
+    if(!cs||cs.reps===0||cs.s==null||cs.last==null) continue;   // never met scores zero
+    met++;
+    sum+=retrievability(cs,when);
+  }
+  return {sum:sum,total:total,met:met};
+}
+function partTable(dir,when){
+  const acc={};
+  for(const c of CARDS){
+    if(c.dir!==dir) continue;
+    const a=acc[c.sec]||(acc[c.sec]={n:0,met:0,sum:0});
+    a.n++;
+    const cs=S.cards[c.id];
+    if(!cs||cs.reps===0) continue;
+    a.met++;
+    if(cs.s==null||cs.last==null) continue;
+    a.sum+=retrievability(cs,when);
+  }
+  return acc;
+}
+function trueRetention(){
+  // walk the log, using each card's previously scheduled interval as its maturity
+  const prev={}, out={young:[0,0], mature:[0,0]};
+  for(const e of S.log){
+    const id=e[0], r=e[1], ivlSec=e[3];
+    const p=prev[id];
+    if(p!=null && p>=1){                       // only count reviews, not same-day steps
+      const k=(p>=21)?'mature':'young';
+      out[k][1]++; if(r!==AGAIN) out[k][0]++;
+    }
+    prev[id]=ivlSec/86400;
+  }
+  return out;
+}
+function forecast(dir,days){
+  const d=today(), out=new Array(days).fill(0);
+  for(const c of CARDS){
+    if(c.dir!==dir) continue;
+    const cs=S.cards[c.id];
+    if(!cs||cs.reps===0||cs.due==null) continue;
+    const k=dayKey(cs.due)-d;                // study days, to match how dues are set
+    if(k<0) out[0]++; else if(k<days) out[k]++;
+  }
+  return out;
+}
+function renderSyllabus(){
+  const dir=S.dir, dirName=dir==='L'?DECK.fwd:DECK.rev;
+  const now=Date.now();
+  const pc=x=>Math.round(x*100)+'%';
+
+  const nowS=expectedAt(dir,now);
+
+  // recent pace, shown in the note below but no longer projected against a fixed date
+  const d=today(); let sum=0,n=0;
+  for(let k=d;k>d-14;k--){ const r=S.days[k]; if(r&&r.n){ sum+=(r.intro||0); n++; } }
+  const capToday=(S.days[d]&&S.days[d].cap!=null)?S.days[d].cap:S.settings.newPerDay;
+  const pace=n?Math.max(sum/n,1):capToday;
+
+  let h='';
+  h+='<div class="pace"><span class="n">'+Math.round(nowS.sum)+'</span> of '+nowS.total+
+     ' — if you were tested on the whole '+dirName+' list right now, that is roughly what you would get. '+
+     '<b>'+pc(nowS.sum/nowS.total)+'</b> of the syllabus.</div>';
+  h+=row('Words met so far', nowS.met+' of '+nowS.total);
+  const other=dir==='L'?'E':'L';
+  const oS=expectedAt(other,now);
+  h+=row((other==='L'?DECK.fwd:DECK.rev)+' — expected now', Math.round(oS.sum)+' of '+oS.total);
+  h+='<div class="note">The first figure is a model estimate, not a measurement: it is FSRS\'s own '+
+     'recall probability for every card, summed. Words never met count as zero. The second projection '+
+     'assumes you clear reviews daily and keep introducing about '+Math.round(pace)+' a day — it is an '+
+     'assumption, not a forecast.</div>';
+  $('syllabus').innerHTML=h;
+
+  // by part
+  const acc=partTable(dir,now); let ph='';
+  SECTIONS.forEach(sec=>{ const a=acc[sec]; if(!a) return;
+    ph+=row(sec, Math.round(a.sum)+' / '+a.n+'  ('+a.met+' met)'); });
+  $('partBody').innerHTML=ph||'<div class="note">No parts to show.</div>';
+
+  // true retention
+  const t=trueRetention(); let th='';
+  const fmtT=(p)=>p[1]<20?('too few reviews yet ('+p[1]+')'):(Math.round(100*p[0]/p[1])+'% of '+p[1]);
+  th+=row('Settling (under 3 weeks)', fmtT(t.young));
+  th+=row('Holding (3 weeks or more)', fmtT(t.mature));
+  th+=row('Your target', pc(S.settings.retention));
+  th+='<div class="note">This is the check on everything above. If the holding figure settles well below '+
+      'your target once there are a few hundred reviews behind it, the default parameters are wrong for you '+
+      'and every interval in the app is too long.</div>';
+  $('trueBody').innerHTML=th;
+
+  // forecast
+  const f=forecast(dir,14); let fh='';
+  const names=['Today','Tomorrow'];
+  f.forEach((v,i)=>{ const lab=names[i]||new Date(dayStart(d+i)).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+    fh+=row(lab, v+' due'); });
+  fh+='<div class="note">Reviews only. New words on top of this are whatever the daily allowance lets through.</div>';
+  $('fcBody').innerHTML=fh;
+}
+function renderSync(){
+  const el=$('syncAge'); if(!el) return;
+  const code=S.settings.syncCode;
+  if(!code){ el.className='note'; el.textContent='Sync is off — Settings can turn it on.'; return; }
+  if(!S.lastSync){ el.className='note bad'; el.textContent='Sync code set but nothing has synced yet.'; return; }
+  const age=Date.now()-S.lastSync;
+  const txt = age<MIN? 'just now'
+            : age<HOUR? Math.round(age/MIN)+'m ago'
+            : age<DAY? Math.round(age/HOUR)+'h ago'
+            : Math.round(age/DAY)+'d ago';
+  el.className='note'+(age>3*DAY?' bad':(age>DAY?' warnish':''));
+  el.textContent='Synced '+txt+' as '+deviceLabel()+(age>DAY?' — check both devices still have the same code.':'.');
+}
+function renderWarn(qE){
+  const w=$('homeWarn'); if(!w||!S) return; let h='';
+  if(S.dir==='E'&&S.settings.gateDays>0){
+    const q=qE||buildQueue('E');
+    if(!(q.due.length+q.learn.length+q.intro.length)){
+      const locked=CARDS.filter(c=>c.dir==='E'&&!gateOpen(c)).length;
+      if(locked) h+='<div class="warn">'+locked+' reverse cards are waiting for their forward side to hold for '+
+                    S.settings.gateDays+' days. Settings can lower or remove that gate.</div>';
+    }
+  }
+  if(!storageOK) h+='<div class="warn bad">This device is refusing to save. Export a backup now and check that Safari is not in Private Browsing.</div>';
+  const since=S.sinceExport||0, syncing=!!S.settings.syncCode;
+  if(storageOK&&!syncing&&since>=150) h+='<div class="warn">'+since+' ratings since the last backup. Settings → Export a backup file.</div>';
+  if(storageOK&&syncing&&S.lastSync&&Date.now()-S.lastSync>3*DAY)
+    h+='<div class="warn">Sync has not gone through since '+new Date(S.lastSync).toLocaleDateString()+
+       '. Check both devices still have the same code and are online.</div>';
+  w.innerHTML=h;
+}
+
+/* ======================= export / import ======================= */
+/* Sync is the only automatic backup. There is no automatic file download:
+   Safari blocks a programmatic download that no tap asked for, silently, so it
+   could never be relied on. Files are saved by hand, or from the button that
+   appears when sync has gone quiet. */
+// This device's label for backups it produces. Manual, not sniffed from the
+// browser: a guessed label would be one more thing to silently trust.
+function deviceLabel(){
+  const n=(S.settings.deviceName||'').trim();
+  return n||'this device';
+}
+function doExport(){
+  try{
+    S.lastDevice=deviceLabel();
+    const blob=new Blob([JSON.stringify(sanitised())],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='riverbank-italian-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);              // Safari needs it in the DOM
+    a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);
+    S.sinceExport=0; S.lastExport=Date.now();
+    save();
+    toast('Backup saved');
+  }catch(e){
+    save();
+    toast('Export failed — try again from Settings');
+  }
+}
+function doImport(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const inc=normalise(JSON.parse(fr.result));
+      if(!inc) throw 0;
+      if(inc.log.length<S.log.length &&
+         !confirm('That file ('+(inc.lastDevice?'from '+inc.lastDevice+', ':'')+inc.log.length+
+                   ' reviews) has fewer than this device ('+deviceLabel()+', '+S.log.length+
+                   ' reviews). Replace anyway?')) return;
+      adopt(inc); renderHome(); toast('Restored '+S.log.length+' reviews');
+      if(S.settings.syncCode) pushSync(true);   // at once, or the next launch pull reverts the restore
+    }catch(e){ toast('That file could not be read — it may belong to the other deck'); }
+  };
+  fr.readAsText(file);
+}
+/* Sync backend: a small Cloudflare Worker + KV store, addressed by a short
+   human-shareable code instead of a GitHub gist id/token pair. The code never
+   reaches the Worker itself -- everything sent to it is keyed and encrypted
+   using two independently-derived hashes of the code, so the Worker (and
+   whoever can see its KV namespace) only ever holds ciphertext it cannot
+   read. Set SYNC_ENDPOINT to your deployed Worker's URL before shipping --
+   see riverbank/sync-worker/. */
+const SYNC_ENDPOINT='https://riverbank-sync.karsten-vun.workers.dev';
+async function syncKeys(code){
+  const enc=new TextEncoder();
+  const kv=await crypto.subtle.digest('SHA-256', enc.encode('kv:'+code));
+  const ek=await crypto.subtle.digest('SHA-256', enc.encode('enc:'+code));
+  const kvKey=Array.from(new Uint8Array(kv)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const cryptoKey=await crypto.subtle.importKey('raw', ek, 'AES-GCM', false, ['encrypt','decrypt']);
+  return {kvKey, cryptoKey};
+}
+function b64(buf){ return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+function unb64(s){ return Uint8Array.from(atob(s), c=>c.charCodeAt(0)); }
+async function encryptPayload(obj, cryptoKey){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const data=await crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, cryptoKey, new TextEncoder().encode(JSON.stringify(obj)));
+  return {iv:b64(iv), data:b64(data)};
+}
+async function decryptPayload(pkt, cryptoKey){
+  const buf=await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(pkt.iv)}, cryptoKey, unb64(pkt.data));
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+function randomSyncCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // no 0/O/1/I, easy to read aloud
+  const bytes=crypto.getRandomValues(new Uint8Array(10));
+  let s=''; for(let i=0;i<10;i++){ s+=chars[bytes[i]%chars.length]; if(i===4) s+='-'; }
+  return s;
+}
+function newSyncCode(){
+  if(S.settings.syncCode && !confirm('This device already has a sync code. Replace it with a brand new one? Any other device still on the old code will stop syncing with this one.')) return;
+  S.settings.syncCode=randomSyncCode();
+  $('fSyncCode').value=S.settings.syncCode;
+  save(); pushSync(true);
+  toast('Code created — enter it in Settings on your other device to link it', 3200);
+}
+function sanitised(){                       // never let the sync code leave the device inside the payload itself
+  return Object.assign({}, S, {settings: Object.assign({}, S.settings, {syncCode:''})});
+}
+async function pushSync(quiet){
+  const code=S.settings.syncCode;
+  if(!code){ if(!quiet) toast('Get a sync code first'); return; }
+  S.lastDevice=deviceLabel();
+  try{
+    const {kvKey,cryptoKey}=await syncKeys(code);
+    const pkt=await encryptPayload(sanitised(), cryptoKey);
+    const r=await fetch(SYNC_ENDPOINT+'/sync/'+kvKey,{
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(pkt)
+    });
+    if(!r.ok) throw new Error(r.status);
+    S.lastSync=Date.now(); S.syncedLogLen=S.log.length; S.sinceExport=0;
+    try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+    if(!quiet) toast('Synced as '+S.lastDevice);
+  }catch(e){ if(!quiet) toast('Sync failed ('+e.message+')'); }
+}
+// a restored copy must never carry another device's sync code or label
+function adopt(inc){
+  inc.settings.syncCode=S.settings.syncCode;
+  inc.settings.deviceName=S.settings.deviceName;
+  S=inc; S.lastSync=Date.now(); S.syncedLogLen=S.log.length;
+  // the undo stack refers to the state we just replaced; one undo would write a
+  // pre-restore card back and truncate the restored log
+  undoStack=[]; current=null;
+  save();
+}
+async function fetchSync(quiet){
+  const code=S.settings.syncCode;
+  try{
+    const {kvKey,cryptoKey}=await syncKeys(code);
+    const r=await fetch(SYNC_ENDPOINT+'/sync/'+kvKey);
+    if(r.status===404) throw new Error('nothing synced under this code yet');
+    if(!r.ok) throw new Error(r.status);
+    const pkt=await r.json();
+    const inc=normalise(await decryptPayload(pkt, cryptoKey));
+    if(!inc) throw new Error('that code holds a different deck');
+    return inc;
+  }catch(e){ if(!quiet) toast('Sync pull failed ('+e.message+')'); return null; }
+}
+// syncedLogLen is the review count both sides last agreed on. Whichever side has grown
+// past it is the one holding new work; if both have, the histories have forked and
+// merging them is not possible, so ask rather than pick a winner. Pure so it can be
+// tested without a network call or a dialog.
+function syncDecision(localLen,remoteLen,base){
+  const localMoved=localLen>base, remoteMoved=remoteLen>base;
+  if(localMoved&&remoteMoved) return 'conflict';
+  if(remoteMoved) return 'take-remote';
+  if(localMoved) return 'push-local';
+  return 'in-sync';
+}
+// Both copies are named and counted, not just "this device" vs "the sync copy" --
+// the whole point is never being unsure which is which across three devices.
+// Cancel is a genuine no-op, on purpose: a plain confirm() cannot tell a
+// deliberate Cancel click from an Escape-key dismissal, and both return the
+// same false. Making the "other" branch destructive (as an earlier draft did)
+// meant a stray Escape on a Mac could silently overwrite the synced copy
+// without anyone having chosen to. Keeping local instead is one explicit tap
+// away, in Settings -> Sync now, which is already named the same way.
+function conflictMessage(inc,base){
+  const here=deviceLabel(), there=inc.lastDevice||'the other device';
+  const hereN=S.log.length-base, thereN=inc.log.length-base;
+  return 'This device ('+here+') has '+hereN+' review'+(hereN===1?'':'s')+' the synced copy does not have yet.\n'+
+         'The synced copy was last pushed by '+there+' and has '+thereN+' review'+(thereN===1?'':'s')+
+         ' this device does not have.\n\n'+
+         'OK = take the copy from '+there+' ('+here+'\'s '+hereN+' new review'+(hereN===1?'':'s')+
+         ' will be lost unless you export a backup file first).\n'+
+         'Cancel = decide later -- nothing changes now. To keep '+here+'\'s copy instead, use '+
+         '"Sync now" in Settings once you\'re sure.';
+}
+function offerConflict(inc,base){
+  if(confirm(conflictMessage(inc,base))){
+    adopt(inc); renderHome(); toast('Took the copy from '+(inc.lastDevice||'the other device'));
+  } else {
+    toast('Left as is -- sync from Settings when you\'re ready to keep this copy instead',3200);
+  }
+}
+async function syncOnLaunch(){
+  if(!S.settings.syncCode) return;
+  const lenAtStart=S.log.length;
+  const inc=await fetchSync(true);
+  if(!inc) return;
+  if(S.log.length!==lenAtStart) return;              // rated while the fetch was in flight
+  const base=(S.syncedLogLen==null)?S.log.length:S.syncedLogLen;
+  const decision=syncDecision(S.log.length,inc.log.length,base);
+  if(decision==='conflict'){
+    offerConflict(inc,base);
+  } else if(decision==='take-remote'){
+    adopt(inc); renderHome();
+    toast('Synced — '+S.log.length+' reviews from '+(inc.lastDevice||'your other device'),2600);
+  } else if(decision==='push-local'){
+    pushSync(true);                                  // only this device moved; put it back
+  }
+}
+async function pullSync(){
+  const code=S.settings.syncCode;
+  if(!code){ toast('Get a sync code first'); return; }
+  const inc=await fetchSync(false);
+  if(!inc) return;
+  if(inc.log.length<S.log.length&&
+     !confirm('The synced copy (last pushed by '+(inc.lastDevice||'another device')+') has fewer reviews ('+
+               inc.log.length+') than this device ('+deviceLabel()+', '+S.log.length+'). Replace anyway?')) return;
+  adopt(inc); renderHome(); toast('Pulled '+S.log.length+' reviews from '+(inc.lastDevice||'sync'));
+}
+
+/* ======================= feedback ======================= */
+// One-way: sent to the Worker, never read back or displayed anywhere in the
+// app. The hp field is a honeypot -- invisible to a real user via CSS, so a
+// non-empty value there means something auto-filled it. The Worker also
+// enforces the length range and a per-IP rate limit; the checks here are
+// just to fail fast and give a clear toast before a network round trip.
+const FEEDBACK_MIN=3, FEEDBACK_MAX=500, FEEDBACK_COOLDOWN_MS=60000;
+function updateFeedbackCount(){
+  $('feedbackCount').textContent=$('fFeedback').value.length+'/'+FEEDBACK_MAX;
+}
+async function sendFeedback(){
+  const msg=$('fFeedback').value.trim();
+  if(msg.length<FEEDBACK_MIN){ toast('A little more detail would help'); return; }
+  const last=parseInt(localStorage.getItem('rbFeedbackLast')||'0',10);
+  if(Date.now()-last<FEEDBACK_COOLDOWN_MS){ toast('You can send another suggestion in a moment',2200); return; }
+  const btn=$('feedbackSendBtn'); btn.disabled=true;
+  try{
+    const r=await fetch(SYNC_ENDPOINT+'/feedback',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg, deck:DECK_ID, hp:$('fFeedbackHp').value})
+    });
+    if(r.ok){
+      localStorage.setItem('rbFeedbackLast',String(Date.now()));
+      $('fFeedback').value=''; updateFeedbackCount();
+      toast('Thanks — sent!');
+    } else if(r.status===429){
+      toast('Please wait a bit before sending more',2600);
+    } else {
+      toast('Could not send — try again later');
+    }
+  }catch(e){ toast('Could not send — check your connection'); }
+  finally{ btn.disabled=false; }
+}
+
+/* ======================= changelog ======================= */
+const CHANGES=[
+  ['1.0',[
+    'First release. Forked from vocabula\'s FSRS study engine, with a smaller settings page: hesitation-adjusted grading, easy-only clearing and the 3-day drill release are always on rather than switchable, and there is no known-word head start since every word here starts unseen.',
+    'Backup and sync no longer needs a GitHub account. Get a short code in Settings, type the same code into another device, and both stay in step. The code doubles as an encryption key, so anything sent between devices is unreadable in transit and at rest.',
+    'Five themes instead of seven, chosen to look distinct from each other at a glance rather than to cover every palette.'
+  ]]
+];
+function renderLog(){
+  $('logBody').innerHTML=CHANGES.map(([v,items])=>
+    '<div class="logv">'+v+'</div>'+items.map(i=>'<div class="logi">'+i+'</div>').join('')
+  ).join('');
+}
+
+/* ======================= settings screen ======================= */
+// Decorative only -- mirrors each palette's light-mode --bg/--coral pair so the
+// swatch reads correctly regardless of which theme is currently applied.
+const SWATCH_PREVIEW={
+  vellum:['#fbf7ec','#8c2f26'], catppuccin:['#eff1f5','#de590c'],
+  rosepine:['#faf4ed','#c86a65'], gruvbox:['#fbf1c7','#a93c09'], legacy:['#ffffff','#d85a30']
+};
+function renderPalSwatches(){
+  const cur=PALETTES[S.palette]?S.palette:'vellum';
+  $('fPalSwatches').innerHTML=PAL_KEYS.map(k=>{
+    const [bg,ac]=SWATCH_PREVIEW[k]||['#ccc','#888'];
+    return '<button type="button" class="palSwatch'+(k===cur?' cur':'')+'" data-pal="'+k+'" aria-label="'+PALETTES[k]+'">'+
+      '<span class="swatchDot" style="background:'+bg+';box-shadow:inset 0 0 0 2px '+ac+'"></span>'+
+      '<span class="swatchLbl">'+PALETTES[k]+'</span></button>';
+  }).join('');
+  $('fPalSwatches').querySelectorAll('.palSwatch').forEach(btn=>{
+    tapZone(btn,()=>{
+      S.palette=btn.dataset.pal;
+      if(S.rotate==='daily')S.rotDay=today();
+      save(); applyTheme(); renderSet(); renderHome();
+    });
+  });
+}
+function renderSet(){
+  const s=S.settings;
+  $('fNew').value=s.newPerDay; $('fRet').value=Math.round(s.retention*100);
+  $('fRetVal').textContent=Math.round(s.retention*100)+'%';
+  $('fDevice').value=s.deviceName||'';
+  $('fSyncCode').value=s.syncCode||'';
+  updateFeedbackCount();
+  $('fGate').value=s.gateDays|0;
+  $('fTheme').value=S.theme||'light';
+  renderPalSwatches();
+  $('fRoll').value=String(S.settings.rollover!=null?S.settings.rollover:4);
+  $('fRot').value=S.rotate||'off';
+  $('palNote').innerHTML='<span class="swatch" style="background:var(--coral)"></span>'+
+    PALETTES[S.palette]+' · '+((S.theme==='auto')?'following the system':S.theme)+
+    (S.rotate==='daily'?' · rotating daily':'');
+  $('fRevDay').value=String(s.reviewDay===undefined?-1:s.reviewDay);
+  $('fWeak').value=s.weakFirst?'1':'0';
+  $('backupNote').textContent=(S.lastExport?
+      'Last backup '+new Date(S.lastExport).toLocaleString()+' · ':'No backup yet · ')+
+      (S.sinceExport||0)+' ratings since.'+
+      (S.settings.syncCode
+        ? '  Sync: '+(S.lastSync?'synced '+new Date(S.lastSync).toLocaleString():'not yet synced')+
+          (S.lastDevice?' (last synced by '+S.lastDevice+')':'')+'.'
+        : '');
+}
+
+/* ======================= wiring ======================= */
+function tapZone(el,fn){
+  el.addEventListener('click',e=>{e.preventDefault();fn();});
+}
+tapZone($('cardArea'),()=>{ if($('rateRow').classList.contains('hidden')) reveal(); });
+tapZone($('revealBtn'),reveal);
+tapZone($('bAgain'),()=>rate(AGAIN));
+tapZone($('bGood'), ()=>rate(GOOD));
+tapZone($('bEasy'), ()=>rate(EASY));
+tapZone($('undoBtn'),undo);
+// seven buttons across six screens, all "go back to the front screen"
+['toHome','toHome2','toHome3','doneBack','statsBack','logBack','browseBack']
+  .forEach(id=>tapZone($(id),()=>{renderHome();show('scHome');}));
+tapZone($('toSettings'),()=>{renderSet();show('scSet');});
+tapZone($('toStats'),()=>{renderStats();show('scStats');});
+tapZone($('statsDirL'),()=>{S.dir='L';save();renderStats();});
+tapZone($('statsDirE'),()=>{S.dir='E';save();renderStats();});
+tapZone($('dirLtoE'),()=>{S.dir='L';save();renderHome();});
+tapZone($('dirEtoL'),()=>{S.dir='E';save();renderHome();});
+tapZone($('startBtn'),()=>{undoStack=[];next();if(current)show('scStudy');});
+$('calFold').addEventListener('toggle',()=>{ if($('calFold').open) renderCalendar(); });
+function shiftCalMonth(delta){
+  if(calY==null){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth(); }
+  calM+=delta;
+  if(calM<0){ calM=11; calY--; } else if(calM>11){ calM=0; calY++; }
+  calSelDk=null;
+  renderCalendar();
+}
+tapZone($('calPrev'),()=>shiftCalMonth(-1));
+tapZone($('calNext'),()=>shiftCalMonth(1));
+$('calGrid').addEventListener('click',e=>{
+  const cell=e.target.closest('.calCell'); if(!cell||!cell.dataset.dk) return;
+  e.preventDefault();
+  calSelDk=(calSelDk===+cell.dataset.dk)?null:+cell.dataset.dk;
+  renderCalendar();
+});
+tapZone($('toBrowse'),()=>{ browseDir=S.dir; renderBrowse(); show('scBrowse'); });
+tapZone($('browseDirL'),()=>{ browseDir='L'; renderBrowse(); });
+tapZone($('browseDirE'),()=>{ browseDir='E'; renderBrowse(); });
+tapZone($('partPickerBtn'),()=>openPartSheet('home'));
+tapZone($('browsePartBtn'),()=>openPartSheet('browse'));
+tapZone($('partSheetDone'),closePartSheet);
+$('partSheet').addEventListener('click',e=>{ if(e.target.id==='partSheet') closePartSheet(); });
+tapZone($('partSheetAll'),()=>{ S.parts=SECTIONS.slice(); save(); renderPartSheet(); renderChips(); });
+$('partSheetList').addEventListener('click',e=>{
+  const row=e.target.closest('.partRow'); if(!row) return;
+  e.preventDefault();
+  const sec=row.dataset.sec;
+  if(partSheetMode==='home'){
+    let cur=activeParts().slice();
+    cur = cur.includes(sec) ? cur.filter(x=>x!==sec) : cur.concat([sec]);
+    if(!cur.length) cur=[sec];
+    S.parts=SECTIONS.filter(x=>cur.includes(x));
+    save(); renderPartSheet(); renderChips();
+  } else {
+    browsePart = sec===''? null : sec;
+    closePartSheet();
+    renderBrowse();
+  }
+});
+$('browseSearch').addEventListener('input',e=>{ browseQuery=e.target.value; renderBrowse(); });
+$('browseResults').addEventListener('click',e=>{
+  const row=e.target.closest('.wordRow'); if(!row) return;
+  row.classList.toggle('revealed');
+});
+function bumpCap(delta){
+  const d=today(), rec=S.days[d]||(S.days[d]={n:0,intro:0,ok:0,tot:0});
+  const cur=(rec.cap!=null)?rec.cap:S.settings.newPerDay;
+  rec.cap=Math.min(Math.max(cur+delta,0),400);
+  save(); renderHome();
+}
+tapZone($('capMinus'),()=>bumpCap(-5));
+tapZone($('capPlus'), ()=>bumpCap(5));
+tapZone($('doneMore'),()=>{
+  const d=today(), rec=S.days[d]||(S.days[d]={n:0,intro:0,ok:0,tot:0});
+  rec.cap=((rec.cap!=null)?rec.cap:S.settings.newPerDay)+10;
+  save(); next(); if(current) show('scStudy'); else toast('No unseen words left in this direction');
+});
+tapZone($('expBtn'),()=>doExport(false));
+tapZone($('impBtn'),()=>$('impFile').click());
+$('impFile').addEventListener('change',e=>{ if(e.target.files[0]) doImport(e.target.files[0]); e.target.value=''; });
+tapZone($('pushBtn'),()=>pushSync(false));
+tapZone($('pullBtn'),pullSync);
+tapZone($('syncNewBtn'),newSyncCode);
+tapZone($('resetBtn'),()=>{
+  if(!confirm('Erase every rating and interval on this device? A backup downloads first.')) return;
+  undoStack=[]; current=null;
+  doExport();
+  setTimeout(()=>{ S=JSON.parse(JSON.stringify(defaults)); save(); renderHome(); show('scHome'); toast('Erased'); },700);
+});
+$('fNew').addEventListener('change',e=>{S.settings.newPerDay=Math.max(0,e.target.value|0);save();});
+$('fRet').addEventListener('input',e=>{S.settings.retention=e.target.value/100;$('fRetVal').textContent=e.target.value+'%';});
+$('fRet').addEventListener('change',()=>save());
+$('fTheme').addEventListener('change',e=>{S.theme=e.target.value;save();applyTheme();renderSet();});
+$('fRot').addEventListener('change',e=>{S.rotate=e.target.value;S.rotDay=today();S.rotSeen=[S.palette];save();renderSet();});
+$('fRoll').addEventListener('change',e=>{S.settings.rollover=e.target.value|0;save();renderHome();renderSet();});
+$('surpriseBtn').addEventListener('click',surprise);
+$('buildTag').addEventListener('click',()=>{renderLog();show('scLog');});
+$('fGate').addEventListener('change',e=>{S.settings.gateDays=Math.max(0,e.target.value|0);save();});
+$('fRevDay').addEventListener('change',e=>{S.settings.reviewDay=parseInt(e.target.value,10);save();});
+$('fWeak').addEventListener('change',e=>{S.settings.weakFirst=(e.target.value==='1');save();});
+$('fDevice').addEventListener('change',e=>{S.settings.deviceName=e.target.value.trim();save();});
+$('fSyncCode').addEventListener('change',e=>{S.settings.syncCode=e.target.value.trim().toUpperCase();save();});
+$('fFeedback').addEventListener('input',updateFeedbackCount);
+tapZone($('feedbackSendBtn'),sendFeedback);
+
+document.addEventListener('keydown',e=>{
+  if($('scStudy').classList.contains('on')){
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();
+      // Space/Enter reveals when the answer is hidden, then doubles as Good
+      // once it's showing -- the same double duty Anki's own Space key does,
+      // so the single most common rating never needs a second key.
+      if($('rateRow').classList.contains('hidden')) reveal();
+      else rate(GOOD);
+    }
+    else if(!$('rateRow').classList.contains('hidden')){
+      if(e.key==='1') rate(AGAIN);
+      if(e.key==='2') rate(GOOD);
+      if(e.key==='3') rate(EASY);
+    }
+    if(e.key==='z'||e.key==='Z') undo();
+  }
+});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) cardDirty=true;
+  if(!document.hidden&&$('scHome').classList.contains('on')){ renderHome(); syncOnLaunch(); }
+});
+
+load().then(()=>{ applyTheme(); renderHome(); show('scHome'); syncOnLaunch(); });   // renderHome() already calls renderWarn()
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(S&&S.theme==='auto') applyTheme(); });
+</script>
+</body>
+</html>

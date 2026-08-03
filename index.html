@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Riverbank</title>
+<style>
+:root{
+  --bg:#fffdfb; --ink:#1b1a18; --muted:#6f6c66; --line:#e7e3dc; --panel:#faf8f5; --coral:#c04d26;
+  --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0e1230; --ink:#e9ecf8; --muted:#a3abd0; --line:#2a3169; --panel:#181d47; --coral:#ff8a5c;}
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0 auto;padding:56px 22px 80px;max-width:28rem;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-text-size-adjust:100%}
+h1{font-family:var(--serif);font-weight:400;font-size:2.1rem;margin:0 0 4px}
+.sub{color:var(--muted);font-size:15px;margin:0 0 32px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+  border:1px solid var(--line);border-radius:15px;padding:17px 19px;margin-bottom:11px}
+a.card:active{border-color:var(--coral)}
+a.card .t{font-family:var(--serif);font-size:1.32rem;margin-bottom:2px}
+a.card .d{color:var(--muted);font-size:14px}
+.note{margin-top:28px;color:var(--muted);font-size:13.5px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>Riverbank</h1>
+<p class="sub">Vocabulary, spaced out</p>
+
+<a class="card" href="latin.html">
+  <div class="t">Latin</div>
+  <div class="d">848 words, OCR AS Level, both directions</div>
+</a>
+<a class="card" href="greek.html">
+  <div class="t">Ελληνικά</div>
+  <div class="d">765 words, OCR AS Level, both directions</div>
+</a>
+<a class="card" href="italian.html">
+  <div class="t">Italiano</div>
+  <div class="d">635 words &amp; phrases, both directions</div>
+</a>
+<a class="card" href="manual.html">
+  <div class="t">Guide</div>
+  <div class="d">Add to your Home Screen, study basics, syncing</div>
+</a>
+
+<p class="note">Add each language to your Home Screen separately and open it from there, not from a browser tab — see the Guide above for how. Safari clears stored data for sites left unvisited for a week; installed apps are exempt.</p>
+</body>
+</html>
