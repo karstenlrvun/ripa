@@ -1,0 +1,19 @@
+name = "riverbank-sync"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# After running `wrangler kv namespace create RIVERBANK_SYNC`, paste the id
+# it prints below (leave the binding name as RIVERBANK_SYNC — the worker code
+# refers to env.RIVERBANK_SYNC directly).
+[[kv_namespaces]]
+binding = "RIVERBANK_SYNC"
+id = "f3e57401a66a404ba93b3bfbaa460cfb"
+
+# New as of the feedback feature -- run `wrangler kv namespace create
+# RIVERBANK_FEEDBACK` and paste its id below, then `wrangler deploy` again.
+# Until this exists and is deployed, POST /feedback 500s (env.RIVERBANK_FEEDBACK
+# is undefined) -- the client already fails that closed with a toast, so
+# nothing breaks for users in the meantime, feedback just isn't collected yet.
+[[kv_namespaces]]
+binding = "RIVERBANK_FEEDBACK"
+id = "REPLACE_WITH_YOUR_FEEDBACK_KV_NAMESPACE_ID"
