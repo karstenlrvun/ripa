@@ -53,7 +53,7 @@ ok('CARDS is built (forward + reverse, so at least as many as DATA rows)', CARDS
 ok('DECK has fwd/rev labels and at least one motto', DECK && typeof DECK.fwd === 'string' && typeof DECK.rev === 'string' &&
   Array.isArray(DECK.mottos) && DECK.mottos.length > 0, DECK);
 ok('KEY follows riverbank.<deck>.v<n>', /^riverbank\.[a-z]+\.v\d+$/.test(KEY), KEY);
-ok('DECK_ID is one of latin/greek/italian', ['latin', 'greek', 'italian'].indexOf(DECK_ID) !== -1, DECK_ID);
+ok('DECK_ID is one of latin/greek/italian/sat', ['latin', 'greek', 'italian', 'sat'].indexOf(DECK_ID) !== -1, DECK_ID);
 ok('KEY and DECK_ID agree with each other', KEY.indexOf('.' + DECK_ID + '.') !== -1, { KEY: KEY, DECK_ID: DECK_ID });
 
 /* ================= settings that were hardcoded on purpose =================

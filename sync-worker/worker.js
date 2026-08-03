@@ -30,7 +30,7 @@
  *     messages, it MUST escape them before inserting into a page; this
  *     Worker only guarantees safe storage, not safe display
  *
- *   POST /feedback   body: {"message":"...", "deck":"latin"|"greek"|"italian", "hp":""}
+ *   POST /feedback   body: {"message":"...", "deck":"latin"|"greek"|"italian"|"sat", "hp":""}
  *
  * Deploy:
  *   0. node test.mjs   (mocks env/KV in-process -- run this after any edit here)
@@ -65,70 +65,71 @@ const FEEDBACK_MIN_CHARS = 3;
 const FEEDBACK_MAX_BODY_BYTES = 4000;         // generous ceiling before we even try to parse JSON
 const FEEDBACK_MIN_INTERVAL_MS = 60 * 1000;   // one submission per minute per IP
 const FEEDBACK_DAILY_CAP = 20;                // per IP per UTC day
-const ALLOWED_DECKS = new Set(['latin', 'greek', 'italian']);
+const ALLOWED_DECKS = new Set(['latin', 'greek', 'italian', 'sat']);
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() });
+    const origin = request.headers.get('Origin');
+    if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(null, origin) });
 
     const url = new URL(request.url);
 
     const syncMatch = url.pathname.match(/^\/sync\/([^/]+)$/);
-    if (syncMatch) return handleSync(request, env, syncMatch[1]);
+    if (syncMatch) return handleSync(request, env, syncMatch[1], origin);
 
-    if (url.pathname === '/feedback') return handleFeedback(request, env);
+    if (url.pathname === '/feedback') return handleFeedback(request, env, origin);
 
-    return new Response('Not found', { status: 404, headers: corsHeaders() });
+    return new Response('Not found', { status: 404, headers: corsHeaders(null, origin) });
   }
 };
 
-async function handleSync(request, env, kvKey) {
-  if (!KV_KEY_RE.test(kvKey)) return new Response('Bad key', { status: 400, headers: corsHeaders() });
+async function handleSync(request, env, kvKey, origin) {
+  if (!KV_KEY_RE.test(kvKey)) return new Response('Bad key', { status: 400, headers: corsHeaders(null, origin) });
 
   if (request.method === 'GET') {
     const stored = await env.RIVERBANK_SYNC.get(kvKey);
-    if (stored == null) return new Response('Not found', { status: 404, headers: corsHeaders() });
-    return new Response(stored, { headers: corsHeaders('application/json') });
+    if (stored == null) return new Response('Not found', { status: 404, headers: corsHeaders(null, origin) });
+    return new Response(stored, { headers: corsHeaders('application/json', origin) });
   }
 
   if (request.method === 'PUT') {
     const body = await request.text();
-    if (body.length > MAX_BODY_BYTES) return new Response('Too large', { status: 413, headers: corsHeaders() });
+    if (body.length > MAX_BODY_BYTES) return new Response('Too large', { status: 413, headers: corsHeaders(null, origin) });
     let parsed;
-    try { parsed = JSON.parse(body); } catch { return new Response('Bad JSON', { status: 400, headers: corsHeaders() }); }
+    try { parsed = JSON.parse(body); } catch { return new Response('Bad JSON', { status: 400, headers: corsHeaders(null, origin) }); }
     if (typeof parsed.iv !== 'string' || typeof parsed.data !== 'string') {
-      return new Response('Expected {iv, data}', { status: 400, headers: corsHeaders() });
+      return new Response('Expected {iv, data}', { status: 400, headers: corsHeaders(null, origin) });
     }
     await env.RIVERBANK_SYNC.put(kvKey, JSON.stringify({ iv: parsed.iv, data: parsed.data }));
-    return new Response('OK', { headers: corsHeaders('text/plain') });
+    return new Response('OK', { headers: corsHeaders('text/plain', origin) });
   }
 
-  return new Response('Method not allowed', { status: 405, headers: corsHeaders() });
+  return new Response('Method not allowed', { status: 405, headers: corsHeaders(null, origin) });
 }
 
-async function handleFeedback(request, env) {
-  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders() });
+async function handleFeedback(request, env, origin) {
+  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders(null, origin) });
 
   const raw = await request.text();
-  if (raw.length > FEEDBACK_MAX_BODY_BYTES) return new Response('Too large', { status: 413, headers: corsHeaders() });
+  if (raw.length > FEEDBACK_MAX_BODY_BYTES) return new Response('Too large', { status: 413, headers: corsHeaders(null, origin) });
 
   let body;
-  try { body = JSON.parse(raw); } catch { return new Response('Bad JSON', { status: 400, headers: corsHeaders() }); }
+  try { body = JSON.parse(raw); } catch { return new Response('Bad JSON', { status: 400, headers: corsHeaders(null, origin) }); }
 
   // Honeypot: a hidden field real users never see or fill in. A non-empty
   // value means a bot filled every field it could find -- answer as if it
   // worked (so nothing distinguishes success from silent rejection) but
   // never touch KV.
   if (typeof body.hp === 'string' && body.hp.trim() !== '') {
-    return new Response('OK', { headers: corsHeaders('text/plain') });
+    return new Response('OK', { headers: corsHeaders('text/plain', origin) });
   }
 
   if (typeof body.message !== 'string') {
-    return new Response('Expected {message}', { status: 400, headers: corsHeaders() });
+    return new Response('Expected {message}', { status: 400, headers: corsHeaders(null, origin) });
   }
   const message = sanitizeText(body.message);
-  if (message.length < FEEDBACK_MIN_CHARS) return new Response('Message too short', { status: 400, headers: corsHeaders() });
-  if (message.length > FEEDBACK_MAX_CHARS) return new Response('Message too long', { status: 400, headers: corsHeaders() });
+  if (message.length < FEEDBACK_MIN_CHARS) return new Response('Message too short', { status: 400, headers: corsHeaders(null, origin) });
+  if (message.length > FEEDBACK_MAX_CHARS) return new Response('Message too long', { status: 400, headers: corsHeaders(null, origin) });
 
   const deck = ALLOWED_DECKS.has(body.deck) ? body.deck : 'unknown';
 
@@ -142,14 +143,14 @@ async function handleFeedback(request, env) {
   const throttleKey = 'throttle:' + ipHash;
   const lastStr = await env.RIVERBANK_FEEDBACK.get(throttleKey);
   if (lastStr && (now - parseInt(lastStr, 10)) < FEEDBACK_MIN_INTERVAL_MS) {
-    return new Response('Please wait a bit before sending more feedback', { status: 429, headers: corsHeaders('text/plain') });
+    return new Response('Please wait a bit before sending more feedback', { status: 429, headers: corsHeaders('text/plain', origin) });
   }
 
   const countKey = 'count:' + ipHash + ':' + dayStamp(now);
   const countStr = await env.RIVERBANK_FEEDBACK.get(countKey);
   const count = countStr ? parseInt(countStr, 10) : 0;
   if (count >= FEEDBACK_DAILY_CAP) {
-    return new Response('Daily feedback limit reached', { status: 429, headers: corsHeaders('text/plain') });
+    return new Response('Daily feedback limit reached', { status: 429, headers: corsHeaders('text/plain', origin) });
   }
 
   const id = now + '-' + crypto.randomUUID();
@@ -157,7 +158,7 @@ async function handleFeedback(request, env) {
   await env.RIVERBANK_FEEDBACK.put(throttleKey, String(now), { expirationTtl: 3600 });
   await env.RIVERBANK_FEEDBACK.put(countKey, String(count + 1), { expirationTtl: 86400 });
 
-  return new Response('OK', { headers: corsHeaders('text/plain') });
+  return new Response('OK', { headers: corsHeaders('text/plain', origin) });
 }
 
 // Strips control characters (keeping newlines and tabs) and trims. This is
@@ -177,12 +178,20 @@ async function sha256Hex(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function corsHeaders(contentType) {
+// Locked to the deployed app's own origin(s) -- add another entry here if a
+// custom domain ever gets attached to the site. Anything else calling this
+// Worker (from a browser) gets no Access-Control-Allow-Origin header at all,
+// which browsers treat as a cross-origin block regardless of the response
+// body/status underneath it.
+const ALLOWED_ORIGINS = new Set([
+  'https://ripa.karsten-vun.workers.dev'
+]);
+function corsHeaders(contentType, origin) {
   const h = {
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
+  if (origin && ALLOWED_ORIGINS.has(origin)) h['Access-Control-Allow-Origin'] = origin;
   if (contentType) h['Content-Type'] = contentType;
   return h;
 }

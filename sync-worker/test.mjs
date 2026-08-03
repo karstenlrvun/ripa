@@ -24,7 +24,26 @@ const env = { RIVERBANK_SYNC: makeKV(), RIVERBANK_FEEDBACK: makeKV() };
 // --- OPTIONS preflight on any path ---
 {
   const r = await req('https://x/feedback', { method: 'OPTIONS' });
-  ok('OPTIONS /feedback -> 200 with CORS', r.status === 200 && r.headers.get('Access-Control-Allow-Origin') === '*');
+  ok('OPTIONS /feedback -> 200', r.status === 200);
+}
+
+// --- CORS is locked to the deployed app's own origin, not wide open ---
+{
+  const allowed = await req('https://x/feedback', {
+    method: 'OPTIONS', headers: { Origin: 'https://ripa.karsten-vun.workers.dev' }
+  });
+  ok('allowed origin gets Access-Control-Allow-Origin echoed back',
+    allowed.headers.get('Access-Control-Allow-Origin') === 'https://ripa.karsten-vun.workers.dev');
+
+  const stranger = await req('https://x/feedback', {
+    method: 'OPTIONS', headers: { Origin: 'https://evil.example.com' }
+  });
+  ok('an unrelated origin gets no Access-Control-Allow-Origin header at all',
+    stranger.headers.get('Access-Control-Allow-Origin') === null);
+
+  const none = await req('https://x/feedback', { method: 'OPTIONS' });
+  ok('no Origin header sent -> no Access-Control-Allow-Origin header either',
+    none.headers.get('Access-Control-Allow-Origin') === null);
 }
 
 // --- unknown path ---

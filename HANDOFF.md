@@ -1,15 +1,16 @@
 # riverbank — handoff
 
 A spaced-repetition vocabulary app for a general audience, forked from `~/Downloads/vocabula`'s
-FSRS study engine. Three decks — `latin.html`, `greek.html`, `italian.html` — each a
+FSRS study engine. Four decks — `latin.html`, `greek.html`, `italian.html`, `sat.html` — each a
 **single self-contained HTML file**, same no-build-step, no-dependency philosophy as vocabula.
 `vocabula/` itself was never modified; this is a separate, sibling project.
 
-Repo location: `~/Downloads/riverbank` (not yet a git repo, not yet deployed anywhere — see §7).
+Repo location: `~/Downloads/riverbank`, pushed to `github.com/karstenlrvun/ripa` (private) and
+live at `https://ripa.karsten-vun.workers.dev` — see §6 for what that deploy actually involved.
 
 ```
 riverbank/
-  latin.html, greek.html, italian.html   the three decks
+  latin.html, greek.html, italian.html, sat.html   the four decks
   index.html                             launcher linking the three
   manual.html                            simplified in-app guide (usage only, no internals)
   Riverbank-Getting-Started.pdf          standalone install guide
@@ -34,7 +35,7 @@ works. Concretely, relative to the vocabula template:
 - Let hesitation adjust the grade — hardcoded on (`useTiming:true`).
 - Clearing a word for the day (easy-only vs good-enough) — hardcoded to easy-only (`requireEasy:true`).
 - Consecutive good days before release — hardcoded to `drillDays:3`.
-- Head start for known words — removed; no card in any of these three decks has a seed of `1`
+- Head start for known words — removed; no card in any of these four decks has a seed of `1`
   or `2` (all use `-1`, "no audit"), so this setting would have done nothing anyway.
 - Michaelmas begins / term countdown — removed along with the whole term-relative projection
   in `renderPace()`/`renderSyllabus()`, not just the date field. Doesn't make sense without a
@@ -103,9 +104,10 @@ nothing sent here is ever displayed back inside the app. See §3 for the server-
 | Latin | `~/Downloads/latin.pdf` — OCR AS Level Latin Defined Vocabulary List | 848 | Clean table extraction (`pdfplumber`, column-position based). 9 rows had a blank Classification cell in the source; each was assigned the Classification of the row immediately before it — flagged as an inference, not fact, in case a different default is wanted. |
 | Greek | `~/Downloads/greek-1.pdf` — OCR AS Level Classical Greek DVL | 765 | Pages 3–4 of the source PDF garble badly under naive text extraction (words split across false line breaks). Re-verified those pages by rendering to images and reading glyph-by-glyph instead (had to `brew install poppler` for `pdftoppm` — now on this machine). All entries use Part `"All"`, matching vocabula's own `greek.html` convention for a deck with no thematic categories. |
 | Italian | `~/Downloads/L.docx` — a 40-section Italian study guide, not a plain word list | 635 | Restructured, not just extracted: plain vocab/phrase pairs became ordinary cards; verb conjugation tables became one card per infinitive **plus** one card per grammatical person (114 of the 635 are person-conjugated forms); pure grammar-rule prose (pronunciation rules, tense-formation rules, pronoun-usage rules) was excluded — only its concrete example phrases became cards. Judgment calls worth knowing about: days of the week, months, and colours had no inline English gloss in the source and were given standard translations; the imperative section (§30) had almost no inline glosses either and was mostly skipped rather than guessed. |
+| SAT English | A general SAT-prep word list, Karsten's own source, pasted directly (no OCR) | 500 | Monolingual — English word ↔ English definition, not a translation pair. See §8. |
 
-All three use `seed:-1` for every row (no pre-known/audit words) and `KEY`s `riverbank.latin.v1`
-/ `riverbank.greek.v1` / `riverbank.italian.v1` — distinct from vocabula's own
+All four use `seed:-1` for every row (no pre-known/audit words) and `KEY`s `riverbank.latin.v1`
+/ `riverbank.greek.v1` / `riverbank.italian.v1` / `riverbank.sat.v1` — distinct from vocabula's own
 `vocabula.latin.v2` / `vocabula.greek.v1`, so installing both on one device never collides.
 
 ---
@@ -121,7 +123,7 @@ leaves the device — the Worker and its KV namespace only ever see ciphertext. 
 SHA-256 digest).
 
 **Status: `/sync/*` is live.** The Worker is deployed at `https://riverbank-sync.karsten-vun.workers.dev`
-and `SYNC_ENDPOINT` in all three decks points at it. Confirmed with real HTTP requests (not just
+and `SYNC_ENDPOINT` in all four decks points at it. Confirmed with real HTTP requests (not just
 unit tests): `GET /sync/<64 zeros>` → 404 as expected, `OPTIONS` → 200 with CORS headers. Still
 untested against two real devices actually syncing a study history back and forth — only the
 crypto round-trip and deliberately-failing-fetch paths were exercised directly.
@@ -136,17 +138,18 @@ wrangler deploy
 ```
 Until that's done, the Settings → Feedback → Send button fails closed with a "Could not send —
 try again later" toast — confirmed live, no crash, nothing lost (the typed text stays in the box).
-See `sync-worker/test.mjs` for a 45-case local test suite covering both endpoints (`node test.mjs`,
-no deploy or network needed — it imports `worker.js` directly and mocks KV with an in-memory Map).
+See `sync-worker/test.mjs` for a local test suite covering both endpoints (`node test.mjs`, no
+deploy or network needed — it imports `worker.js` directly and mocks KV with an in-memory Map).
 It specifically covers the things asked for when this feature was requested: a message length
 floor and ceiling (3–500 chars, enforced both client-side via `maxlength` and server-side), a
 per-IP rate limit (60 seconds between submissions, 20/day hard cap, verified with 21 simulated
 submissions), a honeypot field that silently discards bot-filled submissions while still returning
-200 (so a bot can't distinguish success from rejection), control-character stripping, and
-allowlist validation on the `deck` field. All 45 cases pass. Submitted text is stored as a plain
-JSON string in KV and never rendered as HTML anywhere in this codebase — if anyone ever builds an
-admin viewer for these messages, it must escape them at render time; this Worker only guarantees
-safe *storage*, not safe *display*.
+200 (so a bot can't distinguish success from rejection), control-character stripping, allowlist
+validation on the `deck` field, and (added when CORS was locked down, §6) that only the deployed
+app's own origin gets an `Access-Control-Allow-Origin` header back. All 48 cases pass. Submitted
+text is stored as a plain JSON string in KV and never rendered as HTML anywhere in this codebase —
+if anyone ever builds an admin viewer for these messages, it must escape them at render time; this
+Worker only guarantees safe *storage*, not safe *display*.
 
 ---
 
@@ -158,12 +161,12 @@ built-in JavaScriptCore (`jsc`), and the tooling here prefers Node when it's pre
 
 **An automated test suite now exists for the decks themselves** (it didn't in earlier sessions):
 ```bash
-cd tests && ./run.sh ../latin.html      # or ../greek.html, ../italian.html
+cd tests && ./run.sh ../latin.html      # or ../greek.html, ../italian.html, ../sat.html
 ```
 Mirrors vocabula's own `tests/run.sh` convention exactly: extracts everything above `function
 tapZone` (the pure logic — data model, scheduler, sync decision, part picker — no DOM or event
 wiring) from the deck's `<script>`, appends `tests.js`, runs it with `node` if available, else
-`jsc`. 36 checks, currently passing on all three decks: DATA shape/seed/emptiness, unique card
+`jsc`. 36 checks, currently passing on all four decks: DATA shape/seed/emptiness, unique card
 ids, the settings that were hardcoded on purpose this session (`requireEasy`, `useTiming`,
 `drillDays`, and that `gistId`/`gistTok`/`term` are gone), day-key math, an FSRS sanity check
 (Easy schedules further out than Again; a drilled Good stays same-day), `syncDecision`'s four
@@ -228,47 +231,93 @@ will silently no-op, and that's correct behaviour, not a bug (confirmed by re-te
   the file's raw bytes rather than trusting a text view, and rewritten with proper `\u0000`-style
   escapes. **Lesson**: if a tool call reports writing a control-character regex, verify the actual
   bytes on disk rather than assuming the escape sequence you intended is what landed.
+- **`.git/` and `.wrangler/tmp/` were briefly served as public static assets on the live site** —
+  see §6's incident writeup below. Real exposure, confirmed and fixed within the same session, no
+  secrets were ever actually at risk (the repo's history was clean), but treat this as a template
+  for the mistake, not a one-off: **any time `assets.directory` points at a raw git checkout,
+  explicitly exclude `.git/` and `.wrangler/` in `.assetsignore` — they are not hidden by default,**
+  and a CI checkout recreates both fresh on every build regardless of what's actually tracked by git.
 
 ---
 
-## 7. Deployment plan — decided, not yet done
+## 6. Deployment — what's actually live right now
 
-Karsten's call: **private GitHub repo + no open-source license + a login gate in front of the
-deployed site.** He's fine with visitors needing to log in. Sequencing, since "what's the final
-URL" and "do I push to the repo first" came up:
+This diverged from the plan below in one real way: Cloudflare's dashboard no longer offers the
+classic "Pages: connect a repo, set a build output directory" wizard by default. What's there now
+is a unified **Workers** creation flow that runs `npx wrangler deploy` against whatever's in the
+repo — which needs a `wrangler.jsonc` *in the repo* to know what to serve, rather than a build
+output directory picked in the dashboard UI. Adjusted for that; end state is equivalent (a static
+Worker, auto-deployed from GitHub on every push to `main`).
 
-1. `git init` in `riverbank/`, commit, push to a **private** GitHub repo. No `LICENSE` file — on
-   GitHub, no license means default copyright (all rights reserved); adding an MIT/Apache-style
-   license would be the opposite of what's wanted here.
-2. GitHub Pages doesn't fit what he wants: Pages built from a private repo either isn't available
-   at all (free personal plans) or, on paid plans, only exposes the site to people with *GitHub*
-   collaborator access — not a general audience behind a *custom* login. Since a Cloudflare account
-   already exists (the Worker), **Cloudflare Pages** is the natural fit instead: it can deploy from
-   a private repo (via the Cloudflare GitHub App, scoped to just this repo) without the repo needing
-   to be public, and **Cloudflare Access** sits in front of the resulting site for the login gate
-   (email OTP or similar; free tier covers up to 50 users).
-3. Deploying via Cloudflare Pages is what produces the "final URL" (something like
-   `riverbank.pages.dev`, or a custom domain if one gets attached). That URL doesn't exist yet —
-   nothing has been deployed. It's needed for the next step.
-4. Once that URL is known, tighten `sync-worker/worker.js`'s CORS from `Access-Control-Allow-Origin:
-   '*'` to that specific origin, then redeploy the Worker. Low urgency (an attacker still needs a
-   valid sync code or would just be spamming `/feedback`, which is already rate-limited), but cheap
-   to close once the origin is fixed.
+**Current state, confirmed live by direct `curl` checks, not assumption:**
 
-None of this technically stops someone from viewing the deployed page's HTML/CSS/JS — no client-side
-web app can prevent that, obfuscation included, since the browser has to have the full source to run
-it. The login gate controls who can *reach* the app at all; the private repo + no license controls
-the *source* and gives real legal standing if someone copies it anyway. That combination is the
-correct scope for what was asked, not a technical code-hiding trick.
+- Repo: **`github.com/karstenlrvun/ripa`** (private). Note the name — it's `ripa`, not
+  `riverbank`; that's just what he named the GitHub repo, everything else is unaffected.
+- Site: **`https://ripa.karsten-vun.workers.dev`** — this is a Cloudflare *Worker* (with static
+  assets), not a classic Pages project, though it behaves identically from a visitor's side.
+  Auto-redeploys on every push to `main`, same as Pages would have.
+- Config added to the repo root to make this work: **`wrangler.jsonc`** (`assets.directory: "."`,
+  `not_found_handling: "none"`) and **`.assetsignore`** (excludes `HANDOFF.md`, `tests/`,
+  `sync-worker/`, `.git/`, `.wrangler/`, and its own supporting files).
+- `.html` extensions redirect to extensionless paths (`/latin.html` → `/latin`, both resolve) —
+  that's Workers Static Assets' default `html_handling`, not a bug; nothing internal to the app
+  depends on the `.html` suffix surviving.
+- No login gate has been set up (Cloudflare Access). The site is fully public right now — Karsten
+  proceeded with what was called "Alternative A" during planning. If he still wants the login gate
+  ("Alternative B"), that's a separate, not-yet-started step: Zero Trust → Access → Applications →
+  Self-hosted, application domain = the `.workers.dev` URL above, no Tunnel needed since the Worker
+  is already Cloudflare-proxied.
+- No `LICENSE` file was added (deliberate — default copyright, as decided).
+
+**Incident, during this same deployment (fixed, but read this before touching `.assetsignore`
+again):** the first successful deploy's build log showed files like `/.git/objects/...`,
+`/.git/hooks/pre-commit.sample`, and `/.wrangler/tmp/deploy-.../no-op-worker.js` being uploaded as
+site assets. Confirmed with a direct request — `curl https://ripa.karsten-vun.workers.dev/.git/config`
+returned **200**, meaning anyone could have reconstructed the entire repo's history from the live
+site, completely bypassing the private-repo protection, regardless of GitHub permissions. Cause:
+`.assetsignore` excluded the *source* directories (`sync-worker/`, `tests/`) but nobody had
+accounted for `.git/` and `.wrangler/`, both of which get created fresh inside Cloudflare's own
+build checkout — they're not something you'd ever see by browsing the repo on GitHub, so it's an
+easy thing to miss by inspection alone. Fixed by adding both to `.assetsignore`, pushed, redeployed,
+**re-verified with `curl` that `.git/config` and `.git/HEAD` now 404**. No tokens or credentials
+were actually exposed — this repo's entire history is the one clean commit made this session — but
+had this happened later, after any secret ever touched a commit (even one later "removed"), the
+exposure would have made that secret permanently recoverable regardless of the repo's privacy
+setting. **Whenever `assets.directory` is set to a directory that a CI system checks out via git,
+explicitly list `.git/` and `.wrangler/` in `.assetsignore` from the start — don't wait to notice
+them in a build log.**
+
+**CORS on `sync-worker/worker.js` is now locked to this origin** — `ALLOWED_ORIGINS` is a `Set`
+containing exactly `https://ripa.karsten-vun.workers.dev`; anything else gets no
+`Access-Control-Allow-Origin` header at all (browsers then block the response from being read
+cross-origin). `sync-worker/test.mjs` covers this directly (allowed origin echoed back, unrelated
+origin gets nothing, no-Origin-header case gets nothing) — 48 checks now, up from 45.
+
+**This CORS fix is only live in the local file as of this writing — it has not been deployed.**
+Important distinction to keep straight: **`ripa` and the sync Worker (`riverbank-sync`) are two
+separate Cloudflare projects.** `ripa` auto-deploys from GitHub on push, as described above.
+`riverbank-sync` does **not** — it was deployed by running `wrangler deploy` by hand from inside
+`sync-worker/`, and pushing changes to `sync-worker/worker.js` on GitHub does nothing to the live
+`riverbank-sync` Worker until that command is run again locally. **Next step: `cd sync-worker &&
+wrangler deploy`**, then re-verify with `curl -H "Origin: https://ripa.karsten-vun.workers.dev" ...`
+that the allowed origin still works and an arbitrary origin doesn't.
+
+None of the login-gate discussion below changes the fact that no client-side web app can prevent
+someone from viewing its own HTML/CSS/JS once loaded — the browser has to have the full source to
+run it. The private repo + no license controls the *source*; a login gate (if added later) controls
+who can *reach* the app at all. Neither one hides code from someone already looking at it.
 
 ---
 
-## 8. Open items for next time
+## 7. Open items for next time
 
-- Create the `RIVERBANK_FEEDBACK` KV namespace and redeploy the Worker (§3) — feedback collection
-  is otherwise inert. Confirmed still not live as of this writing (`curl -X POST .../feedback`
-  still 404s).
-- Carry out the deployment plan in §7 — nothing has been pushed to GitHub or deployed anywhere yet.
+- **Deploy the CORS fix**: `cd sync-worker && wrangler deploy`, then confirm with `curl` (see §6).
+  Until this runs, the live sync Worker still accepts requests from any origin.
+- **Create the `RIVERBANK_FEEDBACK` KV namespace** (`wrangler kv namespace create
+  RIVERBANK_FEEDBACK`, paste the id into `sync-worker/wrangler.toml`) and redeploy — feedback
+  collection is otherwise inert. Confirmed still 404 as of this writing. Same `wrangler deploy` run
+  as above can cover both this and the CORS fix at once.
+- Decide on the Access login gate ("Alternative B") — not started. The site is public right now.
 - No end-to-end test yet of the sync conflict flow (`syncOnLaunch`/`offerConflict`) against two
   real devices — only the pure `syncDecision()` branching logic has automated coverage (§4).
 - Dark mode and the daily-rotation theme feature were exercised (Catppuccin/Gruvbox toggle tested
@@ -279,3 +328,48 @@ correct scope for what was asked, not a technical code-hiding trick.
   a short list of things worth backporting into vocabula regardless of audience (payload
   encryption for the gist, mainly) — written for Karsten, not required reading for a future coding
   session, but useful context for why some things here differ from vocabula on purpose.
+- **`ALLOWED_DECKS` in `sync-worker/worker.js` was widened to include `'sat'`** (§8) but not yet
+  deployed — bundle it into the same `wrangler deploy` run already needed for the CORS fix and the
+  feedback KV namespace above. Until then, a feedback submission from `sat.html` is still accepted
+  by the live Worker but recorded with `deck:"unknown"` rather than `"sat"` (the Worker fails soft
+  on an unrecognised deck, it doesn't reject the submission — see `worker.js` around
+  `ALLOWED_DECKS.has(body.deck)`).
+
+---
+
+## 8. Fourth deck: `sat.html`, moved in from vocabula (2026.08.03)
+
+A general SAT-prep word list (500 words, Karsten's own source, not sourced from any of the
+OCR'd PDFs in §2) was first built in `~/Downloads/vocabula` by mistake — that project is Karsten's
+personal Oxford Classics app and was never meant to gain a fourth, unrelated deck. Caught before
+anything was pushed anywhere; all trace of it was reverted out of `vocabula/` (its `HANDOFF.md`,
+`index.html`, and `manual.html` back to exactly their prior wording) and the deck rebuilt here
+instead, against riverbank's own template rather than vocabula's — the two have diverged enough
+(§1) that a straight copy would have carried over gist settings, the term countdown, and the
+struggling-words mechanic, all of which riverbank deliberately doesn't have.
+
+Built as an exact copy of `greek.html` (chosen as the base since, like Greek, this deck has no
+thematic Parts — every row is Part `"All"`), differing only in the same handful of fields the
+other three decks already differ by: `apple-mobile-web-app-title`/`<title>`, `DECK.fwd`/`DECK.rev`/
+`DECK.mottos`, `KEY` (`riverbank.sat.v1`), `DECK_ID` (`'sat'`), and the export filename prefix —
+verified with the same collapsed-DATA-line diff this file's own §1 discipline implies, zero
+unexpected hunks. Because this deck is monolingual (English word ↔ English definition, not a
+translation pair), `DECK.fwd`/`DECK.rev` read `"Word → Definition"`/`"Definition → Word"` rather
+than a language pair, and `DECK.mottos` holds English aphorisms about language (Twain, Johnson,
+Wittgenstein, Swift, Dickinson, Bacon, Confucius, Holmes, Emerson, Kipling) instead of the
+target-language epigrams the other three decks use — same `[m[0], m[1]]` →
+`#mottoLa`/`#mottoEn` rendering, just an attribution string in the second field instead of a
+translation. `DECK.name` stays `"Riverbank"`, matching every other deck — riverbank uses one
+consistent brand wordmark, unlike vocabula's per-deck native-script name.
+
+`tests/tests.js` hardcoded an allowlist of the three deck ids that existed at the time
+(`ok('DECK_ID is one of latin/greek/italian', ...)`); updated to include `'sat'` (§4). All four
+decks pass the full 36-check suite. `sync-worker/worker.js`'s own `ALLOWED_DECKS` allowlist for
+the `/feedback` endpoint had the same gap — updated locally (see the open item above), not yet
+deployed. `index.html` gained a fourth card; its footer note was already deck-count-agnostic
+("Add each language...") and needed no change. `manual.html` was already written generically
+enough (no enumerated deck list, no hardcoded count) that it didn't need touching either.
+
+Not yet done: nothing pushed to `ripa` on GitHub, so this deck isn't live at
+`ripa.karsten-vun.workers.dev` yet; the `ALLOWED_DECKS` worker deploy above; no live-device
+verification beyond the local `python3 -m http.server` + browser-preview check described in §4.
