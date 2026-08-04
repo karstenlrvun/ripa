@@ -127,18 +127,18 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
 /* ---------- card ---------- */
 .cardarea{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;
   padding:16px 22px;min-height:0;position:relative;overflow:hidden}
-.prompt{font-family:var(--serif);font-size:33px;line-height:1.28;text-align:center;word-break:break-word}
-.prompt.eng{font-family:var(--sans);font-size:27px;line-height:1.32;font-weight:400}
+.prompt{font-family:var(--serif);font-size:clamp(33px,calc(26.7px + 1.6vw),38px);line-height:1.28;text-align:center;word-break:break-word}
+.prompt.eng{font-family:var(--sans);font-size:clamp(27px,calc(23.2px + 0.97vw),30px);line-height:1.32;font-weight:400}
 .multi{position:absolute;top:14px;right:16px;width:26px;height:26px;border-radius:50%;
   border:1px solid var(--line);color:var(--faint);font-size:13px;
   display:none;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
 .multi.on{display:flex}
 .rule{width:56px;height:1px;background:var(--line);margin:26px 0}
-.answer{font-size:21px;line-height:1.42;text-align:center;color:var(--ink);opacity:0;
-  transition:opacity .13s ease-out;max-width:34em}
+.answer{font-size:clamp(21px,calc(18.5px + 0.65vw),23px);line-height:1.42;text-align:center;color:var(--ink);opacity:0;
+  max-width:34em}
 .answer.on{opacity:1}
 .answer .alt{display:block;margin-top:7px}
-.answer.lat{font-family:var(--serif);font-size:25px}
+.answer.lat{font-family:var(--serif);font-size:clamp(25px,calc(21.2px + 0.97vw),28px)}
 .hintline{margin-top:22px;font-size:13px;color:var(--faint);height:16px}
 
 
@@ -234,12 +234,15 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
 .calDow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px;
   font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;text-align:center}
 .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
-.calCell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;
+.calCell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-height:46px;border-radius:8px;padding:4px 2px;
   font-size:12.5px;font-variant-numeric:tabular-nums;background:var(--panel);border:1px solid var(--line)}
 .calCell.out{color:var(--faint);opacity:.35;border-color:transparent;background:none}
 .calCell.did{background:var(--accent-soft);border-color:var(--coral);color:var(--coral);font-weight:600}
 .calCell.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--coral)}
-.calCell.sel{border-color:var(--ink);border-width:2px}
+.calNum{line-height:1.1}
+.calNew{font-size:9.5px;line-height:1;font-weight:600;color:var(--good)}
+.calRev{font-size:9.5px;line-height:1;font-weight:600;color:var(--amber)}
 .statRow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
 .statRow:last-child{border-bottom:none}
 .statRow span{color:var(--muted)}
@@ -332,18 +335,140 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
   transition:opacity .2s;pointer-events:none;z-index:50;max-width:84%;text-align:center}
 .toast.on{opacity:.95}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
-/* wide screens (iPad, Mac, phones in landscape): keep a phone-width column
-   centred, roomier type. Placed last in the stylesheet deliberately — at
-   equal specificity the later rule wins regardless of the media query, so
-   this block must come after the unconditional .prompt/.answer rules above
-   or its font-size boost is silently overridden and landscape never scales. */
+/* wide screens (tablet, laptop, or a phone turned sideways): keep a
+   phone-width column centred. Placed last in the stylesheet deliberately --
+   at equal specificity the later rule wins regardless of the media query,
+   so this must come after the unconditional .prompt/.answer rules above. */
 @media (min-width:700px){
   #app{max-width:600px;margin:0 auto}
-  .prompt{font-size:38px}
-  .prompt.eng{font-size:30px}
-  .answer{font-size:23px}
-  .answer.lat{font-size:28px}
 }
+
+/* ============================================================
+   Wide-screen study layout. applyLayout() sets data-layout="landscape" on
+   <html> whenever the viewport is at least 700px wide AND in landscape
+   orientation -- a tablet, a laptop, or a phone turned sideways, never a
+   phone held upright. Automatic: nothing to turn on for this part.
+   ============================================================ */
+html[data-layout="landscape"] #app{max-width:none;margin:0}
+
+/* study: a two-pane spread instead of one stretched column. .cardarea's own
+   box is removed (display:contents) but its children -- #prompt, #answer,
+   #hintline -- stay exactly where they live in the DOM, so tapZone's click
+   still bubbles through #cardArea itself. #prompt fills its whole grid cell
+   as its own card; the answer/hint/controls stack sits between two equal
+   1fr spacer rows so it reads as vertically centred without a shared
+   flex parent (revealRow/rateRow stay siblings of #cardArea on purpose --
+   moving them inside would put a rating's click inside #cardArea's own
+   tap-to-reveal listener and reveal the next card the instant you rate). */
+html[data-layout="landscape"] #scStudy.on{
+  display:grid;grid-template-columns:1.3fr 1fr;
+  grid-template-rows:auto 1fr auto auto auto 1fr;
+  grid-template-areas:"bar bar" "prompt recap" "prompt answer" "prompt hint" "prompt controls" "prompt .";
+  height:100%;
+}
+html[data-layout="landscape"] #scStudy>.bar{grid-area:bar}
+html[data-layout="landscape"] .cardarea{display:contents}
+html[data-layout="landscape"] #multi{grid-area:prompt;position:static;align-self:start;justify-self:end;margin:14px 14px 0 0;z-index:1}
+html[data-layout="landscape"] #prompt{grid-area:prompt;align-self:stretch;justify-self:stretch;
+  display:flex;align-items:center;justify-content:center;padding:32px;margin:16px 8px 16px 16px;
+  border:1px solid var(--line);border-radius:20px;background:var(--panel);
+  font-size:clamp(40px,calc(20px + 2.4vw),68px)}
+html[data-layout="landscape"] #prompt.eng{font-size:clamp(34px,calc(18px + 2vw),56px)}
+html[data-layout="landscape"] .cardarea>.rule{display:none}
+html[data-layout="landscape"] #answer{grid-area:answer;text-align:left;max-width:30em;
+  padding:0 32px;border-left:1px solid var(--line);
+  font-size:clamp(22px,calc(16px + 0.9vw),32px)}
+html[data-layout="landscape"] #hintline{grid-area:hint;text-align:left;padding:10px 32px 0;margin-top:0}
+html[data-layout="landscape"] #revealRow{grid-area:controls;padding:24px 32px 0}
+html[data-layout="landscape"] #rateRow{grid-area:controls;padding:24px 32px 0}
+html[data-layout="landscape"] #scStudy .revealBtn{height:76px;font-size:19px;border-radius:18px}
+html[data-layout="landscape"] #scStudy .rate{height:82px;border-radius:18px}
+html[data-layout="landscape"] #scStudy .rate .lbl{font-size:19px}
+html[data-layout="landscape"] #scStudy .rate .ivl{font-size:13px}
+
+/* study screen extras: three independent settings, each a no-op unless
+   both this screen is in landscape and its own switch is on. */
+.cardMeta{display:none}
+html[data-layout="landscape"][data-study-stats] .cardMeta{
+  grid-area:prompt; align-self:end; justify-self:center; z-index:1;
+  display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+  margin-bottom:22px; padding:0 24px; max-width:100%;
+}
+html[data-layout="landscape"][data-study-stats] .cardMeta:empty{display:none}
+.cardMeta .statChip, .recapCard .statChip{
+  font-size:11.5px; color:var(--muted); background:var(--raise); border:1px solid var(--line);
+  border-radius:100px; padding:4px 11px; font-variant-numeric:tabular-nums;
+}
+/* Recap card (top-right of the study grid) shows the card rate() just
+   graded, not the one on screen now -- lastRated is set at the end of
+   rate(), read here, and cleared by undo() so it never describes a rating
+   that's since been reverted. */
+.recapCard{display:none}
+html[data-layout="landscape"][data-study-stats] .recapCard.on{
+  grid-area:recap; display:flex; flex-direction:column; gap:6px;
+  align-self:start; justify-self:end; margin:16px 16px 0 8px;
+  padding:12px 14px; max-width:200px; box-sizing:border-box;
+  border:1px solid var(--line); border-radius:14px; background:var(--panel);
+}
+.recapLbl{font-size:10.5px; color:var(--faint); text-transform:uppercase; letter-spacing:.04em}
+.recapWord{font-size:14px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.recapRow{display:flex; gap:6px; flex-wrap:wrap}
+.recapCard .rc-rating.rc-again{background:var(--again-bg);border-color:var(--again-br);color:var(--again)}
+.recapCard .rc-rating.rc-hard{background:var(--warn-bg);border-color:var(--warn-br);color:var(--warn-ink)}
+.recapCard .rc-rating.rc-good{background:var(--good-bg);border-color:var(--good-br);color:var(--good)}
+.recapCard .rc-rating.rc-easy{background:var(--easy-bg);border-color:var(--easy-br);color:var(--easy)}
+.keycap{display:none}
+html[data-layout="landscape"][data-study-hints] .keycap{
+  display:inline-flex; align-items:center; justify-content:center; margin-top:4px;
+  font-family:var(--sans); font-size:10.5px; font-weight:500; color:var(--faint);
+  background:var(--raise); border:1px solid var(--line); border-radius:6px;
+  padding:1px 7px; min-width:16px; letter-spacing:.01em;
+}
+html[data-layout="landscape"][data-study-hints] #revealBtn .keycap{
+  position:absolute; right:18px; top:50%; transform:translateY(-50%); margin:0;
+}
+html[data-layout="landscape"][data-study-hints] #undoBtn{position:relative}
+html[data-layout="landscape"][data-study-hints] .iconKeycap{
+  position:absolute; bottom:-3px; right:-6px; margin:0; font-size:9px; padding:0 5px;
+}
+html[data-layout="landscape"][data-study-hints] .rate,
+html[data-layout="landscape"][data-study-hints] .revealBtn{
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+html[data-layout="landscape"][data-study-hints] .rate:hover,
+html[data-layout="landscape"][data-study-hints] .revealBtn:hover{
+  transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.10);
+}
+
+/* home: existing sections read as a bento grid instead of one long scroll.
+   .homeCols is a new wrapper (markup: one div around .homeLead through
+   .build, inside .home) -- not on .home itself, which is a flex:1 child of
+   a fixed-height screen. A multicol container with a constrained height
+   that can't fit its content in column-count columns doesn't grow the
+   columns -- it opens more columns that overflow off-screen, invisible,
+   with no horizontal scrollbar. .homeCols has no height of its own, so it
+   never hits that trap; .home stays the fixed-height scroller around it. */
+html[data-layout="landscape"] #scHome .homeCols{column-count:2;column-gap:32px;padding:4px 28px 28px}
+html[data-layout="landscape"] #scHome .homeLead{break-inside:avoid;margin-bottom:4px}
+html[data-layout="landscape"] #scHome .sect{break-inside:avoid;margin-top:14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+html[data-layout="landscape"] #scHome .build{break-inside:avoid}
+
+/* settings: same list, flowing in two newspaper columns instead of one.
+   Same .homeCols reasoning above applies to .setCols (markup: one div
+   around every .setGroup) -- .set is flex:1 in a fixed-height column too. */
+html[data-layout="landscape"] #scSet .setCols{column-count:2;column-gap:32px;padding:4px 28px 30px}
+html[data-layout="landscape"] #scSet .field{break-inside:avoid}
+html[data-layout="landscape"] #scSet .setGroupTitle{break-after:avoid}
+
+/* browse: filters pinned in a rail instead of scrolling away above a long
+   result list. .browseRail/.browseSplit are two new wrapper divs around
+   the existing filter controls; #browseResults keeps its id and markup. */
+html[data-layout="landscape"] #scBrowse .home{padding:16px 28px}
+html[data-layout="landscape"] #scBrowse .browseSplit{display:flex;gap:26px;align-items:flex-start}
+html[data-layout="landscape"] #scBrowse .browseRail{flex:0 0 240px;position:sticky;top:0}
+html[data-layout="landscape"] #scBrowse #browseResults{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -357,6 +482,8 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       <button class="icon" id="toSettings" aria-label="Settings">&#9881;</button>
     </div>
     <div class="home">
+      <div class="homeCols">
+      <div class="homeLead">
       <div class="wordmark" id="wordmark"></div>
       <div class="sub" id="homeSub">—</div>
       <div id="homeWarn"></div>
@@ -376,6 +503,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
         </div>
       </div>
       <button class="startBtn" id="startBtn">Start</button>
+      </div>
 
       <div class="sect">
         <h2>Study days</h2>
@@ -391,8 +519,6 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
           </div>
           <div class="calDow" id="calDow"></div>
           <div class="calGrid" id="calGrid"></div>
-          <div class="note" id="calDetail">Tap a day to see its count.</div>
-          <div class="note" id="longStreakNote">—</div>
         </details>
       </div>
 
@@ -430,6 +556,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       </div>
 
       <div class="build" id="buildTag"></div>
+      </div>
     </div>
   </section>
 
@@ -466,6 +593,8 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       <div class="icon" style="visibility:hidden">·</div>
     </div>
     <div class="home">
+      <div class="browseSplit">
+      <div class="browseRail">
       <div class="dirs">
         <button class="dir sel" id="browseDirL"><div class="dt" id="bdtL"></div><div class="dd" id="bddL">—</div></button>
         <button class="dir" id="browseDirE"><div class="dt" id="bdtE"></div><div class="dd" id="bddE">—</div></button>
@@ -473,7 +602,9 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       <input type="text" class="searchInput" id="browseSearch" placeholder="Search…" autocapitalize="off" autocorrect="off" spellcheck="false">
       <button class="partPickerBtn" id="browsePartBtn">All parts</button>
       <div class="chips" id="browseStatusChips"></div>
+      </div>
       <div id="browseResults"></div>
+      </div>
     </div>
   </section>
 
@@ -494,7 +625,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
     <div class="bar">
       <button class="icon" id="toHome" aria-label="Back">&#8249;</button>
       <div class="title"><div class="counts" id="counts"></div></div>
-      <button class="icon" id="undoBtn" aria-label="Undo">&#8630;</button>
+      <button class="icon" id="undoBtn" aria-label="Undo">&#8630;<span class="keycap iconKeycap">Z</span></button>
     </div>
     <div class="cardarea" id="cardArea">
       <div class="multi" id="multi">2</div>
@@ -502,14 +633,23 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       <div class="rule"></div>
       <div class="answer" id="answer"></div>
       <div class="hintline" id="hintline"></div>
+      <div class="cardMeta" id="cardMeta"></div>
+      <div class="recapCard" id="recapCard">
+        <div class="recapLbl">Last card</div>
+        <div class="recapWord" id="recapWord"></div>
+        <div class="recapRow">
+          <span class="statChip" id="recapRating"></span>
+          <span class="statChip" id="recapIvl"></span>
+        </div>
+      </div>
     </div>
     <div class="revealRow" id="revealRow">
-      <button class="revealBtn" id="revealBtn">Show answer</button>
+      <button class="revealBtn" id="revealBtn">Show answer<span class="keycap">Space</span></button>
     </div>
     <div class="rateRow hidden" id="rateRow">
-      <button class="rate" id="bAgain"><span class="lbl">Again</span><span class="ivl" id="iAgain"></span></button>
-      <button class="rate" id="bGood"><span class="lbl">Good</span><span class="ivl" id="iGood"></span></button>
-      <button class="rate" id="bEasy"><span class="lbl">Easy</span><span class="ivl" id="iEasy"></span></button>
+      <button class="rate" id="bAgain"><span class="lbl">Again</span><span class="ivl" id="iAgain"></span><span class="keycap">1</span></button>
+      <button class="rate" id="bGood"><span class="lbl">Good</span><span class="ivl" id="iGood"></span><span class="keycap">2</span></button>
+      <button class="rate" id="bEasy"><span class="lbl">Easy</span><span class="ivl" id="iEasy"></span><span class="keycap">3</span></button>
     </div>
   </section>
 
@@ -536,6 +676,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
       <div class="icon" style="visibility:hidden">·</div>
     </div>
     <div class="set">
+      <div class="setCols">
       <div class="setGroup">
         <div class="setGroupTitle">Pace</div>
         <div class="field">
@@ -600,6 +741,30 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
           <button class="act" id="surpriseBtn">Surprise me</button>
           <div class="fh" id="palNote">—</div>
         </div>
+        <div class="field">
+          <label for="fStudyStats">Wide-screen study — review history</label>
+          <select id="fStudyStats" class="sel">
+            <option value="0">Hide review history on the card</option>
+            <option value="1">Show review history on the card</option>
+          </select>
+          <div class="fh">Shows past attempts and your last result on wide screens.</div>
+        </div>
+        <div class="field">
+          <label for="fStudyHints">Wide-screen study — keyboard hints</label>
+          <select id="fStudyHints" class="sel">
+            <option value="0">Hide keyboard hints</option>
+            <option value="1">Show keyboard hints</option>
+          </select>
+          <div class="fh">Prints each button's key on wide screens.</div>
+        </div>
+        <div class="field">
+          <label for="fStudyMotion">Wide-screen study — animation</label>
+          <select id="fStudyMotion" class="sel">
+            <option value="0">No extra animation</option>
+            <option value="1">Animate reveal and card changes</option>
+          </select>
+          <div class="fh">Adds a brief motion when you reveal an answer or move on.</div>
+        </div>
       </div>
 
       <div class="setGroup">
@@ -653,6 +818,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
           <button class="act danger" id="resetBtn">Erase all progress</button>
           <div class="fh">Backs up then erases everything on this device.</div>
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -849,7 +1015,7 @@ CARDS.forEach(c=>c.idx.forEach(i=>(SIBLINGS[i] ||= []).push(c.id)));
 
 const defaults={
   version:2, created:Date.now(),
-  settings:{useTiming:true, newPerDay:50, retention:0.90, maxIvl:36500, rollover:4, syncCode:'', deviceName:'', knownDays:21, weakFirst:false, requireEasy:true, drillDays:3, reviewDay:-1, gateDays:14},
+  settings:{useTiming:true, newPerDay:50, retention:0.90, maxIvl:36500, rollover:4, syncCode:'', deviceName:'', knownDays:21, weakFirst:false, requireEasy:true, drillDays:3, reviewDay:-1, gateDays:14, studyStats:false, studyHints:false, studyMotion:false},
   dir:'L', parts:null, buckets:['shaky','unseen'], theme:'light', palette:'vellum', rotate:'off', rotDay:null, rotSeen:[], cards:{}, log:[], days:{}, sinceExport:0, lastExport:null,
   deck:KEY, lastSync:null, syncedLogLen:null, lastDevice:null
 };
@@ -1025,7 +1191,8 @@ function buildQueue(dir){
   return {learn,due,intro,seededTotal:seeded.length,freshTotal:fresh.length};
 }
 let Q=null, current=null, revealAt=0, shownAt=0, thinkMs=null, undoStack=[], donePoll=null, cardDirty=false;
-let calY=null, calM=null, calSelDk=null;   // calendar fold's own state -- not persisted, not S.dir-linked
+let lastRated=null; // {q,rating,ivl} for the card rate() just graded -- read by renderCard()'s recap card, cleared by undo()
+let calY=null, calM=null;   // calendar fold's own state -- not persisted, not S.dir-linked
 let browseDir='L', browseQuery='', browsePart=null, browseStatus='all';   // browse screen's own state
 let partSheetMode='home';                            // which picker the part sheet is currently serving
 
@@ -1097,6 +1264,31 @@ function applyTheme(){
   if(m) m.setAttribute('content', bg);
   document.documentElement.style.background = bg;
 }
+const layoutMQ=(typeof window!=='undefined'&&window.matchMedia)?window.matchMedia('(min-width:700px) and (orientation:landscape)'):null;
+// Landscape vs portrait is decided purely by screen size/orientation -- automatic, no setting to turn it on or off.
+function applyLayout(){
+  const was=document.documentElement.dataset.layout;
+  const now=(layoutMQ && layoutMQ.matches) ? 'landscape' : 'portrait';
+  document.documentElement.dataset.layout=now;
+  document.documentElement.toggleAttribute('data-study-stats', !!S.settings.studyStats);
+  document.documentElement.toggleAttribute('data-study-hints', !!S.settings.studyHints);
+  document.documentElement.toggleAttribute('data-study-motion', !!S.settings.studyMotion);
+  if(now==='landscape' && was && was!==now) kickMulticol();
+}
+// Home and Settings each wrap their content in a column-count:2 box
+// (.homeCols/.setCols) that can, on some first layout passes, balance
+// itself into a single column and never redo the calculation on its own --
+// flipping column-count off and back forces a recompute.
+function kickMulticol(){
+  document.querySelectorAll('#scHome .homeCols,#scSet .setCols').forEach(el=>{
+    el.style.columnCount='1'; void el.offsetHeight; el.style.columnCount='';
+  });
+}
+if(layoutMQ && layoutMQ.addEventListener) layoutMQ.addEventListener('change', applyLayout);
+if(typeof window!=='undefined') window.addEventListener('resize', applyLayout);
+// reveal()'s fade-in is played via the Web Animations API, not a CSS
+// transition, so it needs its own reduced-motion check.
+const reduceMotionMQ=(typeof window!=='undefined'&&window.matchMedia)?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
 const show=name=>{
   ['scHome','scStudy','scDone','scSet','scLog','scStats','scBrowse'].forEach(s=>$(s).classList.toggle('on',s===name));
 };
@@ -1118,6 +1310,28 @@ function renderCounts(){
                         '<span class="c-lrn"><b>'+l+'</b> learning</span>'+
                         '<span class="c-due"><b>'+r+'</b> due</span>';
 }
+// Pure: the most recent log entry for one card, or null if it's never been
+// rated -- feeds the wide-screen review-history panel (studyStats setting).
+function lastRatingFor(id,log){
+  for(let i=log.length-1;i>=0;i--){
+    if(log[i][0]===id) return {rating:log[i][1], at:log[i][2]};
+  }
+  return null;
+}
+// Pure: a short "4d ago"/"2h ago"/"just now" label for the same panel.
+function agoLabel(ms,now){
+  if(ms==null) return 'never';
+  const a=Math.max(0,now-ms);
+  if(a<MIN) return 'just now';
+  if(a<HOUR) return Math.round(a/MIN)+'m ago';
+  if(a<DAY) return Math.round(a/HOUR)+'h ago';
+  return Math.round(a/DAY)+'d ago';
+}
+const RATING_LABEL={1:'Again',2:'Hard',3:'Good',4:'Easy'};
+// Hard has no button of its own (see #bAgain/#bGood/#bEasy) but adjustGrade()
+// can still land a press there via the hesitation upgrade in rate() -- the
+// recap card needs a colour for that case too.
+const RATING_CLASS={1:'again',2:'hard',3:'good',4:'easy'};
 function renderCard(){
   const c=BY_ID[current], cs=peek(current);
   $('prompt').className='prompt'+(c.dir==='E'?' eng':'');
@@ -1127,6 +1341,9 @@ function renderCard(){
   if(c.dir==='E'&&c.idx.length>1){ m.textContent=c.idx.length; m.classList.add('on'); }
   else m.classList.remove('on');
   const ans=$('answer');
+  // No CSS transition left on .answer (see reveal()) -- dropping .on here
+  // and swapping the text always lands the new answer at opacity:0 in one
+  // step, on every engine, with nothing for a later reveal() to race.
   ans.className='answer'+(c.dir==='E'?' lat':'');
   ans.innerHTML='';
   if(c.dir==='E') c.a.forEach((x,i)=>{
@@ -1134,9 +1351,35 @@ function renderCard(){
   });
   else ans.textContent=c.a;
   $('hintline').textContent = cs.reps===0 ? 'first time' : '';
+  // Wide-screen study extras, each a no-op unless its own setting is on.
+  if(S.settings.studyStats){
+    const meta=$('cardMeta');
+    if(cs.reps>0){
+      const last=lastRatingFor(current,S.log);
+      const bits=['reviewed '+cs.reps+'×','streak '+(cs.streak|0)];
+      if(last) bits.push((RATING_LABEL[last.rating]||'?')+' · '+agoLabel(last.at,Date.now()));
+      meta.innerHTML=bits.map(b=>'<span class="statChip">'+b+'</span>').join('');
+    } else {
+      meta.innerHTML='';
+    }
+    const rc=$('recapCard');
+    if(lastRated){
+      $('recapWord').textContent=lastRated.q;
+      $('recapRating').textContent=RATING_LABEL[lastRated.rating]||'?';
+      $('recapRating').className='statChip rc-rating rc-'+(RATING_CLASS[lastRated.rating]||'good');
+      $('recapIvl').textContent=fmtIvl(lastRated.ivl);
+      rc.classList.add('on');
+    } else {
+      rc.classList.remove('on');
+    }
+  }
+  if(S.settings.studyMotion && document.documentElement.dataset.layout==='landscape'
+     && typeof $('prompt').animate==='function' && !(reduceMotionMQ&&reduceMotionMQ.matches)){
+    $('prompt').animate([{transform:'translateX(-14px)',opacity:.5},{transform:'translateX(0)',opacity:1}],
+      {duration:220,easing:'ease-out'});
+  }
   $('revealRow').classList.remove('hidden');
   $('rateRow').classList.add('hidden');
-  ans.classList.remove('on');
   shownAt=Date.now(); thinkMs=null; cardDirty=false;
   renderCounts();
 }
@@ -1150,7 +1393,21 @@ function reveal(){
   // control right after next() has just swapped it in -- see rate()'s
   // symmetric guard and HANDOFF.md for the full mechanism
   if(tooSoonAfter(Date.now(),shownAt,260)) return;
-  $('answer').classList.add('on');
+  const ans=$('answer');
+  ans.classList.add('on');
+  // Played explicitly via the Web Animations API rather than a CSS
+  // transition -- see renderCard()'s comment. .on above already sets the
+  // resting opacity:1, so a browser without Element.animate (or with
+  // reduced motion requested) still shows the answer correctly, just
+  // without the fade.
+  if(typeof ans.animate==='function' && !(reduceMotionMQ&&reduceMotionMQ.matches)){
+    ans.animate([{opacity:0},{opacity:1}],{duration:130,easing:'ease-out'});
+  }
+  if(S.settings.studyMotion && document.documentElement.dataset.layout==='landscape'
+     && typeof $('prompt').animate==='function' && !(reduceMotionMQ&&reduceMotionMQ.matches)){
+    $('prompt').animate([{transform:'scale(1.015)'},{transform:'scale(1)'}],
+      {duration:260,easing:'cubic-bezier(.2,.7,.3,1)'});
+  }
   $('revealRow').classList.add('hidden');
   $('rateRow').classList.remove('hidden');
   revealAt=Date.now();
@@ -1200,6 +1457,10 @@ function rate(pressed){
     }
   }));
   S.sinceExport=(S.sinceExport||0)+1;
+  // Captured for the wide-screen recap card so a glance answers "what did I
+  // just do" without reaching for undo() -- r is the grade actually
+  // recorded (post-adjustGrade), matching the interval that follows it.
+  lastRated={q:c.q, rating:r, ivl:res.ivl};
   save();          // save() schedules the gist push; nothing else fires per rating
   next();
 }
@@ -1220,6 +1481,7 @@ function undo(){
     if(keep!=null) S.days[d0].cap=keep; }              // the day's allowance is a setting, not a rating
   S.log.length=u.logLen;
   S.sinceExport=Math.max((S.sinceExport||1)-1,0);
+  lastRated=null; // the rating this described just got undone -- nothing to recap
   save();
   current=u.id;
   show('scStudy'); renderCard();
@@ -1560,20 +1822,10 @@ function renderCalendar(){
     const cls=['calCell'];
     if(st.studied) cls.push('did');
     if(dk===d0) cls.push('today');
-    if(dk===calSelDk) cls.push('sel');
-    gh+='<div class="'+cls.join(' ')+'" data-dk="'+dk+'">'+cell.d+'</div>';
+    const nums = st.studied ? ('<span class="calNew">'+st.intro+'</span><span class="calRev">'+st.reviewed+'</span>') : '';
+    gh+='<div class="'+cls.join(' ')+'"><span class="calNum">'+cell.d+'</span>'+nums+'</div>';
   }));
   $('calGrid').innerHTML=gh;
-  showCalDetail(calSelDk);
-  const ls=longestStreak(S.days,d0);
-  $('longStreakNote').textContent = ls>1 ? ('Longest streak so far: '+ls+' days') : '';
-}
-function showCalDetail(dk){
-  const el=$('calDetail');
-  if(dk==null){ el.textContent='Tap a day to see its count.'; return; }
-  const st=dayStatsFor(S.days,dk);
-  const label=new Date(dayStart(dk)).toLocaleDateString(undefined,{day:'numeric',month:'long'});
-  el.textContent = st.studied ? (label+' — '+st.intro+' new, '+st.reviewed+' reviewed') : (label+' — no study');
 }
 const MOTTOS=DECK.mottos; function renderPace(){
   const ap=activeParts(); const dir=S.dir, all=CARDS.filter(c=>c.dir===dir&&ap.includes(c.sec));
@@ -2030,6 +2282,9 @@ function renderSet(){
   $('fGate').value=s.gateDays|0;
   $('fTheme').value=S.theme||'light';
   renderPalSwatches();
+  $('fStudyStats').value=s.studyStats?'1':'0';
+  $('fStudyHints').value=s.studyHints?'1':'0';
+  $('fStudyMotion').value=s.studyMotion?'1':'0';
   $('fRoll').value=String(S.settings.rollover!=null?S.settings.rollover:4);
   $('fRot').value=S.rotate||'off';
   $('palNote').innerHTML='<span class="swatch" style="background:var(--coral)"></span>'+
@@ -2071,17 +2326,10 @@ function shiftCalMonth(delta){
   if(calY==null){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth(); }
   calM+=delta;
   if(calM<0){ calM=11; calY--; } else if(calM>11){ calM=0; calY++; }
-  calSelDk=null;
   renderCalendar();
 }
 tapZone($('calPrev'),()=>shiftCalMonth(-1));
 tapZone($('calNext'),()=>shiftCalMonth(1));
-$('calGrid').addEventListener('click',e=>{
-  const cell=e.target.closest('.calCell'); if(!cell||!cell.dataset.dk) return;
-  e.preventDefault();
-  calSelDk=(calSelDk===+cell.dataset.dk)?null:+cell.dataset.dk;
-  renderCalendar();
-});
 tapZone($('toBrowse'),()=>{ browseDir=S.dir; renderBrowse(); show('scBrowse'); });
 tapZone($('browseDirL'),()=>{ browseDir='L'; renderBrowse(); });
 tapZone($('browseDirE'),()=>{ browseDir='E'; renderBrowse(); });
@@ -2142,6 +2390,9 @@ $('fRet').addEventListener('change',()=>save());
 $('fTheme').addEventListener('change',e=>{S.theme=e.target.value;save();applyTheme();renderSet();});
 $('fRot').addEventListener('change',e=>{S.rotate=e.target.value;S.rotDay=today();S.rotSeen=[S.palette];save();renderSet();});
 $('fRoll').addEventListener('change',e=>{S.settings.rollover=e.target.value|0;save();renderHome();renderSet();});
+$('fStudyStats').addEventListener('change',e=>{S.settings.studyStats=e.target.value==='1';save();applyLayout();});
+$('fStudyHints').addEventListener('change',e=>{S.settings.studyHints=e.target.value==='1';save();applyLayout();});
+$('fStudyMotion').addEventListener('change',e=>{S.settings.studyMotion=e.target.value==='1';save();applyLayout();});
 $('surpriseBtn').addEventListener('click',surprise);
 $('buildTag').addEventListener('click',()=>{renderLog();show('scLog');});
 $('fGate').addEventListener('change',e=>{S.settings.gateDays=Math.max(0,e.target.value|0);save();});
@@ -2175,7 +2426,12 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden&&$('scHome').classList.contains('on')){ renderHome(); syncOnLaunch(); }
 });
 
-load().then(()=>{ applyTheme(); renderHome(); show('scHome'); syncOnLaunch(); });   // renderHome() already calls renderWarn()
+load().then(()=>{ applyTheme(); applyLayout(); renderHome(); show('scHome'); syncOnLaunch();
+  // a second pass shortly after boot: re-reads the media query in case the
+  // very first read landed before the viewport had settled, and
+  // unconditionally nudges the multicol screens once real content exists.
+  setTimeout(()=>{ applyLayout(); kickMulticol(); },300);
+});   // renderHome() already calls renderWarn()
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(S&&S.theme==='auto') applyTheme(); });
 </script>
 </body>
