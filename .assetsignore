@@ -1,6 +1,12 @@
 HANDOFF.md
+.claude/
 tests/
 sync-worker/
+tools/
+src/
+node_modules/
+package.json
+package-lock.json
 .gitignore
 wrangler.jsonc
 .assetsignore
