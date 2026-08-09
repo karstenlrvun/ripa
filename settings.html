@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Settings — Riverbank</title>
+<style>
+:root{
+  --bg:#fffdfb; --ink:#1b1a18; --muted:#6f6c66; --line:#e7e3dc; --panel:#faf8f5; --coral:#c04d26;
+  --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0e1230; --ink:#e9ecf8; --muted:#a3abd0; --line:#2a3169; --panel:#181d47; --coral:#ff8a5c;}
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0 auto;padding:40px 22px 80px;max-width:32rem;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-text-size-adjust:100%}
+h1{font-family:var(--serif);font-weight:400;font-size:2rem;margin:0 0 4px}
+.sub{color:var(--muted);font-size:15px;margin:0 0 32px}
+h2{font-family:var(--serif);font-weight:400;font-size:1.35rem;margin:36px 0 4px}
+.groupNote{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+a{color:var(--coral)}
+.back{display:inline-block;margin-bottom:20px;color:var(--muted);text-decoration:none;font-size:14px}
+.field{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:none}
+label{display:block;font-weight:600;font-size:14.5px;margin-bottom:8px}
+select,input[type=text]{display:block;width:100%;font:inherit;font-size:16px;padding:11px 12px;
+  border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  margin-bottom:8px;-webkit-appearance:none;appearance:none}
+input[type=text]{text-transform:uppercase}
+input[type=text]::placeholder{text-transform:none}
+.fh{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+.act{display:block;width:100%;text-align:center;padding:12px;margin-top:8px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;
+  cursor:pointer}
+.act:active{border-color:var(--coral)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom));
+  background:var(--ink);color:var(--bg);font-size:14px;padding:11px 17px;border-radius:11px;opacity:0;
+  transition:opacity .2s;pointer-events:none;z-index:50;max-width:84%;text-align:center}
+.toast.on{opacity:.95}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&#8249; Back</a>
+<h1>Settings</h1>
+<p class="sub">Applies across Latin, Greek, Italian, and SAT alike — set once here, not per language.</p>
+
+<h2>Wide-screen study</h2>
+<p class="groupNote">Only visible on a tablet, laptop, or a phone turned sideways — three optional extras, on by default.</p>
+
+<div class="field">
+  <label for="fStudyStats">Review history</label>
+  <select id="fStudyStats">
+    <option value="0">Hide review history on the card</option>
+    <option value="1">Show review history on the card</option>
+  </select>
+  <p class="fh">Shows past attempts and your last result on wide screens.</p>
+</div>
+
+<div class="field">
+  <label for="fStudyHints">Keyboard hints</label>
+  <select id="fStudyHints">
+    <option value="0">Hide keyboard hints</option>
+    <option value="1">Show keyboard hints</option>
+  </select>
+  <p class="fh">Prints each button's key on wide screens.</p>
+</div>
+
+<div class="field">
+  <label for="fStudyMotion">Animation</label>
+  <select id="fStudyMotion">
+    <option value="0">No extra animation</option>
+    <option value="1">Animate reveal and card changes</option>
+  </select>
+  <p class="fh">Adds a brief motion when you reveal an answer or move on.</p>
+</div>
+
+<h2>Sync</h2>
+<p class="groupNote">Keeps your progress in step across devices. One code reaches Latin, Greek, Italian, and SAT automatically — no need to enter it into each one separately.</p>
+
+<div class="field">
+  <label for="fSyncCode">Sync code</label>
+  <input type="text" id="fSyncCode" placeholder="tap Get a code, or type one from another device" autocapitalize="characters" autocorrect="off" spellcheck="false">
+  <button class="act" id="newCodeBtn" type="button">Get a code for this device</button>
+  <p class="fh">Enter the same code on every device. Pushing and pulling the actual reviews still happens from each language's own Settings screen (Sync now / Pull from sync) — this just keeps the code itself the same everywhere.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const DECKS=['latin','greek','italian','sat'];
+const GLOBAL_KEY='riverbank.global.v1';
+const deckKey=id=>'riverbank.'+id+'.v1';
+const DEFAULT_GLOBAL={studyStats:true, studyHints:true, studyMotion:true, syncCode:''};
+
+/* ======================= pure logic (unit tested -- see tests/settings.tests.js) ======================= */
+
+// Given a deck's raw localStorage string (or null if never opened on this
+// device) and the {studyStats,studyHints,studyMotion,syncCode} chosen on
+// this page, returns the patched JSON string to write back, or null if
+// there's nothing to change (deck never opened here, unreadable JSON, or no
+// settings object yet). This page is the single authority for these four
+// fields now, so unlike a deck-to-deck mirror every change overwrites
+// unconditionally -- except syncCode, which never gets blanked out by an
+// empty patch value, so clearing this page's own field can't silently break
+// a deck's already-working sync.
+function mirroredGlobalSettings(raw, patch){
+  if(!raw) return null;
+  let obj;
+  try{ obj=JSON.parse(raw); }catch(e){ return null; }
+  if(!obj || !obj.settings) return null;
+  if(typeof patch.studyStats==='boolean') obj.settings.studyStats=patch.studyStats;
+  if(typeof patch.studyHints==='boolean') obj.settings.studyHints=patch.studyHints;
+  if(typeof patch.studyMotion==='boolean') obj.settings.studyMotion=patch.studyMotion;
+  if(typeof patch.syncCode==='string' && patch.syncCode) obj.settings.syncCode=patch.syncCode;
+  return JSON.stringify(obj);
+}
+
+// This page's very first visit has no riverbank.global.v1 of its own yet --
+// rather than silently defaulting to true/true/true/'' and ignoring
+// whatever a deck already opened on this device has for real, walk the
+// four decks in a fixed order and adopt the first real settings object
+// found. rawByDeck is {latin: localStorage string or null, ...}. Returns
+// the seeded {studyStats,studyHints,studyMotion,syncCode} (all defaults if
+// no deck has ever been opened here).
+function bootstrappedGlobalSettings(rawByDeck){
+  const out=Object.assign({}, DEFAULT_GLOBAL);
+  for(const id of DECKS){
+    const raw=rawByDeck[id];
+    if(!raw) continue;
+    let obj;
+    try{ obj=JSON.parse(raw); }catch(e){ continue; }
+    if(!obj || !obj.settings) continue;
+    if(typeof obj.settings.studyStats==='boolean') out.studyStats=obj.settings.studyStats;
+    if(typeof obj.settings.studyHints==='boolean') out.studyHints=obj.settings.studyHints;
+    if(typeof obj.settings.studyMotion==='boolean') out.studyMotion=obj.settings.studyMotion;
+    if(typeof obj.settings.syncCode==='string' && obj.settings.syncCode) out.syncCode=obj.settings.syncCode;
+    break;
+  }
+  return out;
+}
+
+function randomSyncCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // no 0/O/1/I, easy to read aloud
+  const bytes=crypto.getRandomValues(new Uint8Array(10));
+  let s=''; for(let i=0;i<10;i++){ s+=chars[bytes[i]%chars.length]; if(i===4) s+='-'; }
+  return s;
+}
+
+/* ---- wiring ---- */
+
+function toast(msg,ms){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),ms||2600);
+}
+
+// Writes G to riverbank.global.v1 and mirrors the four fields into whichever
+// of the four decks already exist in localStorage on this device -- a deck
+// never opened here yet has nothing to patch, and picks these up itself the
+// first time it's opened (see applyGlobalSettings() in each deck's own
+// load()).
+function persistGlobal(g){
+  try{ localStorage.setItem(GLOBAL_KEY, JSON.stringify(g)); }catch(e){}
+  DECKS.forEach(id=>{
+    try{
+      const k=deckKey(id);
+      const patched=mirroredGlobalSettings(localStorage.getItem(k), g);
+      if(patched) localStorage.setItem(k, patched);
+    }catch(e){ /* best effort only */ }
+  });
+}
+
+function loadGlobal(){
+  let raw=null;
+  try{ raw=localStorage.getItem(GLOBAL_KEY); }catch(e){}
+  if(raw){
+    try{
+      const g=JSON.parse(raw);
+      if(g && typeof g==='object') return Object.assign({}, DEFAULT_GLOBAL, g);
+    }catch(e){}
+  }
+  // First-ever visit to this page -- see if any deck already has real
+  // settings to adopt instead of just assuming the hardcoded defaults, then
+  // persist + harmonise so every deck agrees with this page from here on.
+  const rawByDeck={};
+  DECKS.forEach(id=>{ try{ rawByDeck[id]=localStorage.getItem(deckKey(id)); }catch(e){ rawByDeck[id]=null; } });
+  const seeded=bootstrappedGlobalSettings(rawByDeck);
+  persistGlobal(seeded);
+  return seeded;
+}
+
+let G=loadGlobal();
+
+function renderUI(){
+  $('fStudyStats').value=G.studyStats?'1':'0';
+  $('fStudyHints').value=G.studyHints?'1':'0';
+  $('fStudyMotion').value=G.studyMotion?'1':'0';
+  $('fSyncCode').value=G.syncCode||'';
+}
+renderUI();
+
+function applyPatch(patch){
+  G=Object.assign({}, G, patch);
+  persistGlobal(G);
+}
+
+$('fStudyStats').addEventListener('change',e=>applyPatch({studyStats:e.target.value==='1'}));
+$('fStudyHints').addEventListener('change',e=>applyPatch({studyHints:e.target.value==='1'}));
+$('fStudyMotion').addEventListener('change',e=>applyPatch({studyMotion:e.target.value==='1'}));
+
+$('fSyncCode').addEventListener('change',e=>{
+  const code=e.target.value.trim().toUpperCase();
+  e.target.value=code||(G.syncCode||'');           // an emptied field falls back to what's already saved
+  if(!code) return;
+  applyPatch({syncCode:code});
+  toast('Code saved — reaches Latin, Greek, Italian, and SAT the next time each is opened.', 3400);
+});
+
+$('newCodeBtn').addEventListener('click',()=>{
+  if(G.syncCode && !confirm('This already has a sync code. Replace it with a brand new one? Any device or deck still on the old code will stop syncing with this one.')) return;
+  const code=randomSyncCode();
+  $('fSyncCode').value=code;
+  applyPatch({syncCode:code});
+  toast('Code created — enter it on your other devices to link them.', 3400);
+});
+</script>
+</body>
+</html>
