@@ -2,19 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <title>Riverbank</title>
 <style>
 :root{
-  --bg:#fffdfb; --ink:#1b1a18; --muted:#6f6c66; --line:#e7e3dc; --panel:#faf8f5; --coral:#c04d26;
+  /* Vocabula's own Vellum values (2026-08-20, his ask: "make it look more
+     like vocabula" -- the launcher had its own separate, hand-picked
+     light/dark pair that had drifted, dark mode especially: a navy-blue
+     scheme nothing else in either app uses. This is not a dynamic palette
+     system -- deck.html's own 12-palette picker stays deck-scoped, matching
+     vocabula's own index.html, which is ALSO fixed-look rather than
+     palette-aware -- just the actual Vellum numbers instead of a guess. */
+  --bg:#fbf7ec; --ink:#2a2318; --muted:#6f6350; --line:#e3d9c1; --panel:#f5efdf; --coral:#8c2f26;
   --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){
-  :root{--bg:#0e1230; --ink:#e9ecf8; --muted:#a3abd0; --line:#2a3169; --panel:#181d47; --coral:#ff8a5c;}
+  :root{--bg:#1a160f; --ink:#ece3cf; --muted:#a89a80; --line:#3a3222; --panel:#241f16; --coral:#d4795e;}
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
@@ -40,12 +47,15 @@ a.card .t{font-family:var(--serif);font-size:1.32rem;margin-bottom:2px}
 a.card .d{color:var(--muted);font-size:14px}
 .note{margin-top:28px;color:var(--muted);font-size:13.5px;line-height:1.6}
 .exportNote{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5;min-height:1.2em}
-/* Per-card "today" line -- streak + what's actually happened today, read
-   straight from that deck's own saved days record, no engine load (2026-08-20,
-   his ask: "none of the smart features (say streak counting) on the
-   buttons"). Same idiom as vocabula's own .todayStats. Empty (min-height only)
-   until data resolves, so a never-opened deck's card just stays quiet rather
-   than showing a zero that never happened. */
+/* Per-card live stats -- due/done/an honest time estimate, read straight
+   from that deck's own S.summary (written on every save(), 2026-08-20 --
+   see deck.html's buildSummary(), ported from vocabula's own §2.3) plus
+   today's day record for the two figures a stale snapshot cannot be
+   trusted for. Same split vocabula's own renderTodayStats()/summaryLine()
+   use, and the same reason: a snapshot from yesterday saying "12 done"
+   next to today's true "0m" read as one sentence disagreeing with itself.
+   Empty (min-height only) until data resolves, so a never-opened deck's
+   card just stays quiet rather than showing a zero that never happened. */
 .todayStats{margin-top:8px;font-size:12.5px;color:var(--muted);min-height:1.3em}
 /* Changelog link, moved to the foot of the page (2026-08-20, his ask: "like
    vocabula does it") -- was an icon up top next to Settings/Guide. Same small
@@ -53,6 +63,20 @@ a.card .d{color:var(--muted);font-size:14px}
 .verlink{display:block;text-align:center;margin:30px 0 0;padding:8px;font-size:11px;
   letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-decoration:none}
 .verlink:active{color:var(--coral)}
+/* Archived decks (2026-08-20, his ask: "a collapsed section, but
+   accessible from index"). Native <details> -- no JS needed to open/close
+   it, and it degrades safely if script is ever blocked. Only SAT lives
+   here: italian.html was superseded outright by the new registry-driven
+   Italian deck above, not kept alongside it, so there is nothing useful an
+   "archived Italian" would add next to a real one. */
+details.archived{margin-top:22px;border:1px solid var(--line);border-radius:12px;padding:2px 15px}
+details.archived summary{cursor:pointer;padding:11px 0;font-size:13.5px;color:var(--muted);
+  list-style:none}
+details.archived summary::-webkit-details-marker{display:none}
+details.archived summary::before{content:'▸ ';display:inline-block;transition:transform .15s}
+details.archived[open] summary::before{transform:rotate(90deg)}
+details.archived .archNote{margin:0 0 13px;font-size:13px;color:var(--muted);line-height:1.55}
+details.archived a{color:var(--coral)}
 </style>
 </head>
 <body>
@@ -68,34 +92,132 @@ a.card .d{color:var(--muted);font-size:14px}
   </div>
 </div>
 
-<a class="card" href="deck?deck=latin">
-  <div class="t">Latin</div>
-  <div class="d">848 words, OCR AS Level, both directions</div>
-  <div class="todayStats" id="statLatin"></div>
-</a>
-<a class="card" href="deck?deck=greek">
-  <div class="t">Ελληνικά</div>
-  <div class="d">765 words, OCR AS Level, both directions</div>
-  <div class="todayStats" id="statGreek"></div>
-</a>
+<div id="deckCards"></div>
+
+<details class="archived">
+  <summary>Archived</summary>
+  <p class="archNote">Retired from the main list, not from your data -- a backup made while it was live still restores fine. <a href="archive/sat.html">Open SAT English &#8594;</a></p>
+</details>
 
 <p class="exportNote" id="exportNote"></p>
 <p class="note">Add each language to your Home Screen separately and open it from there, not from a browser tab — see the Guide above for how. Safari clears stored data for sites left unvisited for a week; installed apps are exempt.</p>
 <a class="verlink" id="verLink" href="deck?deck=latin#changelog">What's new</a>
+<script src="decks/registry.js"></script>
 <script>
+// Deck cards, rendered from REGISTRY rather than hand-written (2026-08-20 --
+// adding Italian as a third deck is what made this worth doing; see
+// decks/registry.js's own header). One <a class="card"> per row, in
+// registry order. blurb is the static fallback shown until a live summary
+// is available for that deck -- summaryLine() below replaces it in place,
+// same "never blank, degrade to the fallback" idiom the version link at
+// the foot already uses.
+function renderDeckCards(){
+  const el=document.getElementById('deckCards');
+  el.innerHTML=REGISTRY.map(d=>
+    '<a class="card" href="deck?deck='+d.id+'">'+
+      '<div class="t">'+d.title+'</div>'+
+      '<div class="d" id="sub-'+d.id+'">'+d.blurb+'</div>'+
+      '<div class="todayStats" id="stat-'+d.id+'"></div>'+
+    '</a>'
+  ).join('');
+}
+renderDeckCards();
+
+// ============================================================
+// Live per-card stats (2026-08-20, his ask: stats "along with" the colour
+// fix, matching vocabula's own launcher). Read-only, same guarantee the
+// export script below already relies on: reads each deck's own localStorage
+// entry directly rather than loading deck.html's engine ("the launcher
+// stays a reader"). RIVERBANK_ROLLOVER is riverbank's one fixed hour (4am,
+// no per-device UI -- see HANDOFF), so unlike vocabula's launcher this never
+// needs to read a per-deck settings.rollover.
+//
+// No longer narrower than vocabula's own version, as of today: deck.html's
+// save() now writes S.summary on every save (buildSummary(), mirroring
+// vocabula's PHASE2_PLAN.md §2.3) precisely so this page can show due/done/
+// an honest time estimate without loading the scheduler itself.
+const HOUR=3600000, DAY=86400000, RIVERBANK_ROLLOVER=4;
+const dayKey=(ts,roll)=>Math.floor((ts-new Date(ts).getTimezoneOffset()*60000-roll*HOUR)/DAY);
+// avgMsPerRating() and fmtDuration() ported verbatim from deck.html/vocabula's
+// shared.js -- see either's own comment for the gating rule.
+function avgMsPerRating(days,todayKey,windowDays){
+  let sumMs=0,sumN=0,daysWithData=0;
+  for(let k=todayKey-windowDays;k<todayKey;k++){
+    const r=days[k];
+    if(r&&r.n&&r.studyMs){ sumMs+=r.studyMs; sumN+=r.n; daysWithData++; }
+  }
+  return (daysWithData>=3&&sumN>=10)?(sumMs/sumN):null;
+}
+function fmtDuration(ms){
+  if(!(ms>0)) return '0m';
+  const mins=Math.round(ms/60000);
+  if(mins<1) return '<1m';
+  if(mins<60) return mins+'m';
+  return Math.floor(mins/60)+'h '+(mins%60)+'m';
+}
+// diff in days between a snapshot's own day and today -- null (say nothing)
+// for today or (clock skew) the future, same as vocabula's relDay().
+function relDay(day,todayKey){
+  const diff=todayKey-day;
+  if(diff<=0) return null;
+  return diff===1?'yesterday':(diff+' days ago');
+}
+function renderDeckStats(){
+  const d=dayKey(Date.now(),RIVERBANK_ROLLOVER);
+  REGISTRY.forEach(deck=>{
+    const subEl=document.getElementById('sub-'+deck.id), statEl=document.getElementById('stat-'+deck.id);
+    let raw; try{ raw=localStorage.getItem(deck.key); }catch(e){ raw=null; }
+    if(!raw) return;   // never opened on this device -- static blurb and empty stats line stand
+    let obj; try{ obj=JSON.parse(raw); }catch(e){ return; }
+    if(!obj||typeof obj!=='object'||!obj.days) return;
+    const days=obj.days, sum=obj.summary;
+    if(sum){
+      const left=(sum.due|0)+(sum.learn|0)+(sum.intro|0);
+      const base=left?(left+' word'+(left===1?'':'s')+' ready'):'Nothing due right now';
+      const rel=relDay(sum.day,d);
+      subEl.textContent=rel?(base+' · as of '+rel):base;
+      const todayRec=days[d]||{};
+      const spentMs=todayRec.studyMs||0, done=todayRec.n|0;
+      const avg=avgMsPerRating(days,d,14);
+      const timePart=(avg&&left>0) ? (fmtDuration(spentMs)+' / ~'+fmtDuration(spentMs+avg*left)) : fmtDuration(spentMs);
+      statEl.textContent=(sum.due|0)+' due · '+done+' done · '+timePart;
+    } else {
+      // A device that opened this deck before today's build -- no summary
+      // yet. Falls back to the streak-only line this page showed before,
+      // rather than a blank stats row; the next save() on that device
+      // writes a real summary and this branch stops firing for it.
+      const streak=(function(days,todayKey){
+        let streak=0;
+        for(let k=todayKey;;k--){
+          if(days[k]&&days[k].n) streak++;
+          else { if(k!==todayKey) break; }
+          if(todayKey-k>3650) break;
+        }
+        return streak;
+      })(days,d);
+      const today=days[d]||{};
+      const doneToday=today.n|0, timeStr=today.studyMs>0?fmtDuration(today.studyMs):null;
+      const parts=[streak?(streak+' day'+(streak===1?'':'s')+' running'):'No streak yet'];
+      if(doneToday) parts.push(doneToday+' today'+(timeStr?' · '+timeStr:''));
+      statEl.textContent=parts.join(' · ');
+    }
+  });
+}
+renderDeckStats();
+
 // Exports a real backup of every language this browser actually has data
-// for -- latin/greek (this engine) and italian/sat (their own untouched
-// standalone decks, still fully live at their own URLs -- see
-// RIVERBANK_PORT_PLAN.md) -- in one tap, rather than needing to open each
-// deck's own Settings and export one at a time. index.html deliberately
-// never loads a deck's engine ("the launcher stays a reader"), so this
-// reads each deck's real localStorage entry directly rather than through
-// any of deck.html's own functions -- there's nothing here those functions
-// do beyond that read, except doExport()'s own sanitised() strip of the
-// sync code before it leaves the device, which this replicates by hand
-// (the RAW stored value legitimately keeps it in the clear, for this
-// device's own future syncing -- only an exported file or a synced payload
-// should ever have it blanked).
+// for -- in one tap, rather than needing to open each deck's own Settings
+// and export one at a time. index.html deliberately never loads a deck's
+// engine ("the launcher stays a reader"), so this reads each deck's real
+// localStorage entry directly rather than through any of deck.html's own
+// functions -- there's nothing here those functions do beyond that read,
+// except doExport()'s own sanitised() strip of the sync code before it
+// leaves the device, which this replicates by hand (the RAW stored value
+// legitimately keeps it in the clear, for this device's own future syncing
+// -- only an exported file or a synced payload should ever have it blanked).
+// italian is now a live registry deck like latin/greek; sat stays listed
+// (archived, not deleted) purely so a device that still has old sat data
+// sitting in localStorage can still get it out in a backup.
 //
 // Downloads are spaced out with a real gap between each rather than fired
 // back to back: Safari (and, less reliably, other browsers) can silently
@@ -103,63 +225,6 @@ a.card .d{color:var(--muted);font-size:14px}
 // they land in the same instant -- the same reason deck.html's own
 // doExport() comment gives for never trying to trigger a download nobody
 // tapped for.
-// ============================================================
-// Per-card "today" line (2026-08-20, his ask: streak counting on the
-// buttons, "like vocabula does it" for the changelog placement). Read-only,
-// same guarantee as the export script above -- reads each deck's own
-// localStorage entry directly rather than loading deck.html's engine ("the
-// launcher stays a reader"). dayKey/currentStreak copied verbatim from
-// deck.html so this page's idea of "today" and "streak" can never disagree
-// with the deck's own. Rollover is riverbank's one fixed hour (4am, no
-// per-device UI since 2026-08-09 -- see HANDOFF), so unlike vocabula's
-// launcher this never needs to read a per-deck settings.rollover.
-//
-// Deliberately narrower than vocabula's own version: no "N due" figure.
-// That needs the scheduler's queue-building logic (which words are actually
-// ready right now), which this page cannot compute without loading the
-// engine -- vocabula's launcher only shows it because deck.html there
-// writes a small summary snapshot on every save() for exactly this reader
-// to consume, and riverbank's engine has no equivalent snapshot. What's
-// shown instead -- streak, today's rating count, today's study time -- is
-// everything already sitting in the saved days record with nothing to add.
-const HOUR=3600000, DAY=86400000, RIVERBANK_ROLLOVER=4;
-const dayKey=(ts,roll)=>Math.floor((ts-new Date(ts).getTimezoneOffset()*60000-roll*HOUR)/DAY);
-function currentStreak(days,todayKey){
-  let streak=0;
-  for(let k=todayKey;;k--){
-    if(days[k]&&days[k].n) streak++;
-    else { if(k!==todayKey) break; }
-    if(todayKey-k>3650) break;
-  }
-  return streak;
-}
-function fmtDuration(ms){
-  if(!(ms>0)) return null;
-  const mins=Math.round(ms/60000);
-  if(mins<1) return '<1m';
-  if(mins<60) return mins+'m';
-  return Math.floor(mins/60)+'h '+(mins%60)+'m';
-}
-function renderDeckStats(){
-  const d=dayKey(Date.now(),RIVERBANK_ROLLOVER);
-  [['riverbank.latin.v1','statLatin'],['riverbank.greek.v1','statGreek']].forEach(([key,elId])=>{
-    const el=document.getElementById(elId);
-    let raw; try{ raw=localStorage.getItem(key); }catch(e){ raw=null; }
-    if(!raw){ el.textContent=''; return; }
-    let obj; try{ obj=JSON.parse(raw); }catch(e){ el.textContent=''; return; }
-    if(!obj||typeof obj!=='object'||!obj.days){ el.textContent=''; return; }
-    const streak=currentStreak(obj.days,d);
-    const today=obj.days[d]||{};
-    const done=today.n|0;
-    const timeStr=fmtDuration(today.studyMs);
-    const parts=[];
-    parts.push(streak?(streak+' day'+(streak===1?'':'s')+' running'):'No streak yet');
-    if(done) parts.push(done+' today'+(timeStr?' · '+timeStr:''));
-    el.textContent=parts.join(' · ');
-  });
-}
-renderDeckStats();
-
 const EXPORT_DECKS = [
   {key:'riverbank.latin.v1',   name:'latin',   label:'Latin'},
   {key:'riverbank.greek.v1',   name:'greek',   label:'Greek'},

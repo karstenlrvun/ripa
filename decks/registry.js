@@ -1,10 +1,13 @@
 // The deck registry -- the one list of decks that exist, matching vocabula's
 // decks/registry.js exactly in shape and purpose. Read by deck.html's head
-// boot script (?deck= allowlist) and, eventually, index.html once the
-// launcher is worth making registry-driven (not yet -- see
-// RIVERBANK_PORT_PLAN.md). Loaded as an ordinary <script src>, same as
-// vocabula's -- unlike decks/<id>.js, its filename never depends on the
-// URL, so it needs no special loading.
+// boot script (?deck= allowlist) and, as of 2026-08-20 (adding a third deck
+// made it worth doing), index.html's own launcher too -- it now renders one
+// card per REGISTRY row instead of two hand-written ones, so a fourth deck
+// is a registry entry, not an index.html edit. No mergeRegistry/userDecks
+// here the way vocabula has -- riverbank has no on-device deck creation, so
+// the registry is simply the static list, nothing to merge in. Loaded as an
+// ordinary <script src>, same as vocabula's -- unlike decks/<id>.js, its
+// filename never depends on the URL, so it needs no special loading.
 //
 // Italian and SAT are deliberately NOT here (2026-08-18, Karsten's call --
 // "doesn't really need the english and italian files"); this registry only
@@ -20,5 +23,7 @@ const REGISTRY=[
   {id:'latin', key:'riverbank.latin.v1', title:'Latin',
    blurb:'848 words, OCR AS Level, both directions'},
   {id:'greek', key:'riverbank.greek.v1', title:'Greek',
-   blurb:'765 words, OCR AS Level, both directions'}
+   blurb:'765 words, OCR AS Level, both directions'},
+  {id:'italian', key:'riverbank.italian.v1', title:'Italian',
+   blurb:'360 words, GCSE topics, both directions'}
 ];
