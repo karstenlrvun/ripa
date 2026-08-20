@@ -16,12 +16,17 @@
      system -- deck.html's own 12-palette picker stays deck-scoped, matching
      vocabula's own index.html, which is ALSO fixed-look rather than
      palette-aware -- just the actual Vellum numbers instead of a guess. */
-  --bg:#fbf7ec; --ink:#2a2318; --muted:#6f6350; --line:#e3d9c1; --panel:#f5efdf; --coral:#8c2f26;
+  --bg:#fbf7ec; --ink:#2a2318; --muted:#6f6350; --faint:#988c75; --line:#e3d9c1; --panel:#f5efdf; --coral:#8c2f26;
+  /* good/again/easy/amber added 2026-08-20 for the Activity heatmap below --
+     heatCellBg() colour-mixes against whichever of these the deck's own
+     "Volume colour" setting picked, plus --good/--again for Retention mode. */
+  --good:#5a6b32; --again:#a3342a; --easy:#755992; --amber:#9a7318;
   --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){
-  :root{--bg:#1a160f; --ink:#ece3cf; --muted:#a89a80; --line:#3a3222; --panel:#241f16; --coral:#d4795e;}
+  :root{--bg:#1a160f; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c; --line:#3a3222; --panel:#241f16; --coral:#d4795e;
+    --good:#a9bd72; --again:#e28073; --easy:#c3a3e0; --amber:#d4a24a;}
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
@@ -63,6 +68,29 @@ a.card .d{color:var(--muted);font-size:14px}
 .verlink{display:block;text-align:center;margin:30px 0 0;padding:8px;font-size:11px;
   letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-decoration:none}
 .verlink:active{color:var(--coral)}
+/* Activity (2026-08-20, his ask: "add the heatmap too" -- ported from
+   vocabula's own cross-deck dashboard, PLATFORM_PLAN.md §6a there. One
+   shared-scroll strip per visible deck, all sharing the same day columns,
+   so scrolling is a single action across every deck at once rather than N
+   independently-scrolling rows that drift out of alignment. Read-only, same
+   guarantee as everything else on this page -- reads state[key] directly,
+   writes nothing back to any deck. */
+.sect{margin-top:30px}
+.sect h2{font-size:12.5px;font-weight:500;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.07em;margin:0 0 12px}
+.streakLine{font-size:13.5px;color:var(--muted);margin-bottom:10px;min-height:1.4em}
+.calToggleRow{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.calToggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);
+  -webkit-user-select:none;user-select:none}
+.calToggle input{margin:0;accent-color:var(--coral)}
+.calAllScroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 10px}
+.calDeckRow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.calDeckRow:last-child{margin-bottom:0}
+.calDeckRow .lbl{flex:0 0 auto;width:38px;font-size:10.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;text-align:right}
+.calDeckRow .dots{display:flex;gap:2px}
+.calDot{width:9px;height:9px;border-radius:2px;background:var(--line);flex:0 0 auto}
+.calDot.today{box-shadow:inset 0 -2px 0 var(--coral)}
 /* Archived decks (2026-08-20, his ask: "a collapsed section, but
    accessible from index"). Native <details> -- no JS needed to open/close
    it, and it degrades safely if script is ever blocked. Only SAT lives
@@ -93,6 +121,13 @@ details.archived a{color:var(--coral)}
 </div>
 
 <div id="deckCards"></div>
+
+<div class="sect">
+  <h2>Activity</h2>
+  <div class="streakLine" id="streakLine"></div>
+  <div class="calToggleRow" id="calToggleRow"></div>
+  <div class="calAllScroll" id="calAllScroll"></div>
+</div>
 
 <details class="archived">
   <summary>Archived</summary>
@@ -162,14 +197,159 @@ function relDay(day,todayKey){
   if(diff<=0) return null;
   return diff===1?'yesterday':(diff+' days ago');
 }
-function renderDeckStats(){
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Load every registry deck's saved state once, synchronously (riverbank's
+// storage is plain localStorage, not vocabula's IndexedDB -- no async load
+// needed here the way vocabula's own renderAll() has to do). Shared by the
+// per-card stats above and the combined Activity section below, so neither
+// reads localStorage twice for the same key.
+function loadAllDeckData(){
+  const out={};
+  REGISTRY.forEach(deck=>{
+    let raw; try{ raw=localStorage.getItem(deck.key); }catch(e){ raw=null; }
+    if(!raw) return;
+    let obj; try{ obj=JSON.parse(raw); }catch(e){ return; }
+    if(obj&&typeof obj==='object'&&obj.days) out[deck.id]=obj;
+  });
+  return out;
+}
+
+// ============================================================
+// Activity: a combined streak + one shared-scroll heatmap row per visible
+// deck (2026-08-20, his ask -- ported from vocabula's own cross-deck
+// dashboard, PLATFORM_PLAN.md §6a there). heatRec/heatCellBg and their
+// small helpers are ported verbatim from vocabula's shared.js/deck.html's
+// own Track B port of the same -- riverbank has no shared.js of its own
+// yet (nothing else needed one), so these are a second copy rather than an
+// import; if they ever drift from deck.html's own versions, that's the
+// signal it's finally worth factoring out, the same way vocabula's own
+// shared.js started as index.html's copy before 2026-08-17.
+const HEAT_SPACE='oklch';
+const AVG_WINDOW_DAYS={week:7,month:30,year:365};
+function windowedDailyAverage(days,todayKey,window){
+  if(window==='all'){
+    let sum=0,n=0;
+    for(const k in days){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
+    return n?Math.round(sum/n):0;
+  }
+  const span=AVG_WINDOW_DAYS[window]||AVG_WINDOW_DAYS.month;
+  let sum=0,n=0;
+  for(let k=todayKey;k>todayKey-span;k--){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
+  return n?Math.round(sum/n):0;
+}
+function heatmapAvgRatings(days){
+  let sum=0,n=0;
+  for(const k in days){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
+  return n?sum/n:0;
+}
+function heatmapBaseline(days,todayKey,window){
+  return windowedDailyAverage(days,todayKey,window) || heatmapAvgRatings(days);
+}
+function volumePct(ratings,avg){
+  if(!avg) return 0;
+  return Math.max(0,Math.min(1,ratings/(avg*1.6)))*100;
+}
+function retentionPct(ok,tot){
+  if(!tot) return 0;
+  const r=100*ok/tot;
+  return Math.max(0,Math.min(1,(r-60)/40))*100;
+}
+function heatRec(days,dk){
+  const r=days[dk];
+  return {ratings:(r&&r.n)||0, ok:(r&&r.ok)||0, tot:(r&&r.tot)||0};
+}
+function heatCellBg(rec,avg,mode,accent){
+  if(!rec||!rec.ratings) return '';
+  if(mode==='retention'&&rec.tot){
+    const p=retentionPct(rec.ok,rec.tot);
+    return 'background:color-mix(in '+HEAT_SPACE+', var(--good) '+p+'%, var(--again) '+(100-p)+'%)';
+  }
+  const p=volumePct(rec.ratings,avg);
+  return 'background:color-mix(in '+HEAT_SPACE+', var(--'+accent+') '+p+'%, var(--panel))';
+}
+// Merges every visible deck's day map into one: a day counts toward the
+// COMBINED streak if any visible deck studied that day. No streakStart to
+// honour here (riverbank has no such setting -- see makeDefaults()), which
+// is the one real simplification against vocabula's own mergeDayMaps().
+function mergeDayMaps(dayMaps){
+  const merged={};
+  for(const days of dayMaps){
+    for(const k in days){
+      const n=(days[k]&&days[k].n)||0;
+      if(!n) continue;
+      (merged[k]||(merged[k]={n:0})).n+=n;
+    }
+  }
+  return merged;
+}
+function renderStreakLine(datasById){
+  const merged=mergeDayMaps(REGISTRY.map(d=>(datasById[d.id]&&datasById[d.id].days)||{}));
+  const combined=currentStreak(merged,dayKey(Date.now(),RIVERBANK_ROLLOVER));
+  const parts=REGISTRY.map(d=>{
+    const data=datasById[d.id]; if(!data) return null;
+    return d.title+' '+currentStreak(data.days||{},dayKey(Date.now(),RIVERBANK_ROLLOVER));
+  }).filter(Boolean);
+  document.getElementById('streakLine').textContent=
+    (combined?combined+'-day streak':'No streak yet — study something today to start one')+
+    (parts.length?' ('+parts.join(' · ')+')':'');
+}
+// currentStreak() -- same shape as deck.html's own (2 args, no streakStart).
+function currentStreak(days,todayKey){
+  let streak=0;
+  for(let k=todayKey;;k--){
+    if(days[k]&&days[k].n) streak++;
+    else { if(k!==todayKey) break; }
+    if(todayKey-k>3650) break;
+  }
+  return streak;
+}
+let calHiddenIds=new Set();
+function renderCalStack(datasById){
+  const toggleRow=document.getElementById('calToggleRow');
+  toggleRow.innerHTML=REGISTRY.map(d=>
+    '<label class="calToggle"><input type="checkbox" data-deck-id="'+esc(d.id)+'"'+
+    (calHiddenIds.has(d.id)?'':' checked')+'> '+esc(d.title)+'</label>'
+  ).join('');
+  toggleRow.querySelectorAll('input[data-deck-id]').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      if(cb.checked) calHiddenIds.delete(cb.dataset.deckId); else calHiddenIds.add(cb.dataset.deckId);
+      renderCalStack(datasById);
+    });
+  });
+  const visible=REGISTRY.filter(d=>!calHiddenIds.has(d.id));
+  const scroller=document.getElementById('calAllScroll');
+  if(!visible.length){ scroller.innerHTML=''; return; }
+  const d0=dayKey(Date.now(),RIVERBANK_ROLLOVER);
+  let startKey=d0;
+  for(const d of visible){
+    const data=datasById[d.id];
+    if(data&&data.created) startKey=Math.min(startKey,dayKey(data.created,RIVERBANK_ROLLOVER));
+    for(const k in ((data&&data.days)||{})) startKey=Math.min(startKey,+k);
+  }
+  let rowsHtml='';
+  for(const d of visible){
+    const data=datasById[d.id]||{};
+    const days=data.days||{}, settings=data.settings||{};
+    const avgR=heatmapBaseline(days,d0,settings.heatmapAvgWindow||'month');
+    const mode=settings.heatmapColourMode||'volume', accent=settings.heatmapAccent||'coral';
+    let dots='';
+    for(let k=startKey;k<=d0;k++){
+      const bg=heatCellBg(heatRec(days,k),avgR,mode,accent);
+      dots+='<div class="calDot'+(k===d0?' today':'')+'"'+(bg?' style="'+bg+'"':'')+'></div>';
+    }
+    rowsHtml+='<div class="calDeckRow"><div class="lbl">'+esc(d.title)+'</div><div class="dots">'+dots+'</div></div>';
+  }
+  scroller.innerHTML=rowsHtml;
+  scroller.scrollLeft=scroller.scrollWidth;
+}
+
+function renderDeckStats(datasById){
   const d=dayKey(Date.now(),RIVERBANK_ROLLOVER);
   REGISTRY.forEach(deck=>{
     const subEl=document.getElementById('sub-'+deck.id), statEl=document.getElementById('stat-'+deck.id);
-    let raw; try{ raw=localStorage.getItem(deck.key); }catch(e){ raw=null; }
-    if(!raw) return;   // never opened on this device -- static blurb and empty stats line stand
-    let obj; try{ obj=JSON.parse(raw); }catch(e){ return; }
-    if(!obj||typeof obj!=='object'||!obj.days) return;
+    const obj=datasById[deck.id];
+    if(!obj) return;   // never opened on this device -- static blurb and empty stats line stand
     const days=obj.days, sum=obj.summary;
     if(sum){
       const left=(sum.due|0)+(sum.learn|0)+(sum.intro|0);
@@ -186,15 +366,7 @@ function renderDeckStats(){
       // yet. Falls back to the streak-only line this page showed before,
       // rather than a blank stats row; the next save() on that device
       // writes a real summary and this branch stops firing for it.
-      const streak=(function(days,todayKey){
-        let streak=0;
-        for(let k=todayKey;;k--){
-          if(days[k]&&days[k].n) streak++;
-          else { if(k!==todayKey) break; }
-          if(todayKey-k>3650) break;
-        }
-        return streak;
-      })(days,d);
+      const streak=currentStreak(days,d);
       const today=days[d]||{};
       const doneToday=today.n|0, timeStr=today.studyMs>0?fmtDuration(today.studyMs):null;
       const parts=[streak?(streak+' day'+(streak===1?'':'s')+' running'):'No streak yet'];
@@ -203,7 +375,14 @@ function renderDeckStats(){
     }
   });
 }
-renderDeckStats();
+// Combined streak and the calendar stack need every deck's data at once (a
+// combined streak can't be computed one deck at a time) -- loaded once here
+// and handed to all three render functions, so nothing reads the same
+// localStorage key twice.
+const datasById=loadAllDeckData();
+renderDeckStats(datasById);
+renderStreakLine(datasById);
+renderCalStack(datasById);
 
 // Exports a real backup of every language this browser actually has data
 // for -- in one tap, rather than needing to open each deck's own Settings
