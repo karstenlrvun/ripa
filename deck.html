@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline'; img-src 'self'; connect-src https://riverbank-sync.karsten-vun.workers.dev; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Riverbank">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Riverbank</title>
+<!--
+  One engine, many decks (2026-08-18 unification, C1/C2 -- mirrors
+  vocabula's own Phase 1/2 shape exactly). This file replaces latin.html/
+  greek.html as the thing that actually boots a deck. Those two lived on a
+  while longer as thin same-URL redirect shims, purely to protect an old
+  bookmark or "Add to Home Screen" icon pointed straight at latin.html/
+  greek.html -- retired outright on 2026-08-20 once Karsten confirmed his
+  own real usage pins the launcher (index.html), never a per-deck icon, so
+  that scenario never applied. index.html's own links already go straight
+  to the canonical deck?deck=X form (2026-08-18's 05562a1), so nothing here
+  or in the launcher ever routed through them anyway.
+
+  Which deck loads is decided here, before anything else runs. No silent
+  default deck: an invalid or missing ?deck= is a hard stop, not a guess.
+  Content (DATA/DECK/KEY/DECK_TITLE/CHANGES) is NOT loaded synchronously
+  here -- it resolves asynchronously via resolveContent()/bootDeck() near
+  the end of this file's own main script block, exactly the two-stage split
+  PHASE2_PLAN.md §2.5 describes: this head script only validates ?deck= and
+  publishes the matched registry row (window.DECK_ENTRY); everything that
+  actually needs content waits for it.
+-->
+<script src="decks/registry.js"></script>
+<script data-boot>
+(function(){
+  var v = new URLSearchParams(location.search).get('deck');
+  var entry = null;
+  for (var i=0; i<REGISTRY.length; i++) { if (REGISTRY[i].id===v) { entry=REGISTRY[i]; break; } }
+  if (!entry) {
+    // Styled in Vellum directly (the real palette CSS sits further down and
+    // never gets a chance to apply -- see window.stop() below). Everything
+    // else in the document is hidden and the parser is halted so the
+    // engine script never runs against undefined content.
+    document.write('<style>html,body{margin:0;background:#fbf7ec}body>*:not(#deckErr){display:none!important}'
+      + '#deckErr{font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;'
+      + 'color:#2a2318;max-width:30rem;margin:0 auto;padding:calc(52px + env(safe-area-inset-top)) 20px 40px}'
+      + '#deckErr h1{font-family:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;font-weight:400;font-size:2.05rem;margin:0 0 4px}'
+      + '#deckErr p{color:#6f6350;margin:0 0 14px}#deckErr code{font-size:14px;color:#8c2f26}'
+      + '#deckErr a{display:block;text-decoration:none;color:inherit;background:#f5efdf;border:1px solid #e3d9c1;border-radius:14px;padding:15px 18px;margin-top:22px}'
+      + '</style><div id="deckErr"><h1>Riverbank</h1>'
+      + '<p><b>No deck specified.</b> This page needs to know which deck to open: '
+      + '<code>deck.html?deck=latin</code> or <code>deck.html?deck=greek</code> — '
+      + 'normally reached from the launcher, not typed by hand.</p>'
+      + '<a href="index.html">Back to the launcher →</a></div>');
+    try { window.stop(); } catch (e) {}
+    return;
+  }
+  // Published for the async boot chain at the bottom of the engine script
+  // (bootDeck): DECK_ENTRY carries the whole registry row (id, key). The
+  // engine's own main script below must never declare DECK_ID or any of the
+  // five content names (DATA/DECK/KEY/DECK_TITLE/CHANGES) with let/const --
+  // decks/<id>.js declares them as real globals once loaded, and classic
+  // classic script tags on one page share a single lexical scope, so a second
+  // let/const of the same name here would be a redeclaration SyntaxError
+  // the moment that file's script tag ran.
+  window.DECK_ID = entry.id;
+  window.DECK_ENTRY = entry;
+})();
+</script>
+<style>
+:root{
+  --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+/* Twelve palettes (2026-08-19, Track B1/B2), each with a light and dark
+   variant. The mode is chosen separately from the palette, so any palette
+   can be read either way. Vellum is the default; Legacy reproduces the
+   original colours exactly.
+
+   Dropped the html[] prefix throughout this session -- these were
+   html[data-palette=x][data-theme=y] for as long as the only thing that
+   ever carried those two attributes was the root element. Ported from
+   vocabula 2026.08.15.6: dropping html means any element can carry the
+   pair and re-declare the whole palette for its own subtree, which is
+   what the theme-picker preview cards below (renderPalGrid()) need. The
+   specificity drop (0,2,1 -> 0,2,0) changes no existing cascade -- nothing
+   else in this file defines --bg and friends.
+
+   The five original palettes' colour values below are riverbank's own,
+   already independently contrast-adjusted on the rating row -- NOT
+   overwritten with vocabula's current values, which have since diverged
+   from these (each app tuned its own rate-row contrast separately). Only
+   the seven new ones (Dracula onward) are copied from vocabula's
+   palettes.css verbatim. */
+[data-palette="vellum"][data-theme="light"]{
+  --bg:#fbf7ec; --panel:#f5efdf; --ink:#2a2318; --muted:#6f6350; --faint:#988c75;
+  --line:#e3d9c1; --coral:#8c2f26; --accent-soft:#f0e3d8; --raise:#fffdf6; --again:#a3342a;
+  --again-bg:#f0ded3; --again-br:#dfb9ae; --good:#5a6b32; --good-bg:#e6e5d4; --good-br:#c7cab0;
+  --easy:#7d5f9c; --easy-bg:#ebe3e2; --easy-br:#d3c6d2; --amber:#9a7318; --warn-bg:#eee6d0;
+  --warn-br:#dccda8; --warn-ink:#7b5d18; --bad-bg:#f0ded3; --bad-br:#dfb9ae; --bad-ink:#812f25;
+  --toast:#2a2318;
+}
+[data-palette="vellum"][data-theme="dark"]{
+  --bg:#1a160f; --panel:#241f16; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c;
+  --line:#3a3222; --coral:#d4795e; --accent-soft:#3f2a1f; --raise:#2c2519; --again:#e0796b;
+  --again-bg:#462c23; --again-br:#6d4036; --good:#a9bd72; --good-bg:#393b25; --good-br:#565c39;
+  --easy:#c3a3e0; --easy-bg:#3f353d; --easy-br:#615167; --amber:#d4a24a; --warn-bg:#43351c;
+  --warn-br:#685128; --warn-ink:#d7ab5d; --bad-bg:#462c23; --bad-br:#6d4036; --bad-ink:#e28879;
+  --toast:#241f16;
+}
+[data-palette="catppuccin"][data-theme="light"]{
+  --bg:#eff1f5; --panel:#e6e9ef; --ink:#4c4f69; --muted:#66687d; --faint:#8a8d9b;
+  --line:#ccd0da; --coral:#de590c; --accent-soft:#f0e1db; --raise:#ffffff; --again:#d20934;
+  --again-bg:#edd2dd; --again-br:#e6a9b9; --good:#288f12; --good-bg:#d7e6d9; --good-br:#b3d7b0;
+  --easy:#8732f6; --easy-bg:#e1d7f6; --easy-br:#d0bdec; --amber:#be7208; --warn-bg:#e9e1d7;
+  --warn-br:#e3cba9; --warn-ink:#a3671b; --bad-bg:#edd2dd; --bad-br:#e6a9b9; --bad-ink:#b40836;
+  --toast:#4c4f69;
+}
+[data-palette="catppuccin"][data-theme="dark"]{
+  --bg:#1e1e2e; --panel:#181825; --ink:#cdd6f4; --muted:#a6adc8; --faint:#6c7086;
+  --line:#45475a; --coral:#f9b58b; --accent-soft:#4b3b3f; --raise:#313244; --again:#fa86a6;
+  --again-bg:#4f344a; --again-br:#7b4861; --good:#9cef95; --good-bg:#3b4a48; --good-br:#54745d;
+  --easy:#cba2fb; --easy-bg:#43395d; --easy-br:#665386; --amber:#fce3ac; --warn-bg:#4e494a;
+  --warn-br:#7c7062; --warn-ink:#fce3b0; --bad-bg:#4f344a; --bad-br:#7b4861; --bad-ink:#fa8eb1;
+  --toast:#181825;
+}
+[data-palette="rosepine"][data-theme="light"]{
+  --bg:#faf4ed; --panel:#fffaf3; --ink:#575279; --muted:#6b6782; --faint:#8f8a9b;
+  --line:#dfdad9; --coral:#c86a65; --accent-soft:#f6e6de; --raise:#ffffff; --again:#c25574;
+  --again-bg:#f3e0dc; --again-br:#e7c3c5; --good:#17698b; --good-bg:#dfe2df; --good-br:#b5c9cd;
+  --easy:#8f72b1; --easy-bg:#ede3e3; --easy-br:#d9ccd8; --amber:#c1760e; --warn-bg:#f4e4d0;
+  --warn-br:#e7cdac; --warn-ink:#a56c2d; --bad-bg:#f3e0dc; --bad-br:#e7c3c5; --bad-ink:#a45379;
+  --toast:#575279;
+}
+[data-palette="rosepine"][data-theme="dark"]{
+  --bg:#191724; --panel:#1f1d2e; --ink:#e0def4; --muted:#908caa; --faint:#6e6a86;
+  --line:#403d52; --coral:#f2bab8; --accent-soft:#443743; --raise:#26233a; --again:#f8638d;
+  --again-bg:#4a273d; --again-br:#763751; --good:#92d6e2; --good-bg:#343f4e; --good-br:#4d6573;
+  --easy:#c6a2f3; --easy-bg:#3e3551; --easy-br:#60507a; --amber:#f9c274; --warn-bg:#4c3b34;
+  --warn-br:#7b5e42; --warn-ink:#fac681; --bad-bg:#4a273d; --bad-br:#763751; --bad-ink:#f9739c;
+  --toast:#1f1d2e;
+}
+[data-palette="gruvbox"][data-theme="light"]{
+  --bg:#fbf1c7; --panel:#f2e5bc; --ink:#3c3836; --muted:#665c54; --faint:#928374;
+  --line:#e3d5ab; --coral:#a93c09; --accent-soft:#eeddb8; --raise:#fdf6da; --again:#97060c;
+  --again-bg:#edd2b0; --again-br:#dda489; --good:#7a7405; --good-bg:#ece2ad; --good-br:#d8ce85;
+  --easy:#9d3174; --easy-bg:#efdaba; --easy-br:#dcb6a6; --amber:#b97408; --warn-bg:#eedfb4;
+  --warn-br:#e0c893; --warn-ink:#996009; --bad-bg:#edd2b0; --bad-br:#dda489; --bad-ink:#840609;
+  --toast:#3c3836;
+}
+[data-palette="gruvbox"][data-theme="dark"]{
+  --bg:#282828; --panel:#32302f; --ink:#ebdbb2; --muted:#bdae93; --faint:#928374;
+  --line:#504945; --coral:#f4872f; --accent-soft:#573a21; --raise:#3c3836; --again:#f74d39;
+  --again-bg:#5a2c27; --again-br:#873127; --good:#d1d50c; --good-bg:#4b4b25; --good-br:#6a6c21;
+  --easy:#e17d98; --easy-bg:#503b40; --easy-br:#734c56; --amber:#f7bf3b; --warn-bg:#5a4b26;
+  --warn-br:#856926; --warn-ink:#f8c651; --bad-bg:#5a2c27; --bad-br:#873127; --bad-ink:#f75e48;
+  --toast:#32302f;
+}
+[data-palette="legacy"][data-theme="light"]{
+  --bg:#ffffff; --panel:#faf8f5; --ink:#1b1a18; --muted:#77746e; --faint:#928f89;
+  --line:#e7e3dc; --coral:#d85a30; --accent-soft:#fbeeea; --raise:#ffffff; --again:#b03b2e;
+  --again-bg:#f5e6e4; --again-br:#e6c0bc; --good:#2f7d4f; --good-bg:#e4eee8; --good-br:#bcd5c7;
+  --easy:#7a6bcf; --easy-bg:#eeecf9; --easy-br:#d4d0f0; --amber:#b07715; --warn-bg:#f5ede1;
+  --warn-br:#e6d3b4; --warn-ink:#865d16; --bad-bg:#f5e6e4; --bad-br:#e6c0bc; --bad-ink:#863228;
+  --toast:#1b1a18;
+}
+[data-palette="legacy"][data-theme="dark"]{
+  --bg:#0e1230; --panel:#181d47; --ink:#e9ecf8; --muted:#a3abd0; --faint:#7780ab;
+  --line:#2a3169; --coral:#ff8a5c; --accent-soft:#3e2a39; --raise:#1f2555; --again:#ff8175;
+  --again-bg:#432a3f; --again-br:#73414d; --good:#5ecb92; --good-bg:#203b46; --good-br:#306059;
+  --easy:#b0a4ff; --easy-bg:#32325e; --easy-br:#524f87; --amber:#e0aa4a; --warn-bg:#3c3336;
+  --warn-br:#66523b; --warn-ink:#e1b362; --bad-bg:#432a3f; --bad-br:#73414d; --bad-ink:#fc9087;
+  --toast:#181d47;
+}
+/* ============================================================
+   Smoo palette -- an easter egg, not selectable from the swatch row until
+   unlocked. Tap the five theme swatches in order (1-5), then back again
+   starting from 5 (5-4-3-2-1) -- ten taps total -- and it appears
+   (renderPalSwatches() below, SECRET_SEQ). The unlock is per Settings
+   visit, not permanent: leaving Settings hides the swatch again (see
+   show()), so it takes the sequence again to bring it back. Whichever
+   palette is actually applied is untouched by that -- once picked, it
+   keeps rendering until something else is chosen (paletteValid() below
+   doesn't gate on the unlock state). Mode-invariant on purpose: light
+   and dark resolve to the exact same values, since the whole point is
+   one fixed look regardless of the theme setting. Colours drawn from a
+   real photo (a blue plush toy -- Smoo) rather than invented.
+   ============================================================ */
+[data-palette="secret"][data-theme="light"],
+[data-palette="secret"][data-theme="dark"]{
+  --bg:#3a6b76; --panel:#467e8a; --ink:#e6eef0; --muted:#aecdd1; --faint:#85b0b5;
+  --line:#5a99a5; --coral:#7cc474; --accent-soft:#2f5860; --raise:#5a99a5; --again:#000000;
+  --again-bg:#2c545d; --again-br:#1f3f46; --good:#ffffff; --good-bg:#467e8a; --good-br:#5a99a5;
+  --easy:#7cc474; --easy-bg:#3d7d63; --easy-br:#56a37f; --amber:#e0c468; --warn-bg:#4a4530;
+  --warn-br:#6b6242; --warn-ink:#e0c468; --bad-bg:#2c545d; --bad-br:#1f3f46; --bad-ink:#ff8a8a;
+  --toast:#1f3f46;
+}
+/* A soft woven/fuzzy texture, echoing the plush's own fabric -- two offset
+   dot grids rather than an SVG noise filter (feTurbulence rasterized
+   inconsistently as a CSS background-image in testing); plain radial
+   gradients are simpler and render identically everywhere. */
+[data-palette="secret"] body{
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.09) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 70%, rgba(0,0,0,.08) 0 1px, transparent 1.5px);
+  background-size:8px 8px,8px 8px;
+}
+/* Seven new palettes (2026-08-19, Track B1/B2), copied verbatim from
+   vocabula's palettes.css -- full backstory/rationale for each lives there,
+   not repeated here. --texture/--glass-blur/--glass-shadow/--glow-* are new
+   custom properties, consumed only via var(--x,fallback) below, so the five
+   palettes above (and Smoo) simply never set them -- no per-palette opt-out
+   needed. */
+[data-palette="dracula"][data-theme="light"]{
+  --bg:#f8f8f2; --panel:#eeeef7; --ink:#282a36; --muted:#4d4f66; --faint:#6272a4;
+  --line:#dcdce8; --coral:#d6266f; --accent-soft:#f9dceb; --raise:#ffffff; --again:#bf2444;
+  --again-bg:#f7dde3; --again-br:#eab8c7; --good:#18783b; --good-bg:#dcf0e0; --good-br:#b3dcc0;
+  --easy:#7647cf; --easy-bg:#e9e0fb; --easy-br:#cfc0f2; --amber:#b5690a; --warn-bg:#f7e6cf;
+  --warn-br:#e9c896; --warn-ink:#8a570f; --bad-bg:#f7dde3; --bad-br:#eab8c7; --bad-ink:#b31940;
+  --toast:#282a36;
+}
+[data-palette="dracula"][data-theme="dark"]{
+  --bg:#282a36; --panel:#343746; --ink:#f8f8f2; --muted:#b6b8d1; --faint:#6272a4;
+  --line:#44475a; --coral:#ff79c6; --accent-soft:#4a2f42; --raise:#3d3f52; --again:#ff5555;
+  --again-bg:#3f2029; --again-br:#6b3542; --good:#50fa7b; --good-bg:#1f3b2e; --good-br:#2f5943;
+  --easy:#bd93f9; --easy-bg:#33294f; --easy-br:#4a3d72; --amber:#ffb86c; --warn-bg:#453421;
+  --warn-br:#6b5030; --warn-ink:#f0c78a; --bad-bg:#4a2530; --bad-br:#6b3542; --bad-ink:#ff6e6e;
+  --toast:#343746;
+}
+[data-palette="amphora"][data-theme="light"]{
+  --bg:#f0dcc3; --panel:#e6cca8; --ink:#241a10; --muted:#5c4530; --faint:#8a6f4f;
+  --line:#d4b78c; --coral:#a8331a; --accent-soft:#e8c4a0; --raise:#f8ecd8; --again:#8f1d10;
+  --again-bg:#e8c9b8; --again-br:#d4a488; --good:#3f5c2e; --good-bg:#dbe0c4; --good-br:#bcc699;
+  --easy:#4a3a7a; --easy-bg:#ddd6ef; --easy-br:#c0b4e0; --amber:#9c6b0a; --warn-bg:#ecdcb4;
+  --warn-br:#d6bc80; --warn-ink:#6b4808; --bad-bg:#e8c9b8; --bad-br:#d4a488; --bad-ink:#6e130a;
+  --toast:#241a10;
+}
+[data-palette="amphora"][data-theme="dark"]{
+  --bg:#100c08; --panel:#1c140d; --ink:#f0dcc3; --muted:#c4a37e; --faint:#8a6f4f;
+  --line:#3a2c1c; --coral:#e0693a; --accent-soft:#3f2416; --raise:#241a10; --again:#e66a57;
+  --again-bg:#3f2019; --again-br:#5e3226; --good:#8fae5c; --good-bg:#2a3320; --good-br:#425030;
+  --easy:#a08ce0; --easy-bg:#332a52; --easy-br:#4c3f78; --amber:#e0a83a; --warn-bg:#3f3018;
+  --warn-br:#5e4826; --warn-ink:#e8c477; --bad-bg:#3f2019; --bad-br:#5e3226; --bad-ink:#f0684a;
+  --toast:#1c140d;
+}
+[data-palette="marble"][data-theme="light"]{
+  --bg:#f4f0e6; --panel:#ece4d2; --ink:#2b241c; --muted:#6b6152; --faint:#8c7d64;
+  --line:#ddd2b8; --coral:#a97a1f; --accent-soft:#f0e3bf; --raise:#fbf8f0; --again:#9c2c1e;
+  --again-bg:#f0dcd2; --again-br:#ddb6a4; --good:#3f6b46; --good-bg:#dde6dc; --good-br:#b9cdb9;
+  --easy:#6b3f8a; --easy-bg:#e6ddf0; --easy-br:#cbb4e0; --amber:#96690f; --warn-bg:#eee0bc;
+  --warn-br:#dcc281; --warn-ink:#7a5810; --bad-bg:#f0dcd2; --bad-br:#ddb6a4; --bad-ink:#6b1d14;
+  --toast:#2b241c;
+  --texture:linear-gradient(103deg,transparent 41%,rgba(169,122,31,.10) 42%,rgba(169,122,31,.04) 43%,transparent 45%),
+    linear-gradient(66deg,transparent 58%,rgba(43,36,28,.05) 59%,transparent 61%),
+    linear-gradient(18deg,transparent 27%,rgba(169,122,31,.07) 28%,transparent 30%);
+}
+[data-palette="marble"][data-theme="dark"]{
+  --bg:#151109; --panel:#211a10; --ink:#ede3c8; --muted:#b8a67a; --faint:#7d6f4c;
+  --line:#392c1a; --coral:#d9a53f; --accent-soft:#3a2c15; --raise:#251d12; --again:#de7561;
+  --again-bg:#3f241a; --again-br:#613326; --good:#7fae7a; --good-bg:#243322; --good-br:#3f5540;
+  --easy:#b090d9; --easy-bg:#2e2640; --easy-br:#493a63; --amber:#e0b355; --warn-bg:#3a2c10;
+  --warn-br:#5c451a; --warn-ink:#e8bd66; --bad-bg:#3f241a; --bad-br:#613326; --bad-ink:#e6836f;
+  --toast:#211a10;
+  --texture:linear-gradient(103deg,transparent 41%,rgba(217,165,63,.09) 42%,rgba(217,165,63,.03) 43%,transparent 45%),
+    linear-gradient(66deg,transparent 58%,rgba(237,227,200,.04) 59%,transparent 61%),
+    linear-gradient(18deg,transparent 27%,rgba(217,165,63,.06) 28%,transparent 30%);
+}
+[data-palette="steel"][data-theme="light"]{
+  --bg:#eef0f1; --panel:#e2e5e7; --ink:#23282b; --muted:#5c6569; --faint:#8b9296;
+  --line:#ccd1d4; --coral:#b0472e; --accent-soft:#e7e2dc; --raise:#f8f9fa; --again:#a83a2c;
+  --again-bg:#ecdfd9; --again-br:#d9bcae; --good:#3f6e52; --good-bg:#dde6de; --good-br:#b9cdbf;
+  --easy:#4a5a7a; --easy-bg:#dde2ea; --easy-br:#b9c4d6; --amber:#96731e; --warn-bg:#ece3cc;
+  --warn-br:#d8c496; --warn-ink:#6e5314; --bad-bg:#ecdfd9; --bad-br:#d9bcae; --bad-ink:#7a2a1e;
+  --toast:#23282b;
+  --texture:repeating-linear-gradient(95deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,
+    rgba(35,40,43,.035) 1px,rgba(35,40,43,.035) 2px,transparent 2px,transparent 3px);
+}
+[data-palette="steel"][data-theme="dark"]{
+  --bg:#16191b; --panel:#202426; --ink:#dfe3e5; --muted:#a7aeb2; --faint:#6c7377;
+  --line:#33393c; --coral:#d97c5c; --accent-soft:#3a2c24; --raise:#262b2e; --again:#e08268;
+  --again-bg:#3f2c24; --again-br:#634033; --good:#7fae8e; --good-bg:#26362c; --good-br:#3f5747;
+  --easy:#8fa3c9; --easy-bg:#262e3d; --easy-br:#3c4a63; --amber:#cda54c; --warn-bg:#3a301b;
+  --warn-br:#5c4828; --warn-ink:#d4ac5c; --bad-bg:#3f2c24; --bad-br:#634033; --bad-ink:#e3927a;
+  --toast:#202426;
+  --texture:repeating-linear-gradient(95deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 1px,
+    rgba(0,0,0,.05) 1px,rgba(0,0,0,.05) 2px,transparent 2px,transparent 3px);
+}
+[data-palette="glass"][data-theme="light"]{
+  --bg:#eef2f6; --panel:rgba(225,232,240,.62); --ink:#1d2733; --muted:#54626f; --faint:#8996a3;
+  --line:#c9d5e0; --coral:#1f7fa3; --accent-soft:#dcebf2; --raise:rgba(251,253,255,.72); --again:#b53749;
+  --again-bg:#f7dfe1; --again-br:#eab9bd; --good:#27765b; --good-bg:#dcefe6; --good-br:#b7dbc9;
+  --easy:#6053cc; --easy-bg:#e6e2f8; --easy-br:#cbc3ef; --amber:#b3860f; --warn-bg:#f2e6c4;
+  --warn-br:#e2cb8e; --warn-ink:#7d5c0c; --bad-bg:#f7dfe1; --bad-br:#eab9bd; --bad-ink:#94202f;
+  --toast:#1d2733;
+  --texture:radial-gradient(55% 40% at 12% -5%,rgba(255,255,255,.55),transparent 60%),
+    radial-gradient(45% 35% at 100% 100%,rgba(31,127,163,.14),transparent 65%);
+  --glass-blur:blur(16px) saturate(170%);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 0 0 1px rgba(255,255,255,.25),
+    0 3px 14px rgba(20,40,60,.12);
+}
+[data-palette="glass"][data-theme="dark"]{
+  --bg:#12181f; --panel:rgba(27,35,44,.55); --ink:#e6edf3; --muted:#a7b4bf; --faint:#66727d;
+  --line:#2c3844; --coral:#5ec2e8; --accent-soft:#1c2e38; --raise:rgba(33,43,53,.62); --again:#e2687a;
+  --again-bg:#3a2229; --again-br:#5c333e; --good:#6fcba8; --good-bg:#193226; --good-br:#2b4d3c;
+  --easy:#a79af0; --easy-bg:#241f3e; --easy-br:#392f5c; --amber:#e8c168; --warn-bg:#392c14;
+  --warn-br:#5c4720; --warn-ink:#eec478; --bad-bg:#3a2229; --bad-br:#5c333e; --bad-ink:#ef8797;
+  --toast:#1b232c;
+  --texture:radial-gradient(55% 40% at 12% -5%,rgba(94,194,232,.16),transparent 60%),
+    radial-gradient(45% 35% at 100% 100%,rgba(94,194,232,.10),transparent 65%);
+  --glass-blur:blur(16px) saturate(170%);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.06),
+    0 3px 16px rgba(0,0,0,.4);
+}
+/* Glass's translucent-surface treatment, adapted from vocabula's own
+   selector list -- dropped here: .drillInput/.drillTile/#drillPrompt (no
+   drill screen in riverbank, by design, §1) and .dayDetail/.histBarWrap
+   (not ported, out of Track B's scope). Everything kept below exists in
+   this engine. */
+[data-palette="glass"] .bar .icon:active, [data-palette="glass"] .rate, [data-palette="glass"] .revealBtn,
+[data-palette="glass"] .chip, [data-palette="glass"] .dir, [data-palette="glass"] .startBtn:disabled,
+[data-palette="glass"] .stepper, [data-palette="glass"] .calNav:active, [data-palette="glass"] .calCell,
+[data-palette="glass"] .calGearBtn:active, [data-palette="glass"] .calGearPanel, [data-palette="glass"] .searchInput,
+[data-palette="glass"] .stackbar, [data-palette="glass"] .palMini,
+[data-palette="glass"] .field input[type=number], [data-palette="glass"] .field input[type=text],
+[data-palette="glass"] .field input[type=password], [data-palette="glass"] .field .sel, [data-palette="glass"] .act,
+[data-palette="glass"][data-layout="landscape"] #prompt, [data-palette="glass"][data-layout="landscape"] .recapCard.on,
+[data-palette="glass"][data-layout="landscape"] #scHome .sect{
+  backdrop-filter:var(--glass-blur,none); -webkit-backdrop-filter:var(--glass-blur,none);
+  box-shadow:var(--glass-shadow,none);
+}
+[data-palette="neon"][data-theme="light"]{
+  --bg:#f5f4fb; --panel:#ebe9f7; --ink:#16142b; --muted:#514f72; --faint:#85839f;
+  --line:#d8d5ee; --coral:#d6116e; --accent-soft:#fbe0ee; --raise:#ffffff; --again:#c80f38;
+  --again-bg:#fbdde4; --again-br:#f0b6c3; --good:#0b7953; --good-bg:#d9f3e7; --good-br:#a8e0c4;
+  --easy:#6427e0; --easy-bg:#e7ddfb; --easy-br:#cbb5f4; --amber:#c98d00; --warn-bg:#f7e7bf;
+  --warn-br:#ecce85; --warn-ink:#8a5f09; --bad-bg:#fbdde4; --bad-br:#f0b6c3; --bad-ink:#b60d34;
+  --toast:#16142b;
+  --glow-text:0 0 4px currentColor,0 0 10px currentColor;
+  --glow-alpha-strong:55%; --glow-alpha-soft:32%;
+}
+[data-palette="neon"][data-theme="dark"]{
+  --bg:#181430; --panel:#221c3d; --ink:#f0eeff; --muted:#aca9d4; --faint:#6f6b96;
+  --line:#372e5c; --coral:#ff4aa8; --accent-soft:#33203f; --raise:#251e42; --again:#ff4568;
+  --again-bg:#3a1c2c; --again-br:#602942; --good:#33f5a8; --good-bg:#123329; --good-br:#1f5240;
+  --easy:#9a79ff; --easy-bg:#2a2050; --easy-br:#453268; --amber:#ffce3d; --warn-bg:#3a2c10;
+  --warn-br:#5c451a; --warn-ink:#ffd766; --bad-bg:#3a1c2c; --bad-br:#602942; --bad-ink:#ff7590;
+  --toast:#221c3d;
+  --glow-text:0 0 4px currentColor,0 0 11px currentColor,0 0 20px currentColor;
+  --glow-alpha-strong:65%; --glow-alpha-soft:42%;
+}
+/* Neon glow, text tier -- every element below already sets color to one of
+   the accent vars via its own existing rule, so var(--glow-text)'s stacked
+   currentColor shadows just glow in whatever colour each already is. No
+   #bHard -- riverbank has no Hard button (§1). */
+[data-palette="neon"] .c-new, [data-palette="neon"] .c-lrn, [data-palette="neon"] .c-due,
+[data-palette="neon"] #bAgain .lbl, [data-palette="neon"] #bGood .lbl, [data-palette="neon"] #bEasy .lbl,
+[data-palette="neon"] .chip.on, [data-palette="neon"] .stepper button,
+[data-palette="neon"] .recapCard .rc-rating{
+  text-shadow:var(--glow-text,none);
+}
+/* Neon glow, fill tier -- solid-fill elements, glowing in their own fill
+   colour via color-mix() (same technique heatCellBg() below uses) rather
+   than a fixed rgba. */
+[data-palette="neon"] .startBtn:not(:disabled), [data-palette="neon"] .act.primary{
+  box-shadow:0 0 4px color-mix(in srgb, var(--coral) var(--glow-alpha-strong), transparent),
+    0 0 22px color-mix(in srgb, var(--coral) var(--glow-alpha-soft), transparent);
+}
+[data-palette="neon"] .dot.did{
+  box-shadow:0 0 3px color-mix(in srgb, var(--coral) var(--glow-alpha-strong), transparent),
+    0 0 10px color-mix(in srgb, var(--coral) var(--glow-alpha-soft), transparent);
+}
+[data-palette="neon"] .chip.on{
+  box-shadow:0 0 3px color-mix(in srgb, var(--coral) var(--glow-alpha-strong), transparent),
+    0 0 14px color-mix(in srgb, var(--coral) var(--glow-alpha-soft), transparent);
+}
+[data-palette="neon"] #bAgain{box-shadow:0 0 3px color-mix(in srgb, var(--again) var(--glow-alpha-strong), transparent),
+  0 0 16px color-mix(in srgb, var(--again) var(--glow-alpha-soft), transparent)}
+[data-palette="neon"] #bGood{box-shadow:0 0 3px color-mix(in srgb, var(--good) var(--glow-alpha-strong), transparent),
+  0 0 16px color-mix(in srgb, var(--good) var(--glow-alpha-soft), transparent)}
+[data-palette="neon"] #bEasy{box-shadow:0 0 3px color-mix(in srgb, var(--easy) var(--glow-alpha-strong), transparent),
+  0 0 16px color-mix(in srgb, var(--easy) var(--glow-alpha-soft), transparent)}
+[data-palette="wood"][data-theme="light"]{
+  --bg:#e8d1a0; --panel:#dcc088; --ink:#2e2013; --muted:#6b4f2e; --faint:#886d43;
+  --line:#c7a76e; --coral:#8f4e18; --accent-soft:#ecd9ad; --raise:#f2e3bd; --again:#8a3220;
+  --again-bg:#e8c8ab; --again-br:#d1a17c; --good:#4a692d; --good-bg:#dde0b8; --good-br:#c0c68f;
+  --easy:#5a3f8a; --easy-bg:#ded6ef; --easy-br:#c2b3e0; --amber:#7c5510; --warn-bg:#ecd8a0;
+  --warn-br:#d6bb70; --warn-ink:#6e4c0c; --bad-bg:#e8c8ab; --bad-br:#d1a17c; --bad-ink:#6b2517;
+  --toast:#2e2013;
+  --texture:repeating-linear-gradient(0deg,rgba(46,32,19,.055) 0,rgba(46,32,19,.055) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(0deg,rgba(46,32,19,.03) 2px,rgba(46,32,19,.03) 3px,transparent 3px,transparent 11px);
+}
+[data-palette="wood"][data-theme="dark"]{
+  --bg:#1c130a; --panel:#291c10; --ink:#e8d2a0; --muted:#b89361; --faint:#7d6440;
+  --line:#3f2c18; --coral:#c4813a; --accent-soft:#3a2712; --raise:#241a0e; --again:#d97954;
+  --again-bg:#3f2419; --again-br:#623527; --good:#8fae5c; --good-bg:#2f3a1f; --good-br:#4a5c30;
+  --easy:#a98ce0; --easy-bg:#332a52; --easy-br:#4c3f78; --amber:#d9a43e; --warn-bg:#3a2c10;
+  --warn-br:#5c451a; --warn-ink:#e0b355; --bad-bg:#3f2419; --bad-br:#623527; --bad-ink:#e07f5c;
+  --toast:#291c10;
+  --texture:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0,rgba(0,0,0,.10) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(0deg,rgba(232,210,160,.035) 2px,rgba(232,210,160,.035) 3px,transparent 3px,transparent 11px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior:none}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:16px; -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none; user-select:none;
+  touch-action:manipulation;
+}
+#app{height:100dvh;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);}
+.screen{flex:1;display:none;flex-direction:column;min-height:0}
+.screen.on{display:flex}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer}
+
+/* ---------- top bar ---------- */
+.bar{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;flex:0 0 auto}
+.bar .icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;color:var(--muted);font-size:19px}
+.bar .icon:active{background:var(--panel)}
+.bar .title{flex:1;text-align:center;font-size:15px;font-weight:500;letter-spacing:.01em}
+.counts{display:flex;gap:12px;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
+.studyTimer{margin-top:3px;text-align:center;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.counts b{font-weight:600}
+.c-new{color:var(--coral)} .c-lrn{color:var(--amber)} .c-due{color:var(--good)}
+
+/* ---------- card ---------- */
+.cardarea{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:16px 22px;min-height:0;position:relative;overflow:hidden}
+.prompt{font-family:var(--serif);font-size:clamp(33px,calc(26.7px + 1.6vw),38px);line-height:1.28;text-align:center;word-break:break-word}
+.prompt.eng{font-family:var(--sans);font-size:clamp(27px,calc(23.2px + 0.97vw),30px);line-height:1.32;font-weight:400}
+.multi{position:absolute;top:14px;right:16px;width:26px;height:26px;border-radius:50%;
+  border:1px solid var(--line);color:var(--faint);font-size:13px;
+  display:none;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.multi.on{display:flex}
+.rule{width:56px;height:1px;background:var(--line);margin:26px 0}
+.answer{font-size:clamp(21px,calc(18.5px + 0.65vw),23px);line-height:1.42;text-align:center;color:var(--ink);opacity:0;
+  max-width:34em}
+.answer.on{opacity:1}
+.answer .alt{display:block;margin-top:7px}
+.answer.lat{font-family:var(--serif);font-size:clamp(25px,calc(21.2px + 0.97vw),28px)}
+.hintline{margin-top:22px;font-size:13px;color:var(--faint);height:16px}
+
+
+/* ---------- rating row ---------- */
+.rateRow{flex:0 0 auto;display:flex;gap:9px;padding:10px 12px 14px}
+.rate{position:relative;flex:1;height:60px;border-radius:15px;border:1px solid var(--line);
+  background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+/* enlarged invisible hit area — visual pill unchanged, tappable region reaches up and to the edges */
+.rate::before{content:"";position:absolute;top:-26px;bottom:-14px;left:-5px;right:-5px}
+.rate .lbl{font-size:16px;font-weight:500;line-height:1.1}
+.rate .ivl{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.1}
+.rate:active{filter:brightness(.94)}
+#bAgain{background:var(--again-bg);border-color:var(--again-br)} #bAgain .lbl{color:var(--again)}
+#bGood{background:var(--good-bg);border-color:var(--good-br)}   #bGood .lbl{color:var(--good)}
+#bEasy{background:var(--easy-bg);border-color:var(--easy-br)}   #bEasy .lbl{color:var(--easy)}
+.revealRow{flex:0 0 auto;padding:10px 12px 14px}
+.revealBtn{position:relative;width:100%;height:60px;border-radius:15px;border:1px solid var(--line);
+  background:var(--panel);font-size:16px;color:var(--muted)}
+.revealBtn::before{content:"";position:absolute;top:-26px;bottom:-14px;left:-5px;right:-5px}
+.hidden{display:none !important}
+
+/* ---------- home ---------- */
+.home{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 18px 28px}
+.wordmark{font-family:var(--serif);font-size:30px;margin:6px 0 2px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+.dirs{display:flex;gap:10px;margin-bottom:20px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.chips.hide{display:none}
+.chip{position:relative;padding:9px 15px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);font-size:14px;color:var(--muted)}
+.chip::before{content:"";position:absolute;top:-7px;bottom:-7px;left:-3px;right:-3px}
+.chip.on{background:var(--accent-soft);border-color:var(--coral);color:var(--coral)}
+.partPickerBtn{display:flex;align-items:center;justify-content:space-between;width:100%;
+  padding:12px 15px;margin-bottom:16px;border:1px solid var(--line);border-radius:13px;
+  background:var(--panel);font-size:15px;color:var(--ink);font-family:inherit}
+.partPickerBtn::after{content:"";width:7px;height:7px;border-right:2px solid var(--faint);
+  border-bottom:2px solid var(--faint);transform:rotate(45deg);margin-left:8px;flex:0 0 auto}
+.partPickerBtn.hide{display:none}
+.sheetOverlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;
+  justify-content:center;z-index:50}
+.sheetOverlay.hidden{display:none}
+.sheetCard{width:100%;max-width:520px;max-height:80vh;background:var(--bg);border-radius:18px 18px 0 0;
+  display:flex;flex-direction:column;overflow:hidden}
+.sheetBar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
+  border-bottom:1px solid var(--line)}
+.sheetTitle{font-family:var(--serif);font-size:19px}
+.sheetDone{background:none;border:none;color:var(--coral);font-size:15px;font-weight:500;font-family:inherit}
+.sheetActions{padding:12px 18px 0}
+.sheetActions .act{margin-top:0}
+.sheetList{overflow-y:auto;padding:6px 18px 18px}
+.partRow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 0;
+  border-bottom:1px solid var(--line);background:none;border-left:none;border-right:none;border-top:none;
+  font-size:15px;color:var(--ink);font-family:inherit;text-align:left}
+.partRow:last-child{border-bottom:none}
+.partRow .prMark{flex:0 0 auto;font-size:17px;color:var(--faint);width:20px}
+.partRow.cur .prMark{color:var(--coral)}
+.partRow .prLbl{flex:1}
+.partRow .prCnt{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.dir{flex:1;border:1px solid var(--line);border-radius:14px;padding:13px 12px;background:var(--panel);text-align:left}
+.dir.sel{border-color:var(--coral);background:var(--accent-soft)}
+.dir .dt{font-size:15px;font-weight:500;margin-bottom:5px}
+.dir .dd{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.startBtn{position:relative;width:100%;height:58px;border-radius:15px;background:var(--coral);color:#fff;
+  font-size:17px;font-weight:500;margin-bottom:18px}
+.startBtn::before{content:"";position:absolute;top:-16px;bottom:-12px;left:-6px;right:-6px}
+.startBtn:disabled{background:var(--panel);color:var(--faint);border:1px solid var(--line)}
+.toast{color:#fff}
+.sect{margin-top:26px}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);
+  border-radius:14px;background:var(--panel);padding:0 6px;height:56px;margin-bottom:12px}
+.stepper .sl{padding-left:10px;font-size:15px;color:var(--muted)}
+.stepper .sv{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums;min-width:2.6em;text-align:center}
+.stepper button{position:relative;width:52px;height:46px;border-radius:11px;font-size:23px;color:var(--coral)}
+.stepper button::before{content:"";position:absolute;top:-8px;bottom:-8px;left:-4px;right:-4px}
+.stepper button:active{background:var(--raise)}
+.pace{font-size:14.5px;line-height:1.62;color:var(--ink)}
+.pace .n{font-weight:600;font-variant-numeric:tabular-nums}
+.pace .cost{color:var(--muted);margin-top:7px;display:block}
+.motto{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.motto .la{font-family:var(--serif);font-style:italic;font-size:17.5px;line-height:1.45}
+.motto .en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+.sect h2{font-size:13px;font-weight:500;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.07em;margin:0 0 11px}
+.strip{display:flex;flex-wrap:wrap;gap:5px}
+.dot{width:15px;height:15px;border-radius:4px;background:var(--panel);border:1px solid var(--line)}
+.dot.did{background:var(--coral);border-color:var(--coral)}
+.dot.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--coral)}
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.calTitle{font-size:14.5px;font-weight:500}
+.calNav{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:none;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink)}
+.calNav:active{background:var(--panel)}
+.calDow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px;
+  font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
+/* .calCell.did (a flat accent-soft fill) and .calNew/.calRev (two small
+   per-cell numbers) are gone (2026-08-19, Track B4, ported from vocabula):
+   colour-graded fill via heatCellBg() below replaces the flat fill, and the
+   two figures were illegible painted over an arbitrary colour-mix() --
+   nothing is lost, the fill already encodes the day's volume. */
+.calCell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-height:46px;border-radius:8px;padding:4px 2px;
+  font-size:12.5px;font-variant-numeric:tabular-nums;background:var(--panel);border:1px solid var(--line)}
+.calCell.out{color:var(--faint);opacity:.35;border-color:transparent;background:none}
+.calCell.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--coral)}
+.calCell.future{border-style:dashed}
+.calNum{line-height:1.1}
+.calDue{font-size:9.5px;line-height:1;font-weight:600;color:var(--faint)}
+/* Calendar toolbar + gear (2026-08-19, Track B5, ported from vocabula) --
+   view (month/all-time) and colour-mode (volume/retention) chips reuse the
+   existing .chip/.chip.on look; the gear panel holds the two settings that
+   aren't a two-way toggle (accent colour, averaging window). */
+.calToolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
+.calToolbar .chips{margin:0}
+.calGearBtn{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:none;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink)}
+.calGearBtn:active{background:var(--panel)}
+.calGearPanel{margin-top:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.calGearPanel .field{margin-bottom:10px}
+.calGearPanel .field:last-child{margin-bottom:0}
+.calGearPanel label{display:block;font-size:11.5px;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:5px}
+.calGearPanel select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+  background:var(--raise);color:var(--ink);font:inherit;font-size:14px}
+.calScale{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.calScaleBar{flex:1;height:9px;border-radius:5px;border:1px solid var(--line)}
+.calScaleEnd{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.calAllScroll{display:flex;gap:3px;overflow-x:auto;padding:8px 2px 10px;margin-top:6px}
+.calWeekCol{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+.calDayDot{width:11px;height:11px;border-radius:3px;background:var(--panel);border:1px solid var(--line)}
+.calDayDot.today{box-shadow:0 0 0 1px var(--bg),0 0 0 2px var(--coral)}
+.calDayDot.future{border-style:dashed}
+.calDayDot.empty{visibility:hidden}
+.statRow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.statRow:last-child{border-bottom:none}
+.statRow span{color:var(--muted)}
+.statRow b{font-weight:500;font-variant-numeric:tabular-nums}
+
+.searchInput{width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit;margin:12px 0}
+.wordRow{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.wordRow:last-child{border-bottom:none}
+.wordRow .wrTop{display:flex;align-items:center;gap:9px}
+.wordRow .stDot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.wordRow .term{flex:1}
+.wrInfo{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);font-size:12px;font-style:italic;font-family:serif;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.wordRow .gloss{display:none;margin:6px 0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.4}
+.wordRow.revealed .gloss{display:block}
+.stackbar{display:flex;height:20px;border-radius:7px;overflow:hidden;background:var(--panel);margin-top:4px}
+.stackbar>div{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:12px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.s-unseen{background:var(--line)}
+.s-learning{background:var(--amber)}
+.s-young{background:var(--good);opacity:.5}
+.s-mature{background:var(--good)}
+.wpart{margin-top:22px}
+.wpart h3{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:500;
+  color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:0 0 9px}
+.wpart h3 b{font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+.wgrid{display:flex;flex-wrap:wrap;gap:3px}
+.wbox{width:9px;height:9px;border-radius:2px}
+.build{margin:30px 0 8px;text-align:center;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);padding:8px;cursor:pointer}
+.logv{font-size:13px;font-weight:600;color:var(--coral);margin:16px 0 6px;font-family:var(--sans)}
+.logv:first-child{margin-top:0}
+.logi{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 4px;padding-left:14px;
+  text-indent:-14px}
+.logi::before{content:"— ";color:var(--faint)}
+.swatch{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;
+  margin-right:7px;border:1px solid var(--line)}
+.fold{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.fold summary{font-size:13px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;
+  list-style:none;cursor:pointer;padding:6px 0}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:" +";color:var(--faint)}
+.fold[open] summary::after{content:" \2212"}
+.note{font-size:13px;color:var(--muted);line-height:1.55;margin-top:12px}
+.note.warnish{color:#b06a00}
+.note.bad{color:#c0392b}
+.warn{background:var(--warn-bg);border:1px solid var(--warn-br);border-radius:12px;padding:11px 13px;
+  font-size:13.5px;line-height:1.5;color:var(--warn-ink);margin-bottom:16px}
+.warn.bad{background:var(--bad-bg);border-color:var(--bad-br);color:var(--bad-ink)}
+
+/* ---------- settings ---------- */
+.set{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 18px 40px}
+.field{padding:14px 0;border-bottom:1px solid var(--line)}
+.field label{display:block;font-size:15px;margin-bottom:5px}
+.field .fh{font-size:13px;color:var(--muted);line-height:1.5;margin-top:6px}
+.field input[type=number],.field input[type=text],.field input[type=password]{
+  width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit}
+.field input[type=range]{width:100%;height:34px}
+.field textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit;resize:vertical}
+.hpField{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+.feedbackRow{display:flex;justify-content:flex-end;margin-top:6px}
+.feedbackRow .fh{margin:0}
+.field .sel{width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 10px;
+  font-size:16px;background:var(--panel);color:var(--ink);font-family:inherit}
+.setGroup{margin-bottom:6px}
+.setGroup+.setGroup{margin-top:8px}
+.setGroupTitle{font-family:var(--serif);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--faint);padding:16px 0 4px}
+/* Theme picker, redesigned 2026-08-19 (Track B3, ported from vocabula
+   2026.08.16.9/.16.8) -- replaces the old .swatchRow/.palSwatch text-row. */
+.palGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+@media(min-width:700px){.palGrid{grid-template-columns:repeat(4,1fr)}}
+.palCard{padding:0;border:1.5px solid var(--line);border-radius:10px;background:none;
+  overflow:hidden;display:block;width:100%;text-align:center;cursor:pointer;
+  -webkit-appearance:none;appearance:none;font:inherit}
+.palCard.on{border-color:var(--coral);box-shadow:0 0 0 1.5px var(--coral)}
+.palCard:active{transform:scale(.985)}
+.palPrev{display:flex;height:46px}
+.palHalf{flex:1;min-width:0;background-color:var(--bg);background-image:var(--texture,none);display:flex;flex-direction:column;
+  justify-content:center;gap:3px;padding:5px}
+.palMini{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  color:var(--ink);font-family:var(--serif);font-size:11px;line-height:1.5;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.palAccent{height:6px;border-radius:3px;background:var(--coral)}
+.palRatings{display:flex;justify-content:center;align-items:center;gap:5px;padding:4px 3px}
+.palDot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.palDot.again{background:var(--again)}
+.palDot.good{background:var(--good)}
+.palDot.easy{background:var(--easy)}
+.palName{display:block;padding:5px 3px;font-size:11px;font-weight:500;color:var(--ink);
+  border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.palCard.on .palName{color:var(--coral)}
+/* The big split-card preview above the grid -- one large mock of the real
+   study card, light half and dark half at once, always showing whichever
+   palette is currently selected. */
+.cardPreview{display:flex;border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px}
+.cardPreviewHalf{flex:1;min-width:0;background-color:var(--bg);background-image:var(--texture,none);
+  display:flex;flex-direction:column;align-items:center;gap:7px;padding:18px 10px 14px}
+.cardPreviewHalf:first-child{box-shadow:inset -1px 0 0 rgba(128,128,128,.35)}
+.cardPreviewWord{font-family:var(--serif);color:var(--ink);font-size:19px;line-height:1.25;text-align:center;word-break:break-word}
+.cardPreviewRule{width:34px;height:1px;background:var(--line)}
+.cardPreviewGloss{font-size:12px;color:var(--muted);text-align:center}
+.cardPreviewRates{display:flex;gap:4px;margin-top:3px}
+.cpRate{font-size:9.5px;font-weight:600;padding:4px 7px;border-radius:8px;border:1px solid;white-space:nowrap}
+.cpRate.again{color:var(--again);background:var(--again-bg);border-color:var(--again-br)}
+.cpRate.good{color:var(--good);background:var(--good-bg);border-color:var(--good-br)}
+.cpRate.easy{color:var(--easy);background:var(--easy-bg);border-color:var(--easy-br)}
+.cardPreviewLbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-top:auto;padding-top:4px}
+.act{position:relative;width:100%;height:52px;border-radius:13px;border:1px solid var(--line);
+  background:var(--panel);font-size:16px;margin-top:11px}
+.act::before{content:"";position:absolute;top:-9px;bottom:-9px;left:-4px;right:-4px}
+.act.danger{color:var(--again)}
+.act.primary{background:var(--coral);color:#fff;border-color:var(--coral)}
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 30px;text-align:center;gap:8px}
+.done .big{font-family:var(--serif);font-size:27px}
+.done .small{font-size:14.5px;color:var(--muted);line-height:1.6}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom));
+  background:var(--toast);color:#fff;font-size:14px;padding:11px 17px;border-radius:11px;opacity:0;
+  transition:opacity .2s;pointer-events:none;z-index:50;max-width:84%;text-align:center}
+.toast.on{opacity:.95}
+.killLock{display:none;position:fixed;inset:0;z-index:1000;background:var(--bg);
+  align-items:center;justify-content:center;padding:24px}
+.killLock.on{display:flex}
+.killLockCard{max-width:22rem;text-align:center}
+.killLockTitle{font-family:var(--serif);font-size:1.5rem;margin:0 0 10px}
+.killLockBody{color:var(--muted);font-size:15px;line-height:1.5;margin:0 0 22px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+/* wide screens (tablet, laptop, or a phone turned sideways): keep a
+   phone-width column centred. Placed last in the stylesheet deliberately --
+   at equal specificity the later rule wins regardless of the media query,
+   so this must come after the unconditional .prompt/.answer rules above. */
+@media (min-width:700px){
+  #app{max-width:600px;margin:0 auto}
+}
+
+/* ============================================================
+   Wide-screen study layout. applyLayout() sets data-layout="landscape" on
+   <html> whenever the viewport is at least 700px wide AND in landscape
+   orientation -- a tablet, a laptop, or a phone turned sideways, never a
+   phone held upright. Automatic: nothing to turn on for this part.
+   ============================================================ */
+html[data-layout="landscape"] #app{max-width:none;margin:0}
+
+/* study: a two-pane spread instead of one stretched column. .cardarea's own
+   box is removed (display:contents) but its children -- #prompt, #answer,
+   #hintline -- stay exactly where they live in the DOM, so tapZone's click
+   still bubbles through #cardArea itself. #prompt fills its whole grid cell
+   as its own card; the answer/hint/controls stack sits between two equal
+   1fr spacer rows so it reads as vertically centred without a shared
+   flex parent (revealRow/rateRow stay siblings of #cardArea on purpose --
+   moving them inside would put a rating's click inside #cardArea's own
+   tap-to-reveal listener and reveal the next card the instant you rate). */
+html[data-layout="landscape"] #scStudy.on{
+  display:grid;grid-template-columns:1.3fr 1fr;
+  grid-template-rows:auto 1fr auto auto auto 1fr;
+  grid-template-areas:"bar bar" "prompt recap" "prompt answer" "prompt hint" "prompt controls" "prompt .";
+  height:100%;
+}
+html[data-layout="landscape"] #scStudy>.bar{grid-area:bar}
+html[data-layout="landscape"] .cardarea{display:contents}
+html[data-layout="landscape"] #multi{grid-area:prompt;position:static;align-self:start;justify-self:end;margin:14px 14px 0 0;z-index:1}
+html[data-layout="landscape"] #prompt{grid-area:prompt;align-self:stretch;justify-self:stretch;
+  display:flex;align-items:center;justify-content:center;padding:32px;margin:16px 8px 16px 16px;
+  border:1px solid var(--line);border-radius:20px;background:var(--panel);
+  font-size:clamp(40px,calc(20px + 2.4vw),68px)}
+html[data-layout="landscape"] #prompt.eng{font-size:clamp(34px,calc(18px + 2vw),56px)}
+html[data-layout="landscape"] .cardarea>.rule{display:none}
+html[data-layout="landscape"] #answer{grid-area:answer;text-align:left;max-width:30em;
+  padding:0 32px;border-left:1px solid var(--line);
+  font-size:clamp(22px,calc(16px + 0.9vw),32px)}
+html[data-layout="landscape"] #hintline{grid-area:hint;text-align:left;padding:10px 32px 0;margin-top:0}
+html[data-layout="landscape"] #revealRow{grid-area:controls;padding:24px 32px 0}
+html[data-layout="landscape"] #rateRow{grid-area:controls;padding:24px 32px 0}
+html[data-layout="landscape"] #scStudy .revealBtn{height:76px;font-size:19px;border-radius:18px}
+html[data-layout="landscape"] #scStudy .rate{height:82px;border-radius:18px}
+html[data-layout="landscape"] #scStudy .rate .lbl{font-size:19px}
+html[data-layout="landscape"] #scStudy .rate .ivl{font-size:13px}
+
+/* study screen extras: three independent settings, each a no-op unless
+   both this screen is in landscape and its own switch is on. */
+.cardMeta{display:none}
+html[data-layout="landscape"][data-study-stats] .cardMeta{
+  grid-area:prompt; align-self:end; justify-self:center; z-index:1;
+  display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+  margin-bottom:22px; padding:0 24px; max-width:100%;
+}
+html[data-layout="landscape"][data-study-stats] .cardMeta:empty{display:none}
+.cardMeta .statChip, .recapCard .statChip{
+  font-size:11.5px; color:var(--muted); background:var(--raise); border:1px solid var(--line);
+  border-radius:100px; padding:4px 11px; font-variant-numeric:tabular-nums;
+}
+/* Recap card (top-right of the study grid) shows the card rate() just
+   graded, not the one on screen now -- lastRated is set at the end of
+   rate(), read here, and cleared by undo() so it never describes a rating
+   that's since been reverted. */
+.recapCard{display:none}
+html[data-layout="landscape"][data-study-stats] .recapCard.on{
+  grid-area:recap; display:flex; flex-direction:column; gap:6px;
+  align-self:start; justify-self:end; margin:16px 16px 0 8px;
+  padding:12px 14px; max-width:200px; box-sizing:border-box;
+  border:1px solid var(--line); border-radius:14px; background:var(--panel);
+}
+.recapLbl{font-size:10.5px; color:var(--faint); text-transform:uppercase; letter-spacing:.04em}
+.recapWord{font-size:14px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.recapRow{display:flex; gap:6px; flex-wrap:wrap}
+.recapCard .rc-rating.rc-again{background:var(--again-bg);border-color:var(--again-br);color:var(--again)}
+.recapCard .rc-rating.rc-hard{background:var(--warn-bg);border-color:var(--warn-br);color:var(--warn-ink)}
+.recapCard .rc-rating.rc-good{background:var(--good-bg);border-color:var(--good-br);color:var(--good)}
+.recapCard .rc-rating.rc-easy{background:var(--easy-bg);border-color:var(--easy-br);color:var(--easy)}
+.keycap{display:none}
+html[data-layout="landscape"][data-study-hints] .keycap{
+  display:inline-flex; align-items:center; justify-content:center; margin-top:4px;
+  font-family:var(--sans); font-size:10.5px; font-weight:500; color:var(--faint);
+  background:var(--raise); border:1px solid var(--line); border-radius:6px;
+  padding:1px 7px; min-width:16px; letter-spacing:.01em;
+}
+html[data-layout="landscape"][data-study-hints] #revealBtn .keycap{
+  position:absolute; right:18px; top:50%; transform:translateY(-50%); margin:0;
+}
+html[data-layout="landscape"][data-study-hints] #undoBtn{position:relative}
+html[data-layout="landscape"][data-study-hints] .iconKeycap{
+  position:absolute; bottom:-3px; right:-6px; margin:0; font-size:9px; padding:0 5px;
+}
+html[data-layout="landscape"][data-study-hints] .rate,
+html[data-layout="landscape"][data-study-hints] .revealBtn{
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+html[data-layout="landscape"][data-study-hints] .rate:hover,
+html[data-layout="landscape"][data-study-hints] .revealBtn:hover{
+  transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.10);
+}
+
+/* home: existing sections read as a bento grid instead of one long scroll.
+   .homeCols is a wrapper (markup: one div around .homeLead through .build,
+   inside .home) -- not on .home itself, which is a flex:1 child of a
+   fixed-height screen. Ported from vocabula 2026.08.18 (BUG_LEDGER_FOR_PORTING.md
+   Part 1 §3): this used to be column-count:2, which only ever fills column 1
+   first and overflows into column 2 in strict document order -- with a
+   handful of large cards, that reliably left one oversized card alone in a
+   column, columns visibly uneven, with no way for the heuristic to correct
+   for it. balanceColumns() (below, defined next to applyLayout) replaces
+   column-count entirely: it measures each direct child of .homeCols at its
+   real column width, then assigns each one whole -- never split -- to
+   whichever of two explicit .mcCol wrapper divs currently sits shorter. */
+html[data-layout="landscape"] #scHome .homeCols{display:flex;gap:32px;padding:4px 28px 28px;align-items:flex-start}
+html[data-layout="landscape"] #scHome .homeCols .mcCol{flex:1;min-width:0}
+html[data-layout="landscape"] #scHome .homeLead{margin-bottom:4px}
+html[data-layout="landscape"] #scHome .sect{margin-top:14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+
+/* settings: same list, flowing in two balanced columns instead of one --
+   same balanceColumns() reasoning as .homeCols above; see that comment.
+   .setCols is the equivalent wrapper (markup: one div around every
+   .setGroup), for the same reason .set itself can't be the container. */
+html[data-layout="landscape"] #scSet .setCols{display:flex;gap:32px;padding:4px 28px 30px;align-items:flex-start}
+html[data-layout="landscape"] #scSet .setCols .mcCol{flex:1;min-width:0}
+
+/* browse: filters pinned in a rail instead of scrolling away above a long
+   result list. .browseRail/.browseSplit are two new wrapper divs around
+   the existing filter controls; #browseResults keeps its id and markup. */
+html[data-layout="landscape"] #scBrowse .home{padding:16px 28px}
+html[data-layout="landscape"] #scBrowse .browseSplit{display:flex;gap:26px;align-items:flex-start}
+html[data-layout="landscape"] #scBrowse .browseRail{flex:0 0 240px;position:sticky;top:0}
+html[data-layout="landscape"] #scBrowse #browseResults{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ HOME ============ -->
+  <section id="scHome" class="screen on">
+    <div class="bar">
+      <button class="icon" id="toStats" aria-label="Stats">&#9638;</button>
+      <div class="title"></div>
+      <button class="icon" id="toSettings" aria-label="Settings">&#9881;</button>
+    </div>
+    <div class="home">
+      <div class="homeCols">
+      <div class="homeLead">
+      <div class="wordmark" id="wordmark"></div>
+      <div class="sub" id="homeSub">—</div>
+      <div id="homeWarn"></div>
+
+      <button class="partPickerBtn" id="partPickerBtn">All parts</button>
+      <div class="chips" id="bchips"></div>
+      <div class="dirs">
+        <button class="dir sel" id="dirLtoE"><div class="dt" id="dtL"></div><div class="dd" id="ddL">—</div></button>
+        <button class="dir" id="dirEtoL"><div class="dt" id="dtE"></div><div class="dd" id="ddE">—</div></button>
+      </div>
+      <div class="stepper">
+        <span class="sl">New words today</span>
+        <div style="display:flex;align-items:center">
+          <button id="capMinus" aria-label="Fewer">&minus;</button>
+          <span class="sv" id="capVal">25</span>
+          <button id="capPlus" aria-label="More">+</button>
+        </div>
+      </div>
+      <button class="startBtn" id="startBtn">Start</button>
+      </div>
+
+      <div class="sect">
+        <h2>Study days</h2>
+        <div class="strip" id="strip"></div>
+        <div class="note" id="syncAge"></div>
+        <div class="note" id="streakNote">—</div>
+        <details class="fold" id="calFold">
+          <summary>Full calendar</summary>
+          <div class="calToolbar">
+            <div class="chips" id="calViewChips"></div>
+            <div class="chips" id="calColChips"></div>
+            <button class="calGearBtn" id="calGearBtn" aria-label="Calendar settings">&#9881;</button>
+          </div>
+          <div class="calGearPanel hidden" id="calGearPanel">
+            <div class="field">
+              <label for="gearAccent">Volume colour</label>
+              <select id="gearAccent">
+                <option value="coral">Coral (default)</option>
+                <option value="good">Green</option>
+                <option value="easy">Purple</option>
+                <option value="amber">Amber</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="gearAvgWindow">Colour against your average over</label>
+              <select id="gearAvgWindow">
+                <option value="week">The last week</option>
+                <option value="month">The last month</option>
+                <option value="year">The last year</option>
+                <option value="all">All time</option>
+              </select>
+            </div>
+          </div>
+          <div id="calMonth">
+            <div class="calHead">
+              <button class="calNav" id="calPrev" aria-label="Previous month">&#8249;</button>
+              <div class="calTitle" id="calTitle">—</div>
+              <button class="calNav" id="calNext" aria-label="Next month">&#8250;</button>
+            </div>
+            <div class="calDow" id="calDow"></div>
+            <div class="calGrid" id="calGrid"></div>
+          </div>
+          <div class="calAll hidden" id="calAll">
+            <div class="calAllScroll" id="calAllScroll"></div>
+          </div>
+          <div class="calLegend note" id="calLegend"></div>
+        </details>
+      </div>
+
+      <div class="sect">
+        <h2>Pace</h2>
+        <div class="pace" id="pace"></div>
+        <div class="motto"><div class="la" id="mottoLa"></div><div class="en" id="mottoEn"></div></div>
+      </div>
+
+      <div class="sect">
+        <h2>The whole syllabus</h2>
+        <div id="syllabus"></div>
+        <button class="chip" id="toBrowse" style="margin-top:12px">Browse the full list &#8594;</button>
+        <details class="fold" id="partFold">
+          <summary>By part</summary>
+          <div id="partBody"></div>
+        </details>
+        <details class="fold" id="trueFold">
+          <summary>How well the model is predicting you</summary>
+          <div id="trueBody"></div>
+        </details>
+        <details class="fold" id="fcFold">
+          <summary>The next fortnight</summary>
+          <div id="fcBody"></div>
+        </details>
+      </div>
+
+      <div class="sect">
+        <h2>Where you stand</h2>
+        <div id="statList"></div>
+        <details class="fold" id="timingFold">
+          <summary>Timing</summary>
+          <div id="timingBody"></div>
+        </details>
+      </div>
+
+      <div class="build" id="buildTag"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section id="scStats" class="screen">
+    <div class="bar">
+      <button class="icon" id="statsBack" aria-label="Back">&#8249;</button>
+      <div class="title">Stats</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="home">
+      <div class="dirs">
+        <button class="dir sel" id="statsDirL"><div class="dt" id="sdtL"></div><div class="dd" id="sddL">—</div></button>
+        <button class="dir" id="statsDirE"><div class="dt" id="sdtE"></div><div class="dd" id="sddE">—</div></button>
+      </div>
+      <div class="sect" style="margin-top:8px">
+        <h2>Where you stand</h2>
+        <div class="stackbar" id="statsBar"></div>
+        <div class="legend" id="statsLegend"></div>
+        <div class="note">Every word in the list, whether you've met it yet or not — not just the part currently switched on.</div>
+      </div>
+      <div class="sect">
+        <h2>By part</h2>
+        <div id="statsGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BROWSE ============ -->
+  <section id="scBrowse" class="screen">
+    <div class="bar">
+      <button class="icon" id="browseBack" aria-label="Back">&#8249;</button>
+      <div class="title">Word list</div>
+      <button class="icon" id="addWordBtn" aria-label="Add a word">+</button>
+    </div>
+    <div class="home">
+      <div class="browseSplit">
+      <div class="browseRail">
+      <div class="dirs">
+        <button class="dir sel" id="browseDirL"><div class="dt" id="bdtL"></div><div class="dd" id="bddL">—</div></button>
+        <button class="dir" id="browseDirE"><div class="dt" id="bdtE"></div><div class="dd" id="bddE">—</div></button>
+      </div>
+      <input type="text" class="searchInput" id="browseSearch" placeholder="Search…" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="partPickerBtn" id="browsePartBtn">All parts</button>
+      <div class="chips" id="browseStatusChips"></div>
+      </div>
+      <div id="browseResults"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHANGELOG ============ -->
+  <section id="scLog" class="screen">
+    <div class="bar">
+      <button class="icon" id="logBack" aria-label="Back">&#8249;</button>
+      <div class="title">What changed</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="set">
+      <div id="logBody"></div>
+    </div>
+  </section>
+
+  <!-- ============ STUDY ============ -->
+  <section id="scStudy" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome" aria-label="Back">&#8249;</button>
+      <div class="title"><div class="counts" id="counts"></div><div class="studyTimer" id="studyTimer"></div></div>
+      <button class="icon" id="undoBtn" aria-label="Undo">&#8630;<span class="keycap iconKeycap">Z</span></button>
+    </div>
+    <div class="cardarea" id="cardArea">
+      <div class="multi" id="multi">2</div>
+      <div class="prompt" id="prompt"></div>
+      <div class="rule"></div>
+      <div class="answer" id="answer"></div>
+      <div class="hintline" id="hintline"></div>
+      <div class="cardMeta" id="cardMeta"></div>
+      <div class="recapCard" id="recapCard">
+        <div class="recapLbl">Last card</div>
+        <div class="recapWord" id="recapWord"></div>
+        <div class="recapRow">
+          <span class="statChip" id="recapRating"></span>
+          <span class="statChip" id="recapIvl"></span>
+        </div>
+      </div>
+    </div>
+    <div class="revealRow" id="revealRow">
+      <button class="revealBtn" id="revealBtn">Show answer<span class="keycap">Space</span></button>
+    </div>
+    <div class="rateRow hidden" id="rateRow">
+      <button class="rate" id="bAgain"><span class="lbl">Again</span><span class="ivl" id="iAgain"></span><span class="keycap">1</span></button>
+      <button class="rate" id="bGood"><span class="lbl">Good</span><span class="ivl" id="iGood"></span><span class="keycap">2</span></button>
+      <button class="rate" id="bEasy"><span class="lbl">Easy</span><span class="ivl" id="iEasy"></span><span class="keycap">3</span></button>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section id="scDone" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome2" aria-label="Back">&#8249;</button>
+      <div class="title"></div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="done">
+      <div class="big" id="doneBig">Nothing due</div>
+      <div class="small" id="doneSmall"></div>
+      <button class="act" id="doneMore" style="max-width:230px;margin-top:20px">Ten more words</button>
+      <button class="act" id="doneBack" style="max-width:230px">Back</button>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="scSet" class="screen">
+    <div class="bar">
+      <button class="icon" id="toHome3" aria-label="Back">&#8249;</button>
+      <div class="title">Settings</div>
+      <div class="icon" style="visibility:hidden">·</div>
+    </div>
+    <div class="set">
+      <div class="setCols">
+      <div class="setGroup">
+        <div class="setGroupTitle">Pace</div>
+        <div class="field">
+          <label for="fNew">New words a day</label>
+          <input type="number" id="fNew" min="0" max="200" step="5" inputmode="numeric">
+          <div class="fh">Limits how many new words appear each day.</div>
+        </div>
+        <div class="field">
+          <label for="fRet">Target retention — <b id="fRetVal">90%</b></label>
+          <input type="range" id="fRet" min="80" max="95" step="1">
+          <div class="fh">How often you want to remember words when they're due.</div>
+        </div>
+        <div class="field">
+          <label for="fRevDay">Weekly review day</label>
+          <select id="fRevDay" class="sel">
+            <option value="-1">None — spread reviews evenly</option>
+            <option value="0">Sunday</option><option value="1">Monday</option>
+            <option value="2">Tuesday</option><option value="3">Wednesday</option>
+            <option value="4">Thursday</option><option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+          <div class="fh">Shifts some reviews onto your chosen weekday.</div>
+        </div>
+        <div class="field">
+          <label for="fWeak">Introduce unseen words before shaky ones</label>
+          <select id="fWeak" class="sel">
+            <option value="0">No — work through in list order</option>
+            <option value="1">Yes — hardest first</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Appearance</div>
+        <div class="field">
+          <label>Theme</label>
+          <div class="cardPreview" id="cardPreview"></div>
+          <div class="palGrid" id="palGrid"></div>
+          <select id="fTheme" class="sel" style="margin-top:9px">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="auto">Match the system</option>
+          </select>
+          <select id="fRot" class="sel" style="margin-top:9px">
+            <option value="off">Keep this theme</option>
+            <option value="daily">A different theme each day</option>
+          </select>
+          <button class="act" id="surpriseBtn">Surprise me</button>
+          <div class="fh" id="palNote">—</div>
+        </div>
+        <div class="field" style="border-bottom:none">
+          <label>Wide-screen study</label>
+          <div class="fh">Review history, keyboard hints, and animation on a tablet, laptop, or a sideways phone are set on the Settings page from the Riverbank home screen, and apply to Latin, Greek, Italian, and SAT alike.</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Backup &amp; sync</div>
+        <div class="field">
+          <label>Backups</label>
+          <button class="act" id="expBtn">Export a backup file</button>
+          <button class="act" id="impBtn">Restore from a file</button>
+          <input type="file" id="impFile" accept="application/json,.json" class="hidden">
+          <div class="fh" id="backupNote">—</div>
+        </div>
+        <div class="field">
+          <label for="fDevice">This device's name</label>
+          <input type="text" id="fDevice" placeholder="e.g. iPhone, iPad, Mac" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <div class="fh">Helps you tell your devices apart.</div>
+        </div>
+        <div class="field" style="border-bottom:none">
+          <label>Sync</label>
+          <button class="act" id="pushBtn">Sync now</button>
+          <button class="act" id="pullBtn">Pull from sync</button>
+          <div class="fh">Uses the sync code set on the Settings page from the Riverbank home screen.</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Usage stats</div>
+        <div class="field" style="border-bottom:none">
+          <label for="fShareStats">Share anonymous usage stats</label>
+          <select id="fShareStats" class="sel">
+            <option value="0">Off</option>
+            <option value="1">On</option>
+          </select>
+          <div class="fh">Sends yesterday's reviews, new words, and time spent — never your name or device.</div>
+          <button class="act" id="statsSendBtn" style="margin-top:9px">Send today's stats now</button>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Feedback</div>
+        <div class="field" style="border-bottom:none">
+          <label for="fFeedback">Suggestions</label>
+          <textarea id="fFeedback" maxlength="500" rows="4" placeholder="What would make this better?"></textarea>
+          <input type="text" id="fFeedbackHp" name="website" tabindex="-1" autocomplete="off" class="hpField" aria-hidden="true">
+          <div class="feedbackRow">
+            <span class="fh" id="feedbackCount">0/500</span>
+          </div>
+          <button class="act" id="feedbackSendBtn">Send</button>
+          <div class="fh">Goes straight to the developer, not shown to anyone else.</div>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="field" style="border-bottom:none">
+          <a class="act" href="manual.html" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit">Guide</a>
+        </div>
+      </div>
+
+      <div class="setGroup">
+        <div class="setGroupTitle">Danger zone</div>
+        <div class="field" style="border-bottom:none">
+          <label>Start over</label>
+          <button class="act danger" id="resetBtn">Erase all progress</button>
+          <div class="fh">Backs up then erases everything on this device.</div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="sheetOverlay hidden" id="partSheet">
+  <div class="sheetCard">
+    <div class="sheetBar">
+      <span class="sheetTitle" id="partSheetTitle">Parts</span>
+      <button class="sheetDone" id="partSheetDone">Done</button>
+    </div>
+    <div class="sheetActions" id="partSheetActions">
+      <button class="act" id="partSheetAll">Select all</button>
+    </div>
+    <div class="sheetList" id="partSheetList"></div>
+  </div>
+</div>
+<!-- Add/edit/delete a word (2026-08-18, ported from vocabula, minus
+     per-word notes -- not asked for). Reuses the same sheetOverlay/
+     sheetCard/sheetBar pattern as the part picker above rather than
+     inventing a second visual language for one more overlay. -->
+<div class="sheetOverlay hidden" id="addWordSheet">
+  <div class="sheetCard">
+    <div class="sheetBar">
+      <span class="sheetTitle">Add a word</span>
+      <button class="sheetDone" id="awCancel">Cancel</button>
+    </div>
+    <div class="sheetList">
+      <div class="field">
+        <label for="awTerm">Term</label>
+        <input type="text" id="awTerm" maxlength="200" placeholder="e.g. amor, amoris m.">
+      </div>
+      <div class="field">
+        <label for="awGloss">Gloss</label>
+        <input type="text" id="awGloss" maxlength="500" placeholder="e.g. love">
+      </div>
+      <div class="field">
+        <label for="awSection">Section</label>
+        <input type="text" id="awSection" maxlength="60" placeholder="Added words">
+      </div>
+      <div class="fh" id="awError"></div>
+      <button class="act primary" id="awSave" style="margin-top:6px">Add word</button>
+    </div>
+  </div>
+</div>
+<div class="sheetOverlay hidden" id="cardSheet">
+  <div class="sheetCard">
+    <div class="sheetBar">
+      <span class="sheetTitle">Word</span>
+      <button class="sheetDone" id="cdClose">Done</button>
+    </div>
+    <div class="sheetList">
+      <div class="field">
+        <label for="cdTerm">Term</label>
+        <input type="text" id="cdTerm" maxlength="200">
+        <div class="fh">The meaning side can't be edited here -- changing it could silently change which reverse-direction card this word belongs to.</div>
+      </div>
+      <div class="field">
+        <label>Gloss</label>
+        <div class="fh" id="cdGloss" style="margin-top:2px"></div>
+      </div>
+      <div class="fh" id="cdStats"></div>
+      <div class="fh" id="cdError"></div>
+      <button class="act" id="cdSaveTerm" style="margin-top:6px">Save term</button>
+      <button class="act danger hidden" id="cdDelete" style="margin-top:10px">Delete this word</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="killLock" id="killLock">
+  <div class="killLockCard">
+    <div class="killLockTitle">No longer available</div>
+    <div class="killLockBody">This deck isn't being kept up any more. Nothing on this device has been deleted.</div>
+    <button class="startBtn" id="killLockExport">Export your data</button>
+  </div>
+</div>
+
+<script>const _92ca2f0e=[.212,1.2931,2.3065,8.2956,6.4133,.8334,3.0194,.001,1.8722,.1666,.796,1.4835,.0614,.2629,1.6483,.6014,1.8729,.5425,.0912,.0658,.1542];const _96a0f96b=-_92ca2f0e[20],_b4421bbb=Math.pow(.9,1/_96a0f96b)-1;const _ed81ded3=6e4,_589fd748=36e5,_582531c1=864e5;let _7aae1ace=null;function _2316a329(_92ca2f0e,_96a0f96b){const _b4421bbb=_92ca2f0e&&_92ca2f0e.rollover!=null?_92ca2f0e.rollover:4;if(!_92ca2f0e||_92ca2f0e.rolloverPending==null||_92ca2f0e.rolloverPendingFrom==null)return _b4421bbb;return _96a0f96b>=_92ca2f0e.rolloverPendingFrom?_92ca2f0e.rolloverPending:_b4421bbb}function _e43b6981(_92ca2f0e){_92ca2f0e=_92ca2f0e!=null?_92ca2f0e:Date.now();const _96a0f96b=_1601120b&&_1601120b.settings;if(!_96a0f96b||_96a0f96b.rolloverPending==null||_96a0f96b.rolloverPendingFrom==null)return;if(_92ca2f0e>=_96a0f96b.rolloverPendingFrom){_96a0f96b.rollover=_96a0f96b.rolloverPending;_96a0f96b.rolloverPending=null;_96a0f96b.rolloverPendingFrom=null}}const _997b7b72=()=>{if(_7aae1ace!=null)return _7aae1ace;if(_1601120b&&_1601120b.settings)_e43b6981();return _1601120b&&_1601120b.settings&&_1601120b.settings.rollover!=null?_1601120b.settings.rollover:4};const _34fc8f37=4;function _74bc2d78(_92ca2f0e,_96a0f96b){_96a0f96b=_96a0f96b!=null?_96a0f96b:Date.now();if(!_92ca2f0e)return;if(_92ca2f0e.rollover==null){_92ca2f0e.rollover=_34fc8f37;return}if(_92ca2f0e.rollover===_34fc8f37||_92ca2f0e.rolloverPending!=null)return;_92ca2f0e.rolloverPending=_34fc8f37;_92ca2f0e.rolloverPendingFrom=_f9ee67c1(_926e567b(_96a0f96b,_92ca2f0e.rollover)+1,_92ca2f0e.rollover)}const _926e567b=(_92ca2f0e,_96a0f96b)=>Math.floor((_92ca2f0e-new Date(_92ca2f0e).getTimezoneOffset()*6e4-(_96a0f96b!=null?_96a0f96b:_997b7b72())*_589fd748)/_582531c1);function _f9ee67c1(_92ca2f0e,_96a0f96b){const _b4421bbb=(_96a0f96b!=null?_96a0f96b:_997b7b72())*_589fd748;let _ed81ded3=_92ca2f0e*_582531c1+_b4421bbb;for(let _96a0f96b=0;_96a0f96b<3;_96a0f96b++)_ed81ded3=_92ca2f0e*_582531c1+_b4421bbb+new Date(_ed81ded3).getTimezoneOffset()*6e4;return _ed81ded3}function _8fa4ba86(_92ca2f0e,_96a0f96b,_b4421bbb){return _926e567b(new Date(_92ca2f0e,_96a0f96b,_b4421bbb,12,0,0).getTime())}function _a7157741(_92ca2f0e,_96a0f96b){const _b4421bbb=new Date(_92ca2f0e,_96a0f96b,1),_ed81ded3=_b4421bbb.getDay(),_589fd748=new Date(_92ca2f0e,_96a0f96b+1,0).getDate(),_582531c1=new Date(_92ca2f0e,_96a0f96b,0).getDate();const _7aae1ace=[];for(let _b4421bbb=0;_b4421bbb<_ed81ded3;_b4421bbb++)_7aae1ace.push({y:_92ca2f0e,m:_96a0f96b-1,d:_582531c1-_ed81ded3+1+_b4421bbb,inMonth:false});for(let _b4421bbb=1;_b4421bbb<=_589fd748;_b4421bbb++)_7aae1ace.push({y:_92ca2f0e,m:_96a0f96b,d:_b4421bbb,inMonth:true});while(_7aae1ace.length%7!==0)_7aae1ace.push({y:_92ca2f0e,m:_96a0f96b+1,d:_7aae1ace.length-_ed81ded3-_589fd748+1,inMonth:false});const _2316a329=[];for(let _92ca2f0e=0;_92ca2f0e<_7aae1ace.length;_92ca2f0e+=7)_2316a329.push(_7aae1ace.slice(_92ca2f0e,_92ca2f0e+7));return _2316a329}const _337ab3d7=[1*_ed81ded3,10*_ed81ded3],_aedea579=[10*_ed81ded3];const _e48e9004=3*_589fd748;const _37709915=_589fd748;const _5dc90b7a=.001;const _33d4f2bc=1,_88eeb6f7=2,_ae87b3c3=3,_69ff6a72=4;const _91df47d8=_92ca2f0e=>Math.min(Math.max(_92ca2f0e,1),10);const _5aedcb17=_92ca2f0e=>Math.max(_92ca2f0e,_5dc90b7a);const _97bb176e=_96a0f96b=>_5aedcb17(_92ca2f0e[_96a0f96b-1]);const _5e788dbb=(_96a0f96b,_b4421bbb)=>{const _ed81ded3=_92ca2f0e[4]-Math.exp(_92ca2f0e[5]*(_96a0f96b-1))+1;return _b4421bbb?_91df47d8(_ed81ded3):_ed81ded3};function _99dfc277(_92ca2f0e,_ed81ded3){if(_92ca2f0e.s==null||_92ca2f0e.last==null)return 0;const _589fd748=Math.max((_ed81ded3-_92ca2f0e.last)/_582531c1,0);return Math.pow(1+_b4421bbb*_589fd748/_92ca2f0e.s,_96a0f96b)}function _cecc36c5(_92ca2f0e,_ed81ded3){let _589fd748=_92ca2f0e/_b4421bbb*(Math.pow(_ed81ded3.retention,1/_96a0f96b)-1);_589fd748=Math.round(_589fd748);return Math.min(Math.max(_589fd748,1),_ed81ded3.maxIvl)}function _a3efcc72(_96a0f96b,_b4421bbb){let _ed81ded3=Math.exp(_92ca2f0e[17]*(_b4421bbb-3+_92ca2f0e[18]))*Math.pow(_96a0f96b,-_92ca2f0e[19]);if(_b4421bbb>=_88eeb6f7)_ed81ded3=Math.max(_ed81ded3,1);return _5aedcb17(_96a0f96b*_ed81ded3)}function _b2b0e353(_96a0f96b,_b4421bbb){const _ed81ded3=_5e788dbb(_69ff6a72,false);const _589fd748=-(_92ca2f0e[6]*(_b4421bbb-3));const _582531c1=_96a0f96b+(10-_96a0f96b)*_589fd748/9;return _91df47d8(_92ca2f0e[7]*_ed81ded3+(1-_92ca2f0e[7])*_582531c1)}function _2fe03b00(_96a0f96b,_b4421bbb,_ed81ded3){const _589fd748=_92ca2f0e[11]*Math.pow(_96a0f96b,-_92ca2f0e[12])*(Math.pow(_b4421bbb+1,_92ca2f0e[13])-1)*Math.exp((1-_ed81ded3)*_92ca2f0e[14]);const _582531c1=_b4421bbb/Math.exp(_92ca2f0e[17]*_92ca2f0e[18]);return Math.min(_589fd748,_582531c1)}function _59b367ca(_96a0f96b,_b4421bbb,_ed81ded3,_589fd748){const _582531c1=_589fd748===_88eeb6f7?_92ca2f0e[15]:1,_7aae1ace=_589fd748===_69ff6a72?_92ca2f0e[16]:1;return _b4421bbb*(1+Math.exp(_92ca2f0e[8])*(11-_96a0f96b)*Math.pow(_b4421bbb,-_92ca2f0e[9])*(Math.exp((1-_ed81ded3)*_92ca2f0e[10])-1)*_582531c1*_7aae1ace)}function _c9ba0e7d(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3){return _5aedcb17(_ed81ded3===_33d4f2bc?_2fe03b00(_92ca2f0e,_96a0f96b,_b4421bbb):_59b367ca(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3))}function _f7ecad0e(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3){const _589fd748=Object.assign({},_92ca2f0e);const _7aae1ace=_589fd748.last!=null?_926e567b(_b4421bbb)-_926e567b(_589fd748.last):null;let _2316a329=0;const _e43b6981=()=>{_589fd748.st="R";_589fd748.step=null;_2316a329=_cecc36c5(_589fd748.s,_ed81ded3)*_582531c1};const _997b7b72=_589fd748.st==="L"?_337ab3d7:_aedea579;if(_589fd748.st==="L"||_589fd748.st==="X"){if(_589fd748.s==null||_589fd748.d==null){_589fd748.s=_97bb176e(_96a0f96b);_589fd748.d=_5e788dbb(_96a0f96b,true)}else if(_7aae1ace!=null&&_7aae1ace<1){_589fd748.s=_a3efcc72(_589fd748.s,_96a0f96b);_589fd748.d=_b2b0e353(_589fd748.d,_96a0f96b)}else{_589fd748.s=_c9ba0e7d(_589fd748.d,_589fd748.s,_99dfc277(_589fd748,_b4421bbb),_96a0f96b);_589fd748.d=_b2b0e353(_589fd748.d,_96a0f96b)}if(_997b7b72.length===0||_589fd748.step>=_997b7b72.length&&_96a0f96b!==_33d4f2bc)_e43b6981();else if(_96a0f96b===_33d4f2bc){_589fd748.step=0;_2316a329=_997b7b72[0]}else if(_96a0f96b===_ae87b3c3||_96a0f96b===_88eeb6f7){if(_589fd748.step+1===_997b7b72.length)_e43b6981();else{_589fd748.step+=1;_2316a329=_997b7b72[_589fd748.step]}}else _e43b6981()}else{if(_7aae1ace!=null&&_7aae1ace<1)_589fd748.s=_a3efcc72(_589fd748.s,_96a0f96b);else _589fd748.s=_c9ba0e7d(_589fd748.d,_589fd748.s,_99dfc277(_589fd748,_b4421bbb),_96a0f96b);_589fd748.d=_b2b0e353(_589fd748.d,_96a0f96b);if(_96a0f96b===_33d4f2bc){_589fd748.lapses=(_589fd748.lapses||0)+1;if(_aedea579.length===0)_2316a329=_cecc36c5(_589fd748.s,_ed81ded3)*_582531c1;else{_589fd748.st="X";_589fd748.step=0;_2316a329=_aedea579[0]}}else _2316a329=_cecc36c5(_589fd748.s,_ed81ded3)*_582531c1}const _34fc8f37=_926e567b(_b4421bbb);if(_96a0f96b===_33d4f2bc){_589fd748.streak=0}else if(_589fd748.lastDay!==_34fc8f37){_589fd748.streak=(_589fd748.streak|0)+1}_589fd748.lastDay=_34fc8f37;_589fd748.last=_b4421bbb;_589fd748.due=_b4421bbb+_2316a329;_589fd748.reps=(_589fd748.reps||0)+1;if(_ed81ded3.reviewDay>=0&&_2316a329>=3*_582531c1&&_2316a329<=21*_582531c1){const _92ca2f0e=Math.max(Math.round(_2316a329/_582531c1),1);const _96a0f96b=new Date(_f9ee67c1(_926e567b(_b4421bbb)+_92ca2f0e));let _7aae1ace=_ed81ded3.reviewDay-_96a0f96b.getDay();if(_7aae1ace>3)_7aae1ace-=7;if(_7aae1ace<-3)_7aae1ace+=7;if(_589fd748.due+_7aae1ace*_582531c1>_b4421bbb+2*_582531c1)_589fd748.due+=_7aae1ace*_582531c1}if(_589fd748.st==="R"&&_589fd748.due-_b4421bbb>=_582531c1){const _92ca2f0e=Math.max(Math.round((_589fd748.due-_b4421bbb)/_582531c1),1);let _96a0f96b=_f9ee67c1(_926e567b(_b4421bbb)+_92ca2f0e);if(_96a0f96b-_b4421bbb<_e48e9004)_96a0f96b=_f9ee67c1(_926e567b(_b4421bbb)+_92ca2f0e+1);_589fd748.due=_96a0f96b}return{card:_589fd748,ivl:_589fd748.due-_b4421bbb}}const _d6ee6737=()=>_926e567b(Date.now());const _b776a48d=["latin","greek","italian","sat"].filter(_92ca2f0e=>_92ca2f0e!==DECK_ID);const _d0e7efba=_92ca2f0e=>_92ca2f0e.trim().toLowerCase().replace(/\s+/g," ");let _cca842fc=null,_91a7ea77=null,_3805ea2c=false,_17bdbfcf=null,_1d0b4789=null,_f0e33faa=null;const _9200b1f0={2:"known",1:"shaky",0:"unseen"};function _f95592cf(){return{version:2,created:Date.now(),settings:{useTiming:true,newPerDay:50,retention:.9,maxIvl:36500,rollover:4,rolloverPending:null,rolloverPendingFrom:null,syncCode:"",deviceName:"",knownDays:21,weakFirst:false,reviewDay:-1,studyStats:true,studyHints:true,studyMotion:true,shareStats:false,heatmapView:"month",heatmapAvgWindow:"month",heatmapColourMode:"volume",heatmapAccent:"coral"},dir:"L",parts:null,buckets:["shaky","unseen"],theme:"light",palette:"vellum",rotate:"off",rotDay:null,rotSeen:[],cards:{},log:[],days:{},sinceExport:0,lastExport:null,deck:KEY,lastSync:null,syncedLogLen:null,lastDevice:null,statsSentThrough:null,lastPushError:null,lastPushErrorAt:null,lastPushBytes:0,customRows:[],overrides:{},deletedCustom:[]}}let _1601120b=null;const _226cae75=200,_5029de91=500,_159fb78b=60;let _a12a394f=null;function _ccafb225(){const _92ca2f0e=_1601120b&&_1601120b.overrides||{};const _96a0f96b=_a12a394f.map((_96a0f96b,_b4421bbb)=>{const _ed81ded3=_92ca2f0e["L"+_b4421bbb];return _ed81ded3&&_ed81ded3.term?[_ed81ded3.term,_96a0f96b[1],_96a0f96b[2],_96a0f96b[3]]:_96a0f96b});const _b4421bbb=_1601120b&&_1601120b.customRows||[];DATA.length=0;Array.prototype.push.apply(DATA,_96a0f96b.concat(_b4421bbb));const _ed81ded3=new Set(_1601120b&&_1601120b.deletedCustom||[]);const _589fd748=_a12a394f.length;const _582531c1=_92ca2f0e=>_92ca2f0e>=_589fd748&&_ed81ded3.has(_92ca2f0e-_589fd748);_cca842fc=[];DATA.forEach((_92ca2f0e,_96a0f96b)=>{if(_582531c1(_96a0f96b))return;_cca842fc.push({id:"L"+_96a0f96b,dir:"L",idx:[_96a0f96b],q:_92ca2f0e[0],a:_92ca2f0e[1],sec:_92ca2f0e[2],seed:_92ca2f0e[3]})});const _7aae1ace={};DATA.forEach((_92ca2f0e,_96a0f96b)=>{if(!_582531c1(_96a0f96b))(_7aae1ace[_d0e7efba(_92ca2f0e[1])]||=[]).push(_96a0f96b)});Object.keys(_7aae1ace).forEach(_92ca2f0e=>{const _96a0f96b=_7aae1ace[_92ca2f0e];_cca842fc.push({id:"E"+_96a0f96b[0],dir:"E",idx:_96a0f96b,q:DATA[_96a0f96b[0]][1],a:_96a0f96b.map(_92ca2f0e=>DATA[_92ca2f0e][0]),sec:DATA[_96a0f96b[0]][2],seed:-1})});_91a7ea77=[...new Set(_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir==="L").map(_92ca2f0e=>_92ca2f0e.sec))];_cca842fc.forEach(_92ca2f0e=>{const _96a0f96b=_92ca2f0e.idx.map(_92ca2f0e=>{const _96a0f96b=DATA[_92ca2f0e][3];return _96a0f96b===2||_96a0f96b===1?_96a0f96b:0});_92ca2f0e.bucket=_9200b1f0[Math.min.apply(null,_96a0f96b)]});_3805ea2c=_cca842fc.some(_92ca2f0e=>_92ca2f0e.bucket!=="unseen");_17bdbfcf={};_cca842fc.forEach(_92ca2f0e=>_17bdbfcf[_92ca2f0e.id]=_92ca2f0e);_1d0b4789={};_cca842fc.forEach(_92ca2f0e=>_92ca2f0e.idx.forEach(_96a0f96b=>(_1d0b4789[_96a0f96b]||=[]).push(_92ca2f0e.id)))}function _ce817843(){_ccafb225()}function _90ac4e06(_92ca2f0e,_96a0f96b,_b4421bbb){_92ca2f0e=(_92ca2f0e||"").trim().slice(0,_226cae75);_96a0f96b=(_96a0f96b||"").trim().slice(0,_5029de91);_b4421bbb=(_b4421bbb||"").trim().slice(0,_159fb78b)||"Added words";if(!_92ca2f0e||!_96a0f96b)return{ok:false,reason:"A term and a gloss are both required."};const _ed81ded3=_a12a394f.length+_1601120b.customRows.length;_1601120b.customRows.push([_92ca2f0e,_96a0f96b,_b4421bbb,-1]);_ce817843();_5bac78d1();return{ok:true,id:"L"+_ed81ded3}}function _0adfeca5(_92ca2f0e,_96a0f96b){_96a0f96b=(_96a0f96b||"").trim().slice(0,_226cae75);if(!_96a0f96b)return{ok:false,reason:"A term can't be blank."};const _b4421bbb=_17bdbfcf[_92ca2f0e];if(!_b4421bbb||_b4421bbb.dir!=="L")return{ok:false,reason:"Only a single word's own card can have its term corrected."};const _ed81ded3=_b4421bbb.idx[0],_589fd748=_a12a394f.length;if(_ed81ded3>=_589fd748)_1601120b.customRows[_ed81ded3-_589fd748][0]=_96a0f96b;else{if(_96a0f96b===_a12a394f[_ed81ded3][0])delete _1601120b.overrides[_92ca2f0e];else _1601120b.overrides[_92ca2f0e]={term:_96a0f96b}}_ce817843();_5bac78d1();return{ok:true}}function _fd177f7e(_92ca2f0e){const _96a0f96b=_17bdbfcf[_92ca2f0e];if(!_96a0f96b||_96a0f96b.dir!=="L")return{ok:false,reason:"Only a single word's own card can be deleted."};const _b4421bbb=_96a0f96b.idx[0],_ed81ded3=_a12a394f.length;if(_b4421bbb<_ed81ded3)return{ok:false,reason:"A built-in word can't be deleted, only corrected."};const _589fd748=_b4421bbb-_ed81ded3;if(!_1601120b.deletedCustom.includes(_589fd748))_1601120b.deletedCustom.push(_589fd748);_ce817843();_5bac78d1();return{ok:true}}function _33a192b9(_92ca2f0e){if(!_92ca2f0e||!Array.isArray(_92ca2f0e.DATA))throw new Error("bootContent: unusable content");globalThis.DATA=_92ca2f0e.DATA;globalThis.DECK=_92ca2f0e.DECK;globalThis.KEY=_92ca2f0e.KEY;globalThis.DECK_TITLE=_92ca2f0e.DECK_TITLE;globalThis.CHANGES=_92ca2f0e.CHANGES;if(!_a12a394f)_a12a394f=_92ca2f0e.DATA.slice();_ccafb225();_f0e33faa=_f95592cf();_0fab3a83=DECK.mottos;_8108a1ad=_da8e7449();_3a778c6d=_8108a1ad[0];_4902c93d=_8108a1ad[1]||""}function _a955a051(_92ca2f0e){const _96a0f96b={id:_92ca2f0e.id,st:"L",step:0,s:null,d:null,due:0,last:null,reps:0,lapses:0,buried:0,streak:0,lastDay:null};if(_92ca2f0e.dir==="L"&&(_92ca2f0e.seed===1||_92ca2f0e.seed===2)){_96a0f96b.st="R";_96a0f96b.step=null;_96a0f96b.s=_92ca2f0e.seed===1?1:Math.max(_1601120b.settings.knownDays||21,1);_96a0f96b.d=_5e788dbb(_92ca2f0e.seed===1?_33d4f2bc:_ae87b3c3,true)}return _96a0f96b}function _10872032(_92ca2f0e){let _96a0f96b=_1601120b.cards[_92ca2f0e];if(!_96a0f96b){_96a0f96b=_1601120b.cards[_92ca2f0e]=_a955a051(_17bdbfcf[_92ca2f0e]);if(_96a0f96b.st==="R"&&_96a0f96b.s!=null&&_96a0f96b.last==null){_96a0f96b.last=Date.now();_96a0f96b.due=_f9ee67c1(_926e567b(_96a0f96b.last)+Math.max(Math.round(_96a0f96b.s),1))}}return _96a0f96b}function _efc199fb(_92ca2f0e){return _1601120b.cards[_92ca2f0e]||_a955a051(_17bdbfcf[_92ca2f0e])}function _1bc29220(_92ca2f0e){const _96a0f96b=_efc199fb(_92ca2f0e);if(_96a0f96b.st==="R"&&_96a0f96b.s!=null&&_96a0f96b.last==null){const _92ca2f0e=Object.assign({},_96a0f96b);_92ca2f0e.last=Date.now();_92ca2f0e.due=_f9ee67c1(_926e567b(_92ca2f0e.last)+Math.max(Math.round(_92ca2f0e.s),1));return _92ca2f0e}return _96a0f96b}let _398507b1=null;function _c860074d(){return new Promise(_92ca2f0e=>{try{const _96a0f96b=indexedDB.open("vocabula",1);_96a0f96b.onupgradeneeded=()=>_96a0f96b.result.createObjectStore("kv");_96a0f96b.onsuccess=()=>{_398507b1=_96a0f96b.result;_92ca2f0e(_398507b1)};_96a0f96b.onerror=()=>_92ca2f0e(null)}catch(_96a0f96b){_92ca2f0e(null)}})}function _355c944e(_92ca2f0e){if(!_398507b1)return;try{_398507b1.transaction("kv","readwrite").objectStore("kv").put(_92ca2f0e,KEY)}catch(_92ca2f0e){}}function _43bc41d6(){return new Promise(_92ca2f0e=>{if(!_398507b1)return _92ca2f0e(null);try{const _96a0f96b=_398507b1.transaction("kv","readonly").objectStore("kv").get(KEY);_96a0f96b.onsuccess=()=>_92ca2f0e(_96a0f96b.result||null);_96a0f96b.onerror=()=>_92ca2f0e(null)}catch(_96a0f96b){_92ca2f0e(null)}})}let _7ad385f6=null,_b2226516=null,_ef13765b=0;function _b1cdc454(_92ca2f0e,_96a0f96b){if(_96a0f96b<=0)return;const _b4421bbb=_1601120b.days[_92ca2f0e]||(_1601120b.days[_92ca2f0e]={n:0,intro:0,ok:0,tot:0});_b4421bbb.studyMs=(_b4421bbb.studyMs||0)+_96a0f96b}function _b88b0d9c(_92ca2f0e){if(_7ad385f6==null)return 0;_92ca2f0e=_92ca2f0e!=null?_92ca2f0e:Date.now();const _96a0f96b=Math.max(_92ca2f0e-_7ad385f6,0);let _b4421bbb=_7ad385f6;while(_926e567b(_b4421bbb)<_926e567b(_92ca2f0e)){const _92ca2f0e=_f9ee67c1(_926e567b(_b4421bbb)+1);_b1cdc454(_926e567b(_b4421bbb),_92ca2f0e-_b4421bbb);_b4421bbb=_92ca2f0e}_b1cdc454(_926e567b(_b4421bbb),_92ca2f0e-_b4421bbb);_7ad385f6=_92ca2f0e;return _96a0f96b}function _ccfaae23(_92ca2f0e){const _96a0f96b=Math.floor(_92ca2f0e/1e3),_b4421bbb=Math.floor(_96a0f96b/3600),_ed81ded3=Math.floor(_96a0f96b%3600/60),_589fd748=_96a0f96b%60;return(_b4421bbb?_b4421bbb+":"+String(_ed81ded3).padStart(2,"0"):_ed81ded3)+":"+String(_589fd748).padStart(2,"0")}function _fbb4f6d2(){const _92ca2f0e=_5a57abd5("studyTimer");if(_92ca2f0e)_92ca2f0e.textContent=_ccfaae23(_ef13765b+(_7ad385f6!=null?Date.now()-_7ad385f6:0))}function _5a46df65(_92ca2f0e){if(_7ad385f6==null){if(_92ca2f0e)_ef13765b=0;_7ad385f6=Date.now();clearInterval(_b2226516);_b2226516=setInterval(_fbb4f6d2,1e3)}_fbb4f6d2()}function _3c15f734(){if(_7ad385f6==null)return;_ef13765b+=_b88b0d9c();_7ad385f6=null;clearInterval(_b2226516);_b2226516=null;_fbb4f6d2();_5bac78d1()}function _ef6224ea(_92ca2f0e,_96a0f96b){let _b4421bbb=0;for(let _ed81ded3=_92ca2f0e;_ed81ded3>_92ca2f0e-_96a0f96b;_ed81ded3--){const _92ca2f0e=_1601120b.days[_ed81ded3];if(_92ca2f0e&&_92ca2f0e.studyMs)_b4421bbb+=_92ca2f0e.studyMs}return _b4421bbb}function _fce78260(_92ca2f0e){if(_92ca2f0e<_ed81ded3)return Math.round(_92ca2f0e/1e3)+"s";if(_92ca2f0e<_589fd748)return Math.round(_92ca2f0e/_ed81ded3)+"m";return Math.round(_92ca2f0e/_589fd748)+"h"}function _3a9fe1b5(_92ca2f0e,_96a0f96b){let _b4421bbb=0,_ed81ded3=0,_589fd748=0;for(const _582531c1 of _96a0f96b){if(_582531c1[0]!==_92ca2f0e)continue;_589fd748++;const _96a0f96b=_582531c1[4];if(_96a0f96b!=null){_b4421bbb+=_96a0f96b;_ed81ded3++}}if(_589fd748===0)return null;return{reps:_589fd748,activeMs:_b4421bbb,timed:_ed81ded3}}function _d6d3b862(){const _92ca2f0e=[];_cca842fc.forEach(_96a0f96b=>{const _b4421bbb=_3a9fe1b5(_96a0f96b.id,_1601120b.log);if(_b4421bbb&&_b4421bbb.timed>0)_92ca2f0e.push(_b4421bbb.activeMs)});if(!_92ca2f0e.length)return null;const _96a0f96b=_92ca2f0e.slice().sort((_92ca2f0e,_96a0f96b)=>_92ca2f0e-_96a0f96b);const _b4421bbb=_96a0f96b.reduce((_92ca2f0e,_96a0f96b)=>_92ca2f0e+_96a0f96b,0);return{n:_96a0f96b.length,meanMs:_b4421bbb/_96a0f96b.length,medianMs:_96a0f96b[Math.floor(_96a0f96b.length/2)]}}let _6bdb898b=true,_d6599aa6=null;function _5bac78d1(){_1601120b.lastSave=Date.now();const _92ca2f0e=JSON.stringify(_1601120b);try{localStorage.setItem(KEY,_92ca2f0e);_6bdb898b=localStorage.getItem(KEY)===_92ca2f0e}catch(_92ca2f0e){_6bdb898b=false}_355c944e(_1601120b);clearTimeout(_d6599aa6);const _96a0f96b=_b96845f7(_1601120b.settings.syncCode,_1601120b.syncedLogLen);if(_96a0f96b==="debounce-push"){const _92ca2f0e=_7970ad20(Date.now(),_f9b45b99,6e3,_4163b8e5);_d6599aa6=setTimeout(()=>{_d6599aa6=null;_f8010ca0(true)},_92ca2f0e)}else if(_96a0f96b==="reconcile-first")_ccd44560();if(_5a57abd5("scHome").classList.contains("on"))_00f0f250()}function _3f74a51a(_92ca2f0e){if(_92ca2f0e&&typeof _92ca2f0e==="object"&&Object.prototype.hasOwnProperty.call(_92ca2f0e,"__proto__"))delete _92ca2f0e["__proto__"];return _92ca2f0e}function _5361e9ea(_92ca2f0e){if(!_92ca2f0e||typeof _92ca2f0e!=="object")return null;if(_92ca2f0e.deck&&_92ca2f0e.deck!==KEY)return null;_3f74a51a(_92ca2f0e);_3f74a51a(_92ca2f0e.settings);const _96a0f96b=Object.assign({},_f0e33faa,_92ca2f0e);_96a0f96b.deck=KEY;_96a0f96b.settings=Object.assign({},_f0e33faa.settings,_92ca2f0e.settings||{});for(const _92ca2f0e of["gateDays","requireEasy","drillDays"])delete _96a0f96b.settings[_92ca2f0e];for(const _92ca2f0e of["secretUnlocked"])delete _96a0f96b[_92ca2f0e];_74bc2d78(_96a0f96b.settings);_96a0f96b.cards=_92ca2f0e.cards&&typeof _92ca2f0e.cards==="object"?_92ca2f0e.cards:{};_96a0f96b.log=Array.isArray(_92ca2f0e.log)?_92ca2f0e.log:[];_96a0f96b.days=_92ca2f0e.days&&typeof _92ca2f0e.days==="object"?_92ca2f0e.days:{};_7aae1ace=_96a0f96b.settings.rollover!=null?_96a0f96b.settings.rollover:4;try{for(const _92ca2f0e in _96a0f96b.cards){const _b4421bbb=_3f74a51a(_96a0f96b.cards[_92ca2f0e]);if(!_b4421bbb||typeof _b4421bbb!=="object"||!_17bdbfcf[_92ca2f0e]){delete _96a0f96b.cards[_92ca2f0e];continue}_b4421bbb.reps|=0;_b4421bbb.lapses|=0;_b4421bbb.buried|=0;_b4421bbb.loops|=0;if(_b4421bbb.st!=="L"&&_b4421bbb.st!=="R"&&_b4421bbb.st!=="X")_b4421bbb.st="L";if(!Number.isFinite(_b4421bbb.due))_b4421bbb.due=0;const _ed81ded3=Number.isFinite(_b4421bbb.s)&&_b4421bbb.s>0&&Number.isFinite(_b4421bbb.d);const _589fd748=_b4421bbb.s==null&&_b4421bbb.d==null&&_b4421bbb.st!=="R";if(!_ed81ded3&&!_589fd748){_b4421bbb.s=null;_b4421bbb.d=null;_b4421bbb.st="L";_b4421bbb.step=0}if(_b4421bbb.last!=null&&!Number.isFinite(_b4421bbb.last))_b4421bbb.last=null;if(_b4421bbb.step!=null&&!Number.isFinite(_b4421bbb.step))_b4421bbb.step=0}}finally{_7aae1ace=null}return _96a0f96b}async function _6eae784b(){await _c860074d();let _92ca2f0e=null,_96a0f96b=null;try{_92ca2f0e=_5361e9ea(JSON.parse(localStorage.getItem(KEY)))}catch(_92ca2f0e){}_96a0f96b=_5361e9ea(await _43bc41d6());if(_92ca2f0e&&_96a0f96b)_1601120b=_96a0f96b.log.length>_92ca2f0e.log.length?_96a0f96b:_92ca2f0e;else _1601120b=_92ca2f0e||_96a0f96b||JSON.parse(JSON.stringify(_f0e33faa));if(!_92ca2f0e&&!_96a0f96b){_c69814c3(_1601120b);_5bac78d1()}}function _d96acdf6(){return _1601120b.parts&&_1601120b.parts.length?_1601120b.parts:_91a7ea77}const _c841c97d="2026.08.19.1";const _870087c0=20*_ed81ded3;const _8ccd36c2=["known","shaky","unseen"];function _da881b7a(){return _1601120b.buckets&&_1601120b.buckets.length?_1601120b.buckets:_8ccd36c2}function _c9527b0c(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3){if(_92ca2f0e.buried>_ed81ded3)return false;if(!_d96acdf6().includes(_96a0f96b.sec))return false;if(_92ca2f0e.reps===0&&!_da881b7a().includes(_96a0f96b.bucket))return false;return true}function _e5ec8107(_92ca2f0e){const _96a0f96b=Date.now(),_b4421bbb=_d6ee6737();const _ed81ded3=[],_589fd748=[],_582531c1=[],_7aae1ace=[];const _2316a329=_1601120b.days[_b4421bbb]||{};const _e43b6981=_2316a329["intro"+_92ca2f0e]!=null?_2316a329["intro"+_92ca2f0e]:_92ca2f0e==="L"?_2316a329.intro||0:0;const _997b7b72=_1601120b.days[_b4421bbb]&&_1601120b.days[_b4421bbb].cap!=null?_1601120b.days[_b4421bbb].cap:_1601120b.settings.newPerDay;for(const _2316a329 of _cca842fc){if(_2316a329.dir!==_92ca2f0e)continue;const _e43b6981=_efc199fb(_2316a329.id);if(!_c9527b0c(_e43b6981,_2316a329,_96a0f96b,_b4421bbb))continue;if(_e43b6981.reps===0){(_e43b6981.s!=null?_7aae1ace:_582531c1).push(_2316a329.id);continue}if(_e43b6981.due<=_96a0f96b){(_e43b6981.st==="L"||_e43b6981.st==="X"?_ed81ded3:_589fd748).push(_2316a329.id)}else if(_e43b6981.due<=_96a0f96b+_870087c0&&_e43b6981.last!=null&&_e43b6981.due-_e43b6981.last<_37709915)_ed81ded3.push(_2316a329.id)}_589fd748.sort((_92ca2f0e,_96a0f96b)=>_efc199fb(_92ca2f0e).due-_efc199fb(_96a0f96b).due);_ed81ded3.sort((_92ca2f0e,_96a0f96b)=>_efc199fb(_92ca2f0e).due-_efc199fb(_96a0f96b).due);const _34fc8f37=Math.max(_997b7b72-_e43b6981,0);const _74bc2d78=_1601120b.settings.weakFirst?_582531c1.concat(_7aae1ace):_7aae1ace.concat(_582531c1);const _926e567b=_74bc2d78.slice(0,_34fc8f37);return{learn:_ed81ded3,due:_589fd748,intro:_926e567b,seededTotal:_7aae1ace.length,freshTotal:_582531c1.length}}let _f251bad1=null,_bf318fcd=null,_2de160af=0,_5324da9f=0,_b69c8f44=null,_86ba3ad6=[],_8ffd7c62=null,_3efe6b44=false;let _7707ca31=null;let _ba9369c0=null,_25d330ed=null;let _b9952f8e="L",_10cb0633="",_7070eafc=null,_581c48b3="all";let _1f5bd9f1="home";function _5c37d421(){_f251bad1=_e5ec8107(_1601120b.dir)}function _f73146d2(){_5c37d421();const _92ca2f0e=Date.now();const _96a0f96b=_f251bad1.learn.filter(_96a0f96b=>_efc199fb(_96a0f96b).due<=_92ca2f0e);if(_96a0f96b.length)return _96a0f96b[0];if(_f251bad1.due.length)return _f251bad1.due[0];if(_f251bad1.intro.length)return _f251bad1.intro[0];if(_f251bad1.learn.length)return _f251bad1.learn[0];return null}function _3bd970ae(){_5c37d421();const _92ca2f0e=Date.now();const _96a0f96b=_f251bad1.learn.filter(_96a0f96b=>_efc199fb(_96a0f96b).due<=_92ca2f0e);if(_96a0f96b.length)return _96a0f96b[0];if(_f251bad1.due.length)return _f251bad1.due[0];if(_f251bad1.learn.length)return _f251bad1.learn[0];return null}const _5a57abd5=_92ca2f0e=>document.getElementById(_92ca2f0e);const _cc4c33ea={vellum:"Vellum",catppuccin:"Catppuccin",rosepine:"Rose Pine",gruvbox:"Gruvbox",legacy:"Legacy",dracula:"Dracula",amphora:"Amphora",marble:"Marble",steel:"Steel",glass:"Glass",neon:"Neon",wood:"Wood"};const _c1c31ff0=Object.keys(_cc4c33ea);const _f771107d="Smoo";const _a08fd407=["#3a6b76","#7cc474"];function _8ad49e33(_92ca2f0e){return!!_cc4c33ea[_92ca2f0e]||_92ca2f0e==="secret"}function _c42c4e36(_92ca2f0e){return _cc4c33ea[_92ca2f0e]||(_92ca2f0e==="secret"?_f771107d:_cc4c33ea.vellum)}function _36858752(){if(!_1601120b||_1601120b.rotate!=="daily")return;const _92ca2f0e=_d6ee6737();if(_1601120b.rotDay===_92ca2f0e)return;let _96a0f96b=_c1c31ff0.filter(_92ca2f0e=>!(_1601120b.rotSeen||[]).includes(_92ca2f0e)&&_92ca2f0e!==_1601120b.palette);if(!_96a0f96b.length){_1601120b.rotSeen=[];_96a0f96b=_c1c31ff0.filter(_92ca2f0e=>_92ca2f0e!==_1601120b.palette)}_1601120b.palette=_96a0f96b[Math.floor(Math.random()*_96a0f96b.length)];_1601120b.rotSeen=(_1601120b.rotSeen||[]).concat([_1601120b.palette]);_1601120b.rotDay=_92ca2f0e;try{localStorage.setItem(KEY,JSON.stringify(_1601120b))}catch(_92ca2f0e){}}function _6369064b(){const _92ca2f0e=_c1c31ff0.filter(_92ca2f0e=>_92ca2f0e!==_1601120b.palette);_1601120b.palette=_92ca2f0e[Math.floor(Math.random()*_92ca2f0e.length)];if(_1601120b.rotate==="daily"){_1601120b.rotDay=_d6ee6737();_1601120b.rotSeen=(_1601120b.rotSeen||[]).concat([_1601120b.palette])}_5bac78d1();_f6ca93db();_89622f4f();_00512a8d();_407ea0a2(_cc4c33ea[_1601120b.palette])}function _f6ca93db(){if(!_1601120b)return;let _92ca2f0e=_1601120b.theme||"light";if(_92ca2f0e==="auto")_92ca2f0e=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";_36858752();const _96a0f96b=_8ad49e33(_1601120b.palette)?_1601120b.palette:"vellum";document.documentElement.dataset.theme=_92ca2f0e;document.documentElement.dataset.palette=_96a0f96b;const _b4421bbb=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()||"#ffffff";const _ed81ded3=document.querySelector("meta[name=theme-color]");if(_ed81ded3)_ed81ded3.setAttribute("content",_b4421bbb);document.documentElement.style.background=_b4421bbb}const _5bfd0c9e=typeof window!=="undefined"&&window.matchMedia?window.matchMedia("(min-width:700px) and (orientation:landscape)"):null;function _585db8f1(){if(!_1601120b)return;const _92ca2f0e=document.documentElement.dataset.layout;const _96a0f96b=_5bfd0c9e&&_5bfd0c9e.matches?"landscape":"portrait";document.documentElement.dataset.layout=_96a0f96b;document.documentElement.toggleAttribute("data-study-stats",!!_1601120b.settings.studyStats);document.documentElement.toggleAttribute("data-study-hints",!!_1601120b.settings.studyHints);document.documentElement.toggleAttribute("data-study-motion",!!_1601120b.settings.studyMotion);_215bd686(document.querySelector("#scHome .homeCols"));_215bd686(document.querySelector("#scSet .setCols"))}function _215bd686(_92ca2f0e){if(!_92ca2f0e)return;const _96a0f96b=_92ca2f0e._mcKids||(_92ca2f0e._mcKids=[..._92ca2f0e.children]);if(document.documentElement.dataset.layout!=="landscape"){_96a0f96b.forEach(_96a0f96b=>_92ca2f0e.appendChild(_96a0f96b));if(_92ca2f0e._mcColA)_92ca2f0e._mcColA.remove();if(_92ca2f0e._mcColB)_92ca2f0e._mcColB.remove();return}let _b4421bbb=_92ca2f0e._mcColA,_ed81ded3=_92ca2f0e._mcColB;if(!_b4421bbb)_b4421bbb=_92ca2f0e._mcColA=document.createElement("div");if(!_ed81ded3)_ed81ded3=_92ca2f0e._mcColB=document.createElement("div");_b4421bbb.className=_ed81ded3.className="mcCol";_92ca2f0e.appendChild(_b4421bbb);_92ca2f0e.appendChild(_ed81ded3);_96a0f96b.forEach(_92ca2f0e=>_b4421bbb.appendChild(_92ca2f0e));const _589fd748=_96a0f96b.map(_92ca2f0e=>_92ca2f0e.offsetHeight);let _582531c1=0,_7aae1ace=0;_96a0f96b.forEach((_92ca2f0e,_96a0f96b)=>{if(_582531c1<=_7aae1ace){_b4421bbb.appendChild(_92ca2f0e);_582531c1+=_589fd748[_96a0f96b]}else{_ed81ded3.appendChild(_92ca2f0e);_7aae1ace+=_589fd748[_96a0f96b]}})}if(_5bfd0c9e&&_5bfd0c9e.addEventListener)_5bfd0c9e.addEventListener("change",_585db8f1);if(typeof window!=="undefined")window.addEventListener("resize",_585db8f1);const _b9628cc5=typeof window!=="undefined"&&window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;const _b847294d=_92ca2f0e=>{if(_92ca2f0e!=="scSet"&&_5a57abd5("scSet").classList.contains("on")){_565368ca=false;_10ba9bfa=[]}const _96a0f96b=_5a57abd5("scStudy").classList.contains("on");["scHome","scStudy","scDone","scSet","scLog","scStats","scBrowse"].forEach(_96a0f96b=>_5a57abd5(_96a0f96b).classList.toggle("on",_96a0f96b===_92ca2f0e));if(_92ca2f0e==="scStudy")_5a46df65(true);else if(_96a0f96b)_3c15f734();if(_92ca2f0e==="scHome")_215bd686(document.querySelector("#scHome .homeCols"));else if(_92ca2f0e==="scSet")_215bd686(document.querySelector("#scSet .setCols"))};function _407ea0a2(_92ca2f0e,_96a0f96b){const _b4421bbb=_5a57abd5("toast");_b4421bbb.textContent=_92ca2f0e;_b4421bbb.classList.add("on");clearTimeout(_b4421bbb._t);_b4421bbb._t=setTimeout(()=>_b4421bbb.classList.remove("on"),_96a0f96b||2200)}function _5981a051(_92ca2f0e){if(_92ca2f0e<_589fd748)return Math.max(1,Math.round(_92ca2f0e/_ed81ded3))+"m";if(_92ca2f0e<_582531c1)return Math.round(_92ca2f0e/_589fd748)+"h";const _96a0f96b=Math.round(_92ca2f0e/_582531c1);if(_96a0f96b<31)return _96a0f96b+"d";if(_96a0f96b<365)return Math.round(_96a0f96b/30.4)+"mo";const _b4421bbb=_96a0f96b/365;return(_b4421bbb<10?_b4421bbb.toFixed(1):Math.round(_b4421bbb))+"y"}function _ca80b59f(){const _92ca2f0e=_f251bad1.intro.length,_96a0f96b=_f251bad1.learn.length,_b4421bbb=_f251bad1.due.length;_5a57abd5("counts").innerHTML='<span class="c-new"><b>'+_92ca2f0e+"</b> new</span>"+'<span class="c-lrn"><b>'+_96a0f96b+"</b> learning</span>"+'<span class="c-due"><b>'+_b4421bbb+"</b> due</span>"}function _5395cc07(_92ca2f0e,_96a0f96b){for(let _b4421bbb=_96a0f96b.length-1;_b4421bbb>=0;_b4421bbb--){if(_96a0f96b[_b4421bbb][0]===_92ca2f0e)return{rating:_96a0f96b[_b4421bbb][1],at:_96a0f96b[_b4421bbb][2]}}return null}function _54f7ae59(_92ca2f0e,_96a0f96b){if(_92ca2f0e==null)return"never";const _b4421bbb=Math.max(0,_96a0f96b-_92ca2f0e);if(_b4421bbb<_ed81ded3)return"just now";if(_b4421bbb<_589fd748)return Math.round(_b4421bbb/_ed81ded3)+"m ago";if(_b4421bbb<_582531c1)return Math.round(_b4421bbb/_589fd748)+"h ago";return Math.round(_b4421bbb/_582531c1)+"d ago"}const _b4312dfa={1:"Again",2:"Hard",3:"Good",4:"Easy"};const _0065f515={1:"again",2:"hard",3:"good",4:"easy"};function _7033198f(){const _92ca2f0e=_17bdbfcf[_bf318fcd],_96a0f96b=_efc199fb(_bf318fcd);_5a57abd5("prompt").className="prompt"+(_92ca2f0e.dir==="E"?" eng":"");_5a57abd5("prompt").style.fontFamily=_92ca2f0e.dir==="E"?"":"var(--serif)";_5a57abd5("prompt").textContent=_92ca2f0e.q;const _b4421bbb=_5a57abd5("multi");if(_92ca2f0e.dir==="E"&&_92ca2f0e.idx.length>1){_b4421bbb.textContent=_92ca2f0e.idx.length;_b4421bbb.classList.add("on")}else _b4421bbb.classList.remove("on");const _ed81ded3=_5a57abd5("answer");_ed81ded3.className="answer"+(_92ca2f0e.dir==="E"?" lat":"");_ed81ded3.innerHTML="";if(_92ca2f0e.dir==="E")_92ca2f0e.a.forEach((_92ca2f0e,_96a0f96b)=>{const _b4421bbb=document.createElement("span");_b4421bbb.className=_96a0f96b?"alt":"";_b4421bbb.textContent=_92ca2f0e;_ed81ded3.appendChild(_b4421bbb)});else _ed81ded3.textContent=_92ca2f0e.a;_5a57abd5("hintline").textContent=_96a0f96b.reps===0?"first time":"";if(_1601120b.settings.studyStats){const _92ca2f0e=_5a57abd5("cardMeta");if(_96a0f96b.reps>0){const _b4421bbb=_5395cc07(_bf318fcd,_1601120b.log);const _ed81ded3=["reviewed "+_96a0f96b.reps+"×","streak "+(_96a0f96b.streak|0)];if(_b4421bbb)_ed81ded3.push((_b4312dfa[_b4421bbb.rating]||"?")+" · "+_54f7ae59(_b4421bbb.at,Date.now()));_92ca2f0e.innerHTML=_ed81ded3.map(_92ca2f0e=>'<span class="statChip">'+_92ca2f0e+"</span>").join("")}else{_92ca2f0e.innerHTML=""}const _b4421bbb=_5a57abd5("recapCard");if(_7707ca31){_5a57abd5("recapWord").textContent=_7707ca31.q;_5a57abd5("recapRating").textContent=_b4312dfa[_7707ca31.rating]||"?";_5a57abd5("recapRating").className="statChip rc-rating rc-"+(_0065f515[_7707ca31.rating]||"good");_5a57abd5("recapIvl").textContent=_5981a051(_7707ca31.ivl);_b4421bbb.classList.add("on")}else{_b4421bbb.classList.remove("on")}}if(_1601120b.settings.studyMotion&&document.documentElement.dataset.layout==="landscape"&&typeof _5a57abd5("prompt").animate==="function"&&!(_b9628cc5&&_b9628cc5.matches)){_5a57abd5("prompt").animate([{transform:"translateX(-14px)",opacity:.5},{transform:"translateX(0)",opacity:1}],{duration:220,easing:"ease-out"})}_5a57abd5("revealRow").classList.remove("hidden");_5a57abd5("rateRow").classList.add("hidden");_5324da9f=Date.now();_b69c8f44=null;_3efe6b44=false;_ca80b59f()}function _0411e76f(_92ca2f0e,_96a0f96b,_b4421bbb){return _92ca2f0e-_96a0f96b<_b4421bbb}function _d2c0ee66(){if(!_5a57abd5("rateRow").classList.contains("hidden"))return;if(_0411e76f(Date.now(),_5324da9f,260))return;const _92ca2f0e=_5a57abd5("answer");_92ca2f0e.classList.add("on");if(typeof _92ca2f0e.animate==="function"&&!(_b9628cc5&&_b9628cc5.matches)){_92ca2f0e.animate([{opacity:0},{opacity:1}],{duration:130,easing:"ease-out"})}if(_1601120b.settings.studyMotion&&document.documentElement.dataset.layout==="landscape"&&typeof _5a57abd5("prompt").animate==="function"&&!(_b9628cc5&&_b9628cc5.matches)){_5a57abd5("prompt").animate([{transform:"scale(1.015)"},{transform:"scale(1)"}],{duration:260,easing:"cubic-bezier(.2,.7,.3,1)"})}_5a57abd5("revealRow").classList.add("hidden");_5a57abd5("rateRow").classList.remove("hidden");_2de160af=Date.now();const _96a0f96b=_2de160af-_5324da9f;_b69c8f44=_3efe6b44||_96a0f96b<120||_96a0f96b>3e5?null:_96a0f96b;const _b4421bbb=_1bc29220(_bf318fcd),_ed81ded3=Date.now(),_589fd748=_1601120b.settings;[[_33d4f2bc,"iAgain"],[_ae87b3c3,"iGood"],[_69ff6a72,"iEasy"]].forEach(([_92ca2f0e,_96a0f96b])=>{_5a57abd5(_96a0f96b).textContent=_5981a051(_f7ecad0e(_b4421bbb,_8abb3e6b(_92ca2f0e,_b69c8f44),_ed81ded3,_589fd748).ivl)})}const _6d2d5dc0=[["instant",0,2e3],["under 10s",2e3,1e4],["10 to 30s",1e4,3e4],["over 30s",3e4,Infinity]];function _31605d2c(_92ca2f0e){return _92ca2f0e==null?-1:_6d2d5dc0.findIndex(_96a0f96b=>_92ca2f0e>=_96a0f96b[1]&&_92ca2f0e<_96a0f96b[2])}function _8abb3e6b(_92ca2f0e,_96a0f96b){if(!_1601120b.settings.useTiming||_96a0f96b==null||_92ca2f0e===_33d4f2bc)return _92ca2f0e;const _b4421bbb=_31605d2c(_96a0f96b);if(_b4421bbb===3)return _92ca2f0e===_69ff6a72?_ae87b3c3:_92ca2f0e===_ae87b3c3?_88eeb6f7:_92ca2f0e;if(_b4421bbb===2)return _92ca2f0e===_69ff6a72?_ae87b3c3:_92ca2f0e;return _92ca2f0e}function _60a04229(_92ca2f0e){if(_0411e76f(Date.now(),_2de160af,260))return;const _96a0f96b=_8abb3e6b(_92ca2f0e,_b69c8f44);const _b4421bbb=Date.now(),_ed81ded3=_17bdbfcf[_bf318fcd],_589fd748=_10872032(_bf318fcd);const _582531c1={id:_bf318fcd,before:JSON.parse(JSON.stringify(_589fd748)),dk:_d6ee6737(),day:JSON.parse(JSON.stringify(_1601120b.days[_d6ee6737()]||{})),logLen:_1601120b.log.length,buried:[]};_86ba3ad6.push(_582531c1);if(_86ba3ad6.length>40)_86ba3ad6.shift();const _7aae1ace=_589fd748.reps===0;const _2316a329=_f7ecad0e(_589fd748,_96a0f96b,_b4421bbb,_a4676ff1());_1601120b.cards[_bf318fcd]=_2316a329.card;_1601120b.log.push([_bf318fcd,_96a0f96b,_b4421bbb,Math.round(_2316a329.ivl/1e3),_b69c8f44]);if(_96a0f96b!==_92ca2f0e)_407ea0a2(_92ca2f0e===_69ff6a72?"Recorded as Good — that one took a while":"Recorded as Hard — that one took a while",1600);const _e43b6981=_d6ee6737();const _997b7b72=_1601120b.days[_e43b6981]||(_1601120b.days[_e43b6981]={n:0,intro:0,ok:0,tot:0});_997b7b72.n++;if(_7aae1ace){_997b7b72.intro=(_997b7b72.intro|0)+1;_997b7b72["intro"+_ed81ded3.dir]=(_997b7b72["intro"+_ed81ded3.dir]|0)+1}if(_589fd748.st==="R"||_589fd748.st==="X"){_997b7b72.tot++;if(_96a0f96b!==_33d4f2bc)_997b7b72.ok++}_ed81ded3.idx.forEach(_92ca2f0e=>(_1d0b4789[_92ca2f0e]||[]).forEach(_92ca2f0e=>{if(_92ca2f0e!==_bf318fcd&&_17bdbfcf[_92ca2f0e].dir!==_ed81ded3.dir){const _96a0f96b=_10872032(_92ca2f0e);if(_96a0f96b.buried<_e43b6981+1){_582531c1.buried.push([_92ca2f0e,_96a0f96b.buried]);_96a0f96b.buried=_e43b6981+1}}}));_1601120b.sinceExport=(_1601120b.sinceExport||0)+1;_7707ca31={q:_ed81ded3.q,rating:_96a0f96b,ivl:_2316a329.ivl};_5bac78d1();_bd4aebe4()}const _a4676ff1=()=>_1601120b.settings;function _bd4aebe4(){_bf318fcd=_f73146d2();if(!_bf318fcd){_8736cc9f();return}_7033198f()}function _fda154f9(){const _92ca2f0e=_86ba3ad6.pop();if(!_92ca2f0e){_407ea0a2("Nothing to undo");return}_1601120b.cards[_92ca2f0e.id]=_92ca2f0e.before;(_92ca2f0e.buried||[]).forEach(([_92ca2f0e,_96a0f96b])=>{if(_1601120b.cards[_92ca2f0e])_1601120b.cards[_92ca2f0e].buried=_96a0f96b});{const _96a0f96b=_92ca2f0e.dk!=null?_92ca2f0e.dk:_d6ee6737(),_b4421bbb=_1601120b.days[_96a0f96b]&&_1601120b.days[_96a0f96b].cap!=null?_1601120b.days[_96a0f96b].cap:null;_1601120b.days[_96a0f96b]=_92ca2f0e.day&&_92ca2f0e.day.n!=null?_92ca2f0e.day:{n:0,intro:0,ok:0,tot:0};if(_b4421bbb!=null)_1601120b.days[_96a0f96b].cap=_b4421bbb}_1601120b.log.length=_92ca2f0e.logLen;_1601120b.sinceExport=Math.max((_1601120b.sinceExport||1)-1,0);_7707ca31=null;_5bac78d1();_bf318fcd=_92ca2f0e.id;_b847294d("scStudy");_7033198f()}function _8736cc9f(){_5c37d421();const _92ca2f0e=_d6ee6737(),_96a0f96b=_1601120b.days[_92ca2f0e]||{n:0};const _b4421bbb=_f251bad1.learn.length;const _ed81ded3=_d96acdf6();const _589fd748=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir===_1601120b.dir&&_ed81ded3.includes(_92ca2f0e.sec)).reduce((_96a0f96b,_b4421bbb)=>{const _ed81ded3=_1601120b.cards[_b4421bbb.id];if(!_ed81ded3||_ed81ded3.reps===0)return _96a0f96b;return _96a0f96b+(_ed81ded3.due>Date.now()&&_926e567b(_ed81ded3.due)<=_92ca2f0e+1?1:0)},0);_5a57abd5("doneBig").textContent=_b4421bbb?"Almost there":"Nothing due";_5a57abd5("doneSmall").innerHTML=_b4421bbb?_b4421bbb+" word"+(_b4421bbb===1?" is":"s are")+" still in short-term steps — they come back in a minute or two.":(_96a0f96b.n||0)+" ratings today.<br>"+_589fd748+" due tomorrow in this direction.";const _582531c1=_d96acdf6();const _7aae1ace=_cca842fc.some(_92ca2f0e=>_92ca2f0e.dir===_1601120b.dir&&_582531c1.includes(_92ca2f0e.sec)&&(!_1601120b.cards[_92ca2f0e.id]||_1601120b.cards[_92ca2f0e.id].reps===0));_5a57abd5("doneMore").classList.toggle("hidden",!_7aae1ace);_b847294d("scDone");clearInterval(_8ffd7c62);if(_b4421bbb)_8ffd7c62=setInterval(()=>{if(!_5a57abd5("scDone").classList.contains("on")){clearInterval(_8ffd7c62);return}if(document.hidden)return;const _92ca2f0e=_3bd970ae();if(_92ca2f0e){clearInterval(_8ffd7c62);_bf318fcd=_92ca2f0e;_7033198f();_b847294d("scStudy")}else if(!_f251bad1.learn.length){clearInterval(_8ffd7c62);_8736cc9f()}},5e3)}function _c33150d7(_92ca2f0e){const _96a0f96b=_d96acdf6();const _b4421bbb=_cca842fc.filter(_b4421bbb=>_b4421bbb.dir===_92ca2f0e&&_96a0f96b.includes(_b4421bbb.sec));let _ed81ded3=0,_589fd748=0,_582531c1=0,_7aae1ace=0;_b4421bbb.forEach(_92ca2f0e=>{const _96a0f96b=_1601120b.cards[_92ca2f0e.id];if(!_96a0f96b||_96a0f96b.reps===0){_ed81ded3++;return}if(_96a0f96b.st!=="R")_589fd748++;else if(_96a0f96b.s<21)_582531c1++;else _7aae1ace++});return{total:_b4421bbb.length,unseen:_ed81ded3,learning:_589fd748,young:_582531c1,mature:_7aae1ace}}function _5c9e9da0(_92ca2f0e){if(!_92ca2f0e||_92ca2f0e.reps===0)return"unseen";if(_92ca2f0e.st!=="R")return"learning";return _92ca2f0e.s<21?"young":"mature"}const _a44b854a=["unseen","learning","young","mature"];const _3842c34a={unseen:"Still to meet",learning:"In short-term steps",young:"Settling (under 3 weeks)",mature:"Holding (3 weeks or more)"};function _534b3b3f(_92ca2f0e){const _96a0f96b={unseen:0,learning:0,young:0,mature:0};const _b4421bbb={};_cca842fc.forEach(_ed81ded3=>{if(_ed81ded3.dir!==_92ca2f0e)return;const _589fd748=_5c9e9da0(_1601120b.cards[_ed81ded3.id]);_96a0f96b[_589fd748]++;const _582531c1=_b4421bbb[_ed81ded3.sec]||(_b4421bbb[_ed81ded3.sec]={cards:[]});_582531c1.cards.push({id:_ed81ded3.id,st:_589fd748})});return{totals:_96a0f96b,bySec:_b4421bbb}}function _5509706c(_92ca2f0e){const _96a0f96b={};_92ca2f0e.forEach(_92ca2f0e=>(_96a0f96b[_92ca2f0e.sec]||=[]).push(_92ca2f0e));const _b4421bbb=[];_91a7ea77.forEach(_92ca2f0e=>{if(_96a0f96b[_92ca2f0e])_b4421bbb.push({sec:_92ca2f0e,cards:_96a0f96b[_92ca2f0e].slice().sort((_92ca2f0e,_96a0f96b)=>_92ca2f0e.q.localeCompare(_96a0f96b.q))})});return _b4421bbb}function _c09f1867(_92ca2f0e,_96a0f96b){const _b4421bbb=_96a0f96b.trim().toLowerCase();if(!_b4421bbb)return _92ca2f0e;return _92ca2f0e.filter(_92ca2f0e=>_92ca2f0e.q.toLowerCase().includes(_b4421bbb))}function _55b7a4ee(){const _92ca2f0e=_1601120b.dir;_5a57abd5("statsDirL").classList.toggle("sel",_92ca2f0e==="L");_5a57abd5("statsDirE").classList.toggle("sel",_92ca2f0e==="E");_5a57abd5("sdtL").textContent=DECK.fwd;_5a57abd5("sdtE").textContent=DECK.rev;_5a57abd5("sddL").textContent=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir==="L").length+" words";_5a57abd5("sddE").textContent=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir==="E").length+" words";const{totals:_96a0f96b,bySec:_b4421bbb}=_534b3b3f(_92ca2f0e);const _ed81ded3=_cca842fc.filter(_96a0f96b=>_96a0f96b.dir===_92ca2f0e).length;let _589fd748="";_a44b854a.forEach(_92ca2f0e=>{const _b4421bbb=_96a0f96b[_92ca2f0e];if(!_b4421bbb)return;_589fd748+='<div class="s-'+_92ca2f0e+'" style="width:'+100*_b4421bbb/_ed81ded3+'%" title="'+_3842c34a[_92ca2f0e]+": "+_b4421bbb+'"></div>'});_5a57abd5("statsBar").innerHTML=_589fd748;let _582531c1="";_a44b854a.forEach(_92ca2f0e=>{const _b4421bbb=_96a0f96b[_92ca2f0e];if(!_b4421bbb)return;_582531c1+='<span><i class="sw s-'+_92ca2f0e+'"></i>'+_3842c34a[_92ca2f0e]+" — "+_b4421bbb+" ("+Math.round(100*_b4421bbb/_ed81ded3)+"%)</span>"});_5a57abd5("statsLegend").innerHTML=_582531c1;let _7aae1ace="";_91a7ea77.forEach(_92ca2f0e=>{const _96a0f96b=_b4421bbb[_92ca2f0e];if(!_96a0f96b)return;const _ed81ded3=_96a0f96b.cards.filter(_92ca2f0e=>_92ca2f0e.st!=="unseen").length;_7aae1ace+='<div class="wpart"><h3><span>'+_92ca2f0e+"</span><b>"+_ed81ded3+" / "+_96a0f96b.cards.length+'</b></h3><div class="wgrid">';_96a0f96b.cards.forEach(_92ca2f0e=>{_7aae1ace+='<div class="wbox s-'+_92ca2f0e.st+'"></div>'});_7aae1ace+="</div></div>"});_5a57abd5("statsGrid").innerHTML=_7aae1ace||'<div class="note">No words to show.</div>'}function _fee8fa2e(_92ca2f0e){const _96a0f96b=_5c9e9da0(_1601120b.cards[_92ca2f0e.id]),_b4421bbb=_92ca2f0e.dir==="E"?_92ca2f0e.a.join(", "):_92ca2f0e.a;const _ed81ded3=_92ca2f0e.dir==="L"?'<button type="button" class="wrInfo" data-info="'+_92ca2f0e.id+'" aria-label="Word details">i</button>':"";return'<div class="wordRow" data-id="'+_92ca2f0e.id+'"><div class="wrTop"><i class="stDot s-'+_96a0f96b+'"></i>'+'<span class="term">'+_801f2611(_92ca2f0e.q)+"</span>"+_ed81ded3+'</div><div class="gloss">'+_801f2611(_b4421bbb)+"</div></div>"}function _604ff261(_92ca2f0e){const _96a0f96b={};_cca842fc.forEach(_b4421bbb=>{if(_b4421bbb.dir===_92ca2f0e)_96a0f96b[_b4421bbb.sec]=(_96a0f96b[_b4421bbb.sec]||0)+1});return _96a0f96b}function _d550f731(_92ca2f0e){_1f5bd9f1=_92ca2f0e;_5a57abd5("partSheetActions").style.display=_92ca2f0e==="home"?"block":"none";_6d272b02();_5a57abd5("partSheet").classList.remove("hidden")}function _3803856b(){_5a57abd5("partSheet").classList.add("hidden")}function _dc357f51(){_5a57abd5("awTerm").value="";_5a57abd5("awGloss").value="";_5a57abd5("awSection").value=_7070eafc||"";_5a57abd5("awError").textContent="";_5a57abd5("addWordSheet").classList.remove("hidden");setTimeout(()=>{const _92ca2f0e=_5a57abd5("awTerm");if(_92ca2f0e)_92ca2f0e.focus()},0)}function _73a05ff5(){_5a57abd5("addWordSheet").classList.add("hidden")}function _d7e1c770(){const _92ca2f0e=_90ac4e06(_5a57abd5("awTerm").value,_5a57abd5("awGloss").value,_5a57abd5("awSection").value);if(!_92ca2f0e.ok){_5a57abd5("awError").textContent=_92ca2f0e.reason;return}_73a05ff5();_ff31b191();_407ea0a2("Added — appears in the word list and tomorrow's new words")}let _d6e86378=null;function _b708219c(_92ca2f0e){const _96a0f96b=_17bdbfcf[_92ca2f0e];if(!_96a0f96b)return;_d6e86378=_92ca2f0e;const _b4421bbb=_a12a394f.length,_ed81ded3=_96a0f96b.idx[0]>=_b4421bbb;_5a57abd5("cdTerm").value=_96a0f96b.q;_5a57abd5("cdGloss").textContent=Array.isArray(_96a0f96b.a)?_96a0f96b.a.join(", "):_96a0f96b.a;const _589fd748=_1601120b.cards[_92ca2f0e];_5a57abd5("cdStats").textContent=_589fd748&&_589fd748.reps>0?_589fd748.reps+" review"+(_589fd748.reps===1?"":"s")+(_589fd748.lapses?", "+_589fd748.lapses+" lapse"+(_589fd748.lapses===1?"":"s"):""):"Not studied yet.";_5a57abd5("cdError").textContent="";_5a57abd5("cdDelete").classList.toggle("hidden",!_ed81ded3);_5a57abd5("cardSheet").classList.remove("hidden")}function _db3fc0a2(){_5a57abd5("cardSheet").classList.add("hidden");_d6e86378=null}function _dc38c316(){if(!_d6e86378)return;const _92ca2f0e=_0adfeca5(_d6e86378,_5a57abd5("cdTerm").value);if(!_92ca2f0e.ok){_5a57abd5("cdError").textContent=_92ca2f0e.reason;return}_db3fc0a2();_ff31b191();_407ea0a2("Term saved")}function _62aaa7bc(){if(!_d6e86378)return;if(!confirm("Delete this word? Its review history stays on this device but the word itself is gone."))return;const _92ca2f0e=_fd177f7e(_d6e86378);if(!_92ca2f0e.ok){_5a57abd5("cdError").textContent=_92ca2f0e.reason;return}_db3fc0a2();_ff31b191();_407ea0a2("Deleted")}function _6d272b02(){const _92ca2f0e=_1f5bd9f1==="home"?_1601120b.dir:_b9952f8e;const _96a0f96b=_604ff261(_92ca2f0e);let _b4421bbb="";if(_1f5bd9f1==="browse"){_b4421bbb+='<button type="button" class="partRow'+(!_7070eafc?" cur":"")+'" data-sec="">'+'<span class="prMark">'+(!_7070eafc?"&#9679;":"&#9675;")+"</span>"+'<span class="prLbl">All parts</span></button>'}const _ed81ded3=_1f5bd9f1==="home"?_d96acdf6():null;_91a7ea77.forEach(_92ca2f0e=>{const _589fd748=_1f5bd9f1==="home"?_ed81ded3.includes(_92ca2f0e):_7070eafc===_92ca2f0e;const _582531c1=_1f5bd9f1==="home"?_589fd748?"&#9745;":"&#9744;":_589fd748?"&#9679;":"&#9675;";_b4421bbb+='<button type="button" class="partRow'+(_589fd748?" cur":"")+'" data-sec="'+_801f2611(_92ca2f0e)+'">'+'<span class="prMark">'+_582531c1+'</span><span class="prLbl">'+_801f2611(_92ca2f0e)+"</span>"+'<span class="prCnt">'+(_96a0f96b[_92ca2f0e]||0)+"</span></button>"});_5a57abd5("partSheetList").innerHTML=_b4421bbb}function _b6c343bf(){const _92ca2f0e=_5a57abd5("browsePartBtn");if(_91a7ea77.length<2){_92ca2f0e.classList.add("hide");return}_92ca2f0e.classList.remove("hide");_92ca2f0e.textContent=_7070eafc||"All parts";if(_1f5bd9f1==="browse")_6d272b02()}function _8a26ffb7(){const _92ca2f0e=_5a57abd5("browseStatusChips");_92ca2f0e.innerHTML="";const _96a0f96b=(_96a0f96b,_b4421bbb)=>{const _ed81ded3=document.createElement("button");_ed81ded3.className="chip"+(_581c48b3===_96a0f96b?" on":"");_ed81ded3.textContent=_b4421bbb;_ed81ded3.addEventListener("click",_92ca2f0e=>{_92ca2f0e.preventDefault();_581c48b3=_96a0f96b;_ff31b191()});_92ca2f0e.appendChild(_ed81ded3)};_96a0f96b("all","All");_a44b854a.forEach(_92ca2f0e=>_96a0f96b(_92ca2f0e,_3842c34a[_92ca2f0e]))}function _ff31b191(){_5a57abd5("browseDirL").classList.toggle("sel",_b9952f8e==="L");_5a57abd5("browseDirE").classList.toggle("sel",_b9952f8e==="E");_5a57abd5("bdtL").textContent=DECK.fwd;_5a57abd5("bdtE").textContent=DECK.rev;_5a57abd5("bddL").textContent=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir==="L").length+" words";_5a57abd5("bddE").textContent=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir==="E").length+" words";_b6c343bf();_8a26ffb7();let _92ca2f0e=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir===_b9952f8e);if(_7070eafc)_92ca2f0e=_92ca2f0e.filter(_92ca2f0e=>_92ca2f0e.sec===_7070eafc);if(_581c48b3!=="all")_92ca2f0e=_92ca2f0e.filter(_92ca2f0e=>_5c9e9da0(_1601120b.cards[_92ca2f0e.id])===_581c48b3);_92ca2f0e=_c09f1867(_92ca2f0e,_10cb0633);const _96a0f96b=_5509706c(_92ca2f0e);const _b4421bbb=!!_10cb0633||_581c48b3!=="all"||!!_7070eafc;let _ed81ded3="";_96a0f96b.forEach(_92ca2f0e=>{_ed81ded3+='<details class="fold"'+(_b4421bbb?" open":"")+"><summary>"+_92ca2f0e.sec+" ("+_92ca2f0e.cards.length+")</summary><div>"+_92ca2f0e.cards.map(_fee8fa2e).join("")+"</div></details>"});_5a57abd5("browseResults").innerHTML=_ed81ded3||'<div class="note">No words match.</div>'}function _4996dcd9(){const _92ca2f0e=_5a57abd5("partPickerBtn");if(_91a7ea77.length<2){_92ca2f0e.classList.add("hide");return}_92ca2f0e.classList.remove("hide");const _96a0f96b=_d96acdf6();_92ca2f0e.textContent=_96a0f96b.length>=_91a7ea77.length?"All parts":_96a0f96b.length===1?_96a0f96b[0]:_96a0f96b.length+" parts";if(_1f5bd9f1==="home")_6d272b02()}function _d13068ed(){const _92ca2f0e=_5a57abd5("bchips");if(!_3805ea2c){_92ca2f0e.classList.add("hide");return}_92ca2f0e.classList.remove("hide");_92ca2f0e.innerHTML="";const _96a0f96b=_d96acdf6(),_b4421bbb=_da881b7a(),_ed81ded3=_1601120b.dir;const _589fd748={known:"Known",shaky:"Shaky",unseen:"Unseen"};_8ccd36c2.forEach(_582531c1=>{const _7aae1ace=_cca842fc.filter(_92ca2f0e=>_92ca2f0e.dir===_ed81ded3&&_96a0f96b.includes(_92ca2f0e.sec)&&_92ca2f0e.bucket===_582531c1&&(!_1601120b.cards[_92ca2f0e.id]||_1601120b.cards[_92ca2f0e.id].reps===0)).length;const _2316a329=document.createElement("button");_2316a329.className="chip"+(_b4421bbb.includes(_582531c1)?" on":"");_2316a329.innerHTML=_589fd748[_582531c1]+' <span style="opacity:.65">'+_7aae1ace+"</span>";_2316a329.addEventListener("click",_92ca2f0e=>{_92ca2f0e.preventDefault();let _96a0f96b=_da881b7a().slice();_96a0f96b=_96a0f96b.includes(_582531c1)?_96a0f96b.filter(_92ca2f0e=>_92ca2f0e!==_582531c1):_96a0f96b.concat([_582531c1]);if(!_96a0f96b.length)_96a0f96b=[_582531c1];_1601120b.buckets=_8ccd36c2.filter(_92ca2f0e=>_96a0f96b.includes(_92ca2f0e));_5bac78d1();_00512a8d()});_92ca2f0e.appendChild(_2316a329)})}function _912cb312(_92ca2f0e,_96a0f96b){const _b4421bbb=_92ca2f0e[_96a0f96b];if(!_b4421bbb||!_b4421bbb.n)return{studied:false,intro:0,reviewed:0};return{studied:true,intro:_b4421bbb.intro||0,reviewed:_b4421bbb.n-(_b4421bbb.intro||0)}}function _7f51533a(_92ca2f0e,_96a0f96b){let _b4421bbb=0;for(let _ed81ded3=_96a0f96b;;_ed81ded3--){if(_92ca2f0e[_ed81ded3]&&_92ca2f0e[_ed81ded3].n)_b4421bbb++;else{if(_ed81ded3!==_96a0f96b)break}if(_96a0f96b-_ed81ded3>3650)break}return _b4421bbb}function _67c2ee17(_92ca2f0e,_96a0f96b){let _b4421bbb=0,_ed81ded3=0;for(let _589fd748=_96a0f96b-3650;_589fd748<=_96a0f96b;_589fd748++){if(_92ca2f0e[_589fd748]&&_92ca2f0e[_589fd748].n){_ed81ded3++;_b4421bbb=Math.max(_b4421bbb,_ed81ded3)}else _ed81ded3=0}return _b4421bbb}function _00512a8d(){_5c37d421();_5a57abd5("wordmark").textContent=DECK.name;_5a57abd5("dtL").textContent=DECK.fwd;_5a57abd5("dtE").textContent=DECK.rev;_4996dcd9();_d13068ed();const _92ca2f0e=_e5ec8107(_1601120b.dir==="L"?"E":"L");const _96a0f96b=_1601120b.dir==="L"?_f251bad1:_92ca2f0e,_b4421bbb=_1601120b.dir==="E"?_f251bad1:_92ca2f0e;_5a57abd5("ddL").textContent=_96a0f96b.due.length+_96a0f96b.learn.length+_96a0f96b.intro.length+" ready";_5a57abd5("ddE").textContent=_b4421bbb.due.length+_b4421bbb.learn.length+_b4421bbb.intro.length+" ready";_5a57abd5("dirLtoE").classList.toggle("sel",_1601120b.dir==="L");_5a57abd5("dirEtoL").classList.toggle("sel",_1601120b.dir==="E");const _ed81ded3=_f251bad1;const _589fd748=_ed81ded3.due.length+_ed81ded3.learn.length+_ed81ded3.intro.length;_5a57abd5("startBtn").textContent=_589fd748?"Study "+_589fd748+" word"+(_589fd748===1?"":"s"):"Nothing due";_5a57abd5("startBtn").disabled=!_589fd748;const _582531c1=_d6ee6737(),_7aae1ace=_1601120b.days[_582531c1]||{n:0};_5a57abd5("homeSub").textContent=_7aae1ace.n?_7aae1ace.n+" rated today":"Nothing rated today yet";const _2316a329=_5a57abd5("strip");_2316a329.innerHTML="";for(let _92ca2f0e=34;_92ca2f0e>=0;_92ca2f0e--){const _96a0f96b=_582531c1-_92ca2f0e,_b4421bbb=document.createElement("div");_b4421bbb.className="dot"+(_1601120b.days[_96a0f96b]&&_1601120b.days[_96a0f96b].n?" did":"")+(_92ca2f0e===0?" today":"");_2316a329.appendChild(_b4421bbb)}const _e43b6981=_7f51533a(_1601120b.days,_582531c1);const _997b7b72=_c33150d7(_1601120b.dir);_5a57abd5("capVal").textContent=_1601120b.days[_582531c1]&&_1601120b.days[_582531c1].cap!=null?_1601120b.days[_582531c1].cap:_1601120b.settings.newPerDay;_35c2748d();_27ffc1fb();_43f39df1();if(_5a57abd5("calFold").open)_10520df1();_00f0f250(_b4421bbb);_5a57abd5("buildTag").textContent="Version "+_c841c97d+" · "+_c42c4e36(_1601120b.palette||"vellum");_5a57abd5("streakNote").textContent=_e43b6981?_e43b6981+" day"+(_e43b6981===1?"":"s")+" running":"No streak yet — the first day starts it.";const _34fc8f37=_997b7b72.total-_997b7b72.unseen;const _74bc2d78=_f12e30c6();const _926e567b=(()=>{let _92ca2f0e=0,_96a0f96b=0;for(const _b4421bbb in _1601120b.days){if(_582531c1-_b4421bbb<=30){_92ca2f0e+=_1601120b.days[_b4421bbb].ok||0;_96a0f96b+=_1601120b.days[_b4421bbb].tot||0}}return _96a0f96b?Math.round(100*_92ca2f0e/_96a0f96b)+"%":"—"})();_5a57abd5("statList").innerHTML=_7b17e724("In rotation",_34fc8f37+" of "+_997b7b72.total)+_7b17e724("Still to meet",_997b7b72.unseen)+_7b17e724("In short-term steps",_997b7b72.learning)+_7b17e724("Settling (under 3 weeks)",_997b7b72.young)+_7b17e724("Holding (3 weeks or more)",_997b7b72.mature)+_7b17e724("Recall rate, last 30 days",_926e567b);const _f9ee67c1=_1601120b.days[_582531c1]&&_1601120b.days[_582531c1].studyMs||0;const _8fa4ba86=_ef6224ea(_582531c1,7);const _a7157741=_d6d3b862();const _337ab3d7=_f9ee67c1||_8fa4ba86?_7b17e724("Study time today",_fce78260(_f9ee67c1))+_7b17e724("Study time, last 7 days",_fce78260(_8fa4ba86))+(_a7157741?_7b17e724("Typical active time to learn a word",_fce78260(_a7157741.medianMs)+" (median, "+_a7157741.n+" words)"):""):"";_5a57abd5("timingBody").innerHTML=_337ab3d7+(_74bc2d78.n<15?'<div class="note">Not enough answers yet — this fills in after about fifteen.</div>':_7b17e724("Typical time to recall",(_74bc2d78.med/1e3).toFixed(1)+"s")+_6d2d5dc0.map((_92ca2f0e,_96a0f96b)=>_7b17e724(_92ca2f0e[0][0].toUpperCase()+_92ca2f0e[0].slice(1),_74bc2d78.counts[_96a0f96b]+" ("+Math.round(100*_74bc2d78.counts[_96a0f96b]/_74bc2d78.n)+"%)")).join("")+'<div class="note">Time from seeing the word to revealing the answer, across your last '+_74bc2d78.n+" successful answers in this direction. Failures are excluded.</div>");_215bd686(document.querySelector("#scHome .homeCols"))}function _801f2611(_92ca2f0e){return String(_92ca2f0e).replace(/[&<>"']/g,_92ca2f0e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[_92ca2f0e]))}const _248bf2ed="oklch";const _d0714b3c=90;const _75bbc617={week:7,month:30,year:365};function _74590fe6(_92ca2f0e,_96a0f96b,_b4421bbb){if(_b4421bbb==="all"){let _96a0f96b=0,_b4421bbb=0;for(const _ed81ded3 in _92ca2f0e){const _589fd748=_92ca2f0e[_ed81ded3];if(_589fd748&&_589fd748.n){_96a0f96b+=_589fd748.n;_b4421bbb++}}return _b4421bbb?Math.round(_96a0f96b/_b4421bbb):0}const _ed81ded3=_75bbc617[_b4421bbb]||_75bbc617.month;let _589fd748=0,_582531c1=0;for(let _b4421bbb=_96a0f96b;_b4421bbb>_96a0f96b-_ed81ded3;_b4421bbb--){const _96a0f96b=_92ca2f0e[_b4421bbb];if(_96a0f96b&&_96a0f96b.n){_589fd748+=_96a0f96b.n;_582531c1++}}return _582531c1?Math.round(_589fd748/_582531c1):0}function _36b2a0ab(_92ca2f0e){let _96a0f96b=0,_b4421bbb=0;for(const _ed81ded3 in _92ca2f0e){const _589fd748=_92ca2f0e[_ed81ded3];if(_589fd748&&_589fd748.n){_96a0f96b+=_589fd748.n;_b4421bbb++}}return _b4421bbb?_96a0f96b/_b4421bbb:0}function _0d457eb3(_92ca2f0e,_96a0f96b,_b4421bbb){return _74590fe6(_92ca2f0e,_96a0f96b,_b4421bbb)||_36b2a0ab(_92ca2f0e)}function _0dd79764(_92ca2f0e,_96a0f96b){if(!_96a0f96b)return 0;return Math.max(0,Math.min(1,_92ca2f0e/(_96a0f96b*1.6)))*100}function _452a98b4(_92ca2f0e,_96a0f96b){if(!_96a0f96b)return 0;const _b4421bbb=100*_92ca2f0e/_96a0f96b;return Math.max(0,Math.min(1,(_b4421bbb-60)/40))*100}function _9c9da2a6(_92ca2f0e,_96a0f96b){const _b4421bbb=_92ca2f0e[_96a0f96b];return{ratings:_b4421bbb&&_b4421bbb.n||0,ok:_b4421bbb&&_b4421bbb.ok||0,tot:_b4421bbb&&_b4421bbb.tot||0}}function _adb7a9da(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3){if(!_92ca2f0e||!_92ca2f0e.ratings)return"";if(_b4421bbb==="retention"&&_92ca2f0e.tot){const _96a0f96b=_452a98b4(_92ca2f0e.ok,_92ca2f0e.tot);return"background:color-mix(in "+_248bf2ed+", var(--good) "+_96a0f96b+"%, var(--again) "+(100-_96a0f96b)+"%)"}const _589fd748=_0dd79764(_92ca2f0e.ratings,_96a0f96b);return"background:color-mix(in "+_248bf2ed+", var(--"+_ed81ded3+") "+_589fd748+"%, var(--panel))"}function _4e948898(_92ca2f0e,_96a0f96b){const _b4421bbb=Math.max(1,..._96a0f96b);const _ed81ded3=Math.max(0,Math.min(1,_92ca2f0e/_b4421bbb))*100;return"background:color-mix(in srgb, var(--faint) "+_ed81ded3+"%, var(--bg))"}function _3686b429(_92ca2f0e){if(!_92ca2f0e)return 0;const _96a0f96b=_92ca2f0e.match(/[\d.]+/g);if(!_96a0f96b)return 0;const _b4421bbb=/^color\(/.test(_92ca2f0e)?255:1;const _ed81ded3=_92ca2f0e=>{_92ca2f0e=_92ca2f0e*_b4421bbb/255;return _92ca2f0e<=.03928?_92ca2f0e/12.92:Math.pow((_92ca2f0e+.055)/1.055,2.4)};return.2126*_ed81ded3(+_96a0f96b[0])+.7152*_ed81ded3(+_96a0f96b[1])+.0722*_ed81ded3(+_96a0f96b[2])}const _44385851=(_92ca2f0e,_96a0f96b)=>(Math.max(_92ca2f0e,_96a0f96b)+.05)/(Math.min(_92ca2f0e,_96a0f96b)+.05);function _ae754ea3(_92ca2f0e){if(!_92ca2f0e)return;const _96a0f96b=document.createElement("span");_96a0f96b.style.cssText="position:absolute;visibility:hidden";_92ca2f0e.appendChild(_96a0f96b);const _b4421bbb=_92ca2f0e=>{_96a0f96b.style.color=_92ca2f0e;return _3686b429(getComputedStyle(_96a0f96b).color)};const _ed81ded3=_b4421bbb("var(--ink)"),_589fd748=_b4421bbb("var(--raise)");_92ca2f0e.querySelectorAll(".calCell").forEach(_92ca2f0e=>{if(!_92ca2f0e.getAttribute("style"))return;const _96a0f96b=_3686b429(getComputedStyle(_92ca2f0e).backgroundColor);_92ca2f0e.style.color=_44385851(_96a0f96b,_589fd748)>_44385851(_96a0f96b,_ed81ded3)?"var(--raise)":"var(--ink)"});_96a0f96b.remove()}function _10520df1(){_bcc201f5();_ecc6688f();_5a57abd5("calMonth").classList.toggle("hidden",_1601120b.settings.heatmapView!=="month");_5a57abd5("calAll").classList.toggle("hidden",_1601120b.settings.heatmapView!=="all");if(_1601120b.settings.heatmapView==="all")_2d2fd8ae();else _0c9fa24c();_a8d4c3d2()}function _bcc201f5(){const _92ca2f0e={month:"Month",all:"All-time"};_5a57abd5("calViewChips").innerHTML=["month","all"].map(_96a0f96b=>'<button class="chip'+(_1601120b.settings.heatmapView===_96a0f96b?" on":"")+'" data-view="'+_96a0f96b+'">'+_92ca2f0e[_96a0f96b]+"</button>").join("");const _96a0f96b={volume:"Volume",retention:"Retention"};_5a57abd5("calColChips").innerHTML=["volume","retention"].map(_92ca2f0e=>'<button class="chip'+(_1601120b.settings.heatmapColourMode===_92ca2f0e?" on":"")+'" data-col="'+_92ca2f0e+'">'+_96a0f96b[_92ca2f0e]+"</button>").join("")}function _ecc6688f(){_5a57abd5("gearAccent").value=_1601120b.settings.heatmapAccent;_5a57abd5("gearAvgWindow").value=_1601120b.settings.heatmapAvgWindow}function _a8d4c3d2(){const _92ca2f0e=_1601120b.settings.heatmapColourMode==="retention";const _96a0f96b=_92ca2f0e?"var(--again), var(--good)":"var(--panel), var(--"+_1601120b.settings.heatmapAccent+")";const _b4421bbb=_92ca2f0e?["Struggled","Recalled"]:["Quiet day","Busiest"];_5a57abd5("calLegend").innerHTML='<div class="calScale">'+'<span class="calScaleEnd">'+_b4421bbb[0]+"</span>"+'<span class="calScaleBar" style="background:linear-gradient(to right in '+_248bf2ed+", "+_96a0f96b+')"></span>'+'<span class="calScaleEnd">'+_b4421bbb[1]+"</span>"+"</div>"+"<div>"+(_92ca2f0e?"Colour: how much you recalled that day, out of everything you were asked.":"Colour: how many ratings that day, against your own average.")+" Dashed cells are forecast — not yet real.</div>"}function _0c9fa24c(){const _92ca2f0e=new Date;if(_ba9369c0==null){_ba9369c0=_92ca2f0e.getFullYear();_25d330ed=_92ca2f0e.getMonth()}_5a57abd5("calTitle").textContent=new Date(_ba9369c0,_25d330ed,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});const _96a0f96b=new Date;_96a0f96b.setDate(_96a0f96b.getDate()-_96a0f96b.getDay());_5a57abd5("calDow").innerHTML=[0,1,2,3,4,5,6].map(_92ca2f0e=>"<div>"+new Date(_96a0f96b.getFullYear(),_96a0f96b.getMonth(),_96a0f96b.getDate()+_92ca2f0e).toLocaleDateString(undefined,{weekday:"narrow"})+"</div>").join("");const _b4421bbb=_d6ee6737(),_ed81ded3=_0d457eb3(_1601120b.days,_b4421bbb,_1601120b.settings.heatmapAvgWindow),_589fd748=_9c25e103(_1601120b.dir,_d0714b3c);let _582531c1="";_a7157741(_ba9369c0,_25d330ed).forEach(_92ca2f0e=>_92ca2f0e.forEach(_92ca2f0e=>{if(!_92ca2f0e.inMonth){_582531c1+='<div class="calCell out">'+_92ca2f0e.d+"</div>";return}const _96a0f96b=_8fa4ba86(_92ca2f0e.y,_92ca2f0e.m,_92ca2f0e.d);const _7aae1ace=["calCell"];if(_96a0f96b===_b4421bbb)_7aae1ace.push("today");let _2316a329="",_e43b6981="";if(_96a0f96b>_b4421bbb){_7aae1ace.push("future");const _92ca2f0e=_96a0f96b-_b4421bbb,_ed81ded3=_92ca2f0e<_589fd748.length?_589fd748[_92ca2f0e]:null;if(_ed81ded3!=null)_2316a329=' style="'+_4e948898(_ed81ded3,_589fd748)+'"';_e43b6981='<span class="calDue">'+(_ed81ded3!=null?_ed81ded3+" due":"")+"</span>"}else{const _92ca2f0e=_912cb312(_1601120b.days,_96a0f96b);if(_92ca2f0e.studied){const _92ca2f0e=_adb7a9da(_9c9da2a6(_1601120b.days,_96a0f96b),_ed81ded3,_1601120b.settings.heatmapColourMode,_1601120b.settings.heatmapAccent);if(_92ca2f0e)_2316a329=' style="'+_92ca2f0e+'"'}}_582531c1+='<div class="'+_7aae1ace.join(" ")+'"'+_2316a329+'><span class="calNum">'+_92ca2f0e.d+"</span>"+_e43b6981+"</div>"}));_5a57abd5("calGrid").innerHTML=_582531c1;_ae754ea3(_5a57abd5("calGrid"))}function _2d2fd8ae(){const _92ca2f0e=_d6ee6737(),_96a0f96b=_0d457eb3(_1601120b.days,_92ca2f0e,_1601120b.settings.heatmapAvgWindow),_b4421bbb=_9c25e103(_1601120b.dir,_d0714b3c);let _ed81ded3=_92ca2f0e;for(const _92ca2f0e in _1601120b.days)_ed81ded3=Math.min(_ed81ded3,+_92ca2f0e);const _589fd748=_92ca2f0e+_d0714b3c;const _582531c1=new Date(_f9ee67c1(_ed81ded3)).getDay();const _7aae1ace=_ed81ded3-_582531c1;let _2316a329="",_e43b6981="";const _997b7b72=()=>{if(_e43b6981){_2316a329+='<div class="calWeekCol">'+_e43b6981+"</div>";_e43b6981=""}};for(let _582531c1=_7aae1ace;_582531c1<=_589fd748;_582531c1++){if((_582531c1-_7aae1ace)%7===0)_997b7b72();if(_582531c1<_ed81ded3){_e43b6981+='<div class="calDayDot empty"></div>';continue}const _589fd748=["calDayDot"];if(_582531c1===_92ca2f0e)_589fd748.push("today");let _2316a329="";if(_582531c1>_92ca2f0e){_589fd748.push("future");const _96a0f96b=_582531c1-_92ca2f0e,_ed81ded3=_96a0f96b<_b4421bbb.length?_b4421bbb[_96a0f96b]:null;if(_ed81ded3!=null)_2316a329=' style="'+_4e948898(_ed81ded3,_b4421bbb)+'"'}else{const _92ca2f0e=_adb7a9da(_9c9da2a6(_1601120b.days,_582531c1),_96a0f96b,_1601120b.settings.heatmapColourMode,_1601120b.settings.heatmapAccent);if(_92ca2f0e)_2316a329=' style="'+_92ca2f0e+'"'}_e43b6981+='<div class="'+_589fd748.join(" ")+'"'+_2316a329+' title="'+_801f2611(new Date(_f9ee67c1(_582531c1)).toLocaleDateString())+'"></div>'}_997b7b72();_5a57abd5("calAllScroll").innerHTML=_2316a329;const _34fc8f37=_5a57abd5("calAllScroll");_34fc8f37.scrollLeft=_34fc8f37.scrollWidth}let _0fab3a83=null;function _da8e7449(){const _92ca2f0e=DATA.find(_92ca2f0e=>_92ca2f0e[0].length>=4&&_92ca2f0e[0].length<=9&&!/[ (,-]/.test(_92ca2f0e[0]));return _92ca2f0e||DATA[0]||["Aa",""]}let _8108a1ad=null,_3a778c6d=null,_4902c93d=null;function _27ffc1fb(){const _92ca2f0e=_d96acdf6();const _96a0f96b=_1601120b.dir,_b4421bbb=_cca842fc.filter(_b4421bbb=>_b4421bbb.dir===_96a0f96b&&_92ca2f0e.includes(_b4421bbb.sec));const _ed81ded3=_b4421bbb.filter(_92ca2f0e=>_1601120b.cards[_92ca2f0e.id]&&_1601120b.cards[_92ca2f0e.id].reps>0).length;const _589fd748=_b4421bbb.length-_ed81ded3,_7aae1ace=_d6ee6737();let _2316a329=0,_e43b6981=0;for(let _92ca2f0e=_7aae1ace;_92ca2f0e>_7aae1ace-14;_92ca2f0e--){const _96a0f96b=_1601120b.days[_92ca2f0e];if(_96a0f96b&&_96a0f96b.n){_2316a329+=_96a0f96b.intro||0;_e43b6981++}}const _997b7b72=_1601120b.days[_7aae1ace]&&_1601120b.days[_7aae1ace].cap!=null?_1601120b.days[_7aae1ace].cap:_1601120b.settings.newPerDay;const _34fc8f37=_e43b6981?Math.max(_2316a329/_e43b6981,1):_997b7b72;const _74bc2d78=_589fd748?Math.ceil(_589fd748/_34fc8f37):0;const _926e567b=new Date(Date.now()+_74bc2d78*_582531c1);const _f9ee67c1=_92ca2f0e=>_92ca2f0e.toLocaleDateString(undefined,{day:"numeric",month:"long"});const _8fa4ba86=_96a0f96b==="L"?DECK.fwd:DECK.rev;let _a7157741="";if(!_589fd748){_a7157741='<span class="n">'+_b4421bbb.length+"</span> of "+_b4421bbb.length+" met in "+_8fa4ba86+". Everything now is upkeep."}else{_a7157741='<span class="n">'+_ed81ded3+"</span> of "+_b4421bbb.length+" met in "+_8fa4ba86+', <span class="n">'+_589fd748+"</span> to go."+" At "+(_e43b6981?"your recent pace of "+Math.round(_34fc8f37):_997b7b72)+" a day the last one arrives <b>"+_f9ee67c1(_926e567b)+"</b>.";const _92ca2f0e=new Date(Date.now()+(_74bc2d78+1)*_582531c1);if(_f9ee67c1(_92ca2f0e)!==_f9ee67c1(_926e567b))_a7157741+='<span class="cost">A day off moves that to '+_f9ee67c1(_92ca2f0e)+".</span>";else _a7157741+='<span class="cost">Every day off pushes that date back.</span>'}_5a57abd5("pace").innerHTML=_a7157741;const _337ab3d7=_0fab3a83[(_7aae1ace%_0fab3a83.length+_0fab3a83.length)%_0fab3a83.length];_5a57abd5("mottoLa").textContent=_337ab3d7[0];_5a57abd5("mottoEn").textContent=_337ab3d7[1]}function _f12e30c6(){const _92ca2f0e=_1601120b.dir==="L"?"L":"E";const _96a0f96b=[],_b4421bbb=[0,0,0,0];for(let _ed81ded3=_1601120b.log.length-1;_ed81ded3>=0&&_96a0f96b.length<200;_ed81ded3--){const _589fd748=_1601120b.log[_ed81ded3];if(_589fd748[4]==null||String(_589fd748[0])[0]!==_92ca2f0e||_589fd748[1]===_33d4f2bc)continue;_96a0f96b.push(_589fd748[4]);const _582531c1=_31605d2c(_589fd748[4]);if(_582531c1>=0)_b4421bbb[_582531c1]++}if(_96a0f96b.length<15)return{med:0,n:_96a0f96b.length,counts:_b4421bbb};const _ed81ded3=_96a0f96b.slice().sort((_92ca2f0e,_96a0f96b)=>_92ca2f0e-_96a0f96b);return{med:_ed81ded3[Math.floor(_ed81ded3.length/2)],n:_96a0f96b.length,counts:_b4421bbb}}const _7b17e724=(_92ca2f0e,_96a0f96b)=>'<div class="statRow"><span>'+_92ca2f0e+"</span><b>"+_96a0f96b+"</b></div>";function _741e24e8(_92ca2f0e,_96a0f96b){let _b4421bbb=0,_ed81ded3=0,_589fd748=0;for(const _582531c1 of _cca842fc){if(_582531c1.dir!==_92ca2f0e)continue;_ed81ded3++;const _7aae1ace=_1601120b.cards[_582531c1.id];if(!_7aae1ace||_7aae1ace.reps===0||_7aae1ace.s==null||_7aae1ace.last==null)continue;_589fd748++;_b4421bbb+=_99dfc277(_7aae1ace,_96a0f96b)}return{sum:_b4421bbb,total:_ed81ded3,met:_589fd748}}function _29a82f22(_92ca2f0e,_96a0f96b){const _b4421bbb={};for(const _ed81ded3 of _cca842fc){if(_ed81ded3.dir!==_92ca2f0e)continue;const _589fd748=_b4421bbb[_ed81ded3.sec]||(_b4421bbb[_ed81ded3.sec]={n:0,met:0,sum:0});_589fd748.n++;const _582531c1=_1601120b.cards[_ed81ded3.id];if(!_582531c1||_582531c1.reps===0)continue;_589fd748.met++;if(_582531c1.s==null||_582531c1.last==null)continue;_589fd748.sum+=_99dfc277(_582531c1,_96a0f96b)}return _b4421bbb}const _4a7f1158=_92ca2f0e=>_926e567b(_92ca2f0e[2]+_92ca2f0e[3]*1e3+500)-_926e567b(_92ca2f0e[2]);function _7bef8fec(){const _92ca2f0e={},_96a0f96b={young:[0,0],mature:[0,0]};for(const _b4421bbb of _1601120b.log){const _ed81ded3=_b4421bbb[0],_589fd748=_b4421bbb[1];const _582531c1=_92ca2f0e[_ed81ded3];if(_582531c1!=null&&_582531c1>=1){const _92ca2f0e=_582531c1>=21?"mature":"young";_96a0f96b[_92ca2f0e][1]++;if(_589fd748!==_33d4f2bc)_96a0f96b[_92ca2f0e][0]++}_92ca2f0e[_ed81ded3]=_4a7f1158(_b4421bbb)}return _96a0f96b}function _9c25e103(_92ca2f0e,_96a0f96b){const _b4421bbb=_d6ee6737(),_ed81ded3=new Array(_96a0f96b).fill(0);for(const _589fd748 of _cca842fc){if(_589fd748.dir!==_92ca2f0e)continue;const _582531c1=_1601120b.cards[_589fd748.id];if(!_582531c1||_582531c1.reps===0||_582531c1.due==null)continue;const _7aae1ace=_926e567b(_582531c1.due)-_b4421bbb;if(_7aae1ace<0)_ed81ded3[0]++;else if(_7aae1ace<_96a0f96b)_ed81ded3[_7aae1ace]++}return _ed81ded3}function _43f39df1(){const _92ca2f0e=_1601120b.dir,_96a0f96b=_92ca2f0e==="L"?DECK.fwd:DECK.rev;const _b4421bbb=Date.now();const _ed81ded3=_92ca2f0e=>Math.round(_92ca2f0e*100)+"%";const _589fd748=_741e24e8(_92ca2f0e,_b4421bbb);const _582531c1=_d6ee6737();let _7aae1ace=0,_2316a329=0;for(let _92ca2f0e=_582531c1;_92ca2f0e>_582531c1-14;_92ca2f0e--){const _96a0f96b=_1601120b.days[_92ca2f0e];if(_96a0f96b&&_96a0f96b.n){_7aae1ace+=_96a0f96b.intro||0;_2316a329++}}const _e43b6981=_1601120b.days[_582531c1]&&_1601120b.days[_582531c1].cap!=null?_1601120b.days[_582531c1].cap:_1601120b.settings.newPerDay;const _997b7b72=_2316a329?Math.max(_7aae1ace/_2316a329,1):_e43b6981;let _34fc8f37="";_34fc8f37+='<div class="pace"><span class="n">'+Math.round(_589fd748.sum)+"</span> of "+_589fd748.total+" — if you were tested on the whole "+_96a0f96b+" list right now, that is roughly what you would get. "+"<b>"+_ed81ded3(_589fd748.sum/_589fd748.total)+"</b> of the syllabus.</div>";_34fc8f37+=_7b17e724("Words met so far",_589fd748.met+" of "+_589fd748.total);const _74bc2d78=_92ca2f0e==="L"?"E":"L";const _926e567b=_741e24e8(_74bc2d78,_b4421bbb);_34fc8f37+=_7b17e724((_74bc2d78==="L"?DECK.fwd:DECK.rev)+" — expected now",Math.round(_926e567b.sum)+" of "+_926e567b.total);_34fc8f37+='<div class="note">The first figure is a model estimate, not a measurement: it is FSRS\'s own '+"recall probability for every card, summed. Words never met count as zero. The second projection "+"assumes you clear reviews daily and keep introducing about "+Math.round(_997b7b72)+" a day — it is an "+"assumption, not a forecast.</div>";_5a57abd5("syllabus").innerHTML=_34fc8f37;const _8fa4ba86=_29a82f22(_92ca2f0e,_b4421bbb);let _a7157741="";_91a7ea77.forEach(_92ca2f0e=>{const _96a0f96b=_8fa4ba86[_92ca2f0e];if(!_96a0f96b)return;_a7157741+=_7b17e724(_92ca2f0e,Math.round(_96a0f96b.sum)+" / "+_96a0f96b.n+"  ("+_96a0f96b.met+" met)")});_5a57abd5("partBody").innerHTML=_a7157741||'<div class="note">No parts to show.</div>';const _337ab3d7=_7bef8fec();let _aedea579="";const _e48e9004=_92ca2f0e=>_92ca2f0e[1]<20?"too few reviews yet ("+_92ca2f0e[1]+")":Math.round(100*_92ca2f0e[0]/_92ca2f0e[1])+"% of "+_92ca2f0e[1];_aedea579+=_7b17e724("Settling (under 3 weeks)",_e48e9004(_337ab3d7.young));_aedea579+=_7b17e724("Holding (3 weeks or more)",_e48e9004(_337ab3d7.mature));_aedea579+=_7b17e724("Your target",_ed81ded3(_1601120b.settings.retention));_aedea579+='<div class="note">This is the check on everything above. If the holding figure settles well below '+"your target once there are a few hundred reviews behind it, the default parameters are wrong for you "+"and every interval in the app is too long.</div>";_5a57abd5("trueBody").innerHTML=_aedea579;const _37709915=_9c25e103(_92ca2f0e,14);let _5dc90b7a="";const _33d4f2bc=["Today","Tomorrow"];_37709915.forEach((_92ca2f0e,_96a0f96b)=>{const _b4421bbb=_33d4f2bc[_96a0f96b]||new Date(_f9ee67c1(_582531c1+_96a0f96b)).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});_5dc90b7a+=_7b17e724(_b4421bbb,_92ca2f0e+" due")});_5dc90b7a+='<div class="note">Reviews only. New words on top of this are whatever the daily allowance lets through.</div>';_5a57abd5("fcBody").innerHTML=_5dc90b7a}function _35c2748d(){const _92ca2f0e=_5a57abd5("syncAge");if(!_92ca2f0e)return;const _96a0f96b=_1601120b.settings.syncCode;if(!_96a0f96b){_92ca2f0e.className="note";_92ca2f0e.textContent="Sync is off — Settings can turn it on.";return}if(!_1601120b.lastSync){_92ca2f0e.className="note bad";_92ca2f0e.textContent="Sync code set but nothing has synced yet.";return}const _b4421bbb=Date.now()-_1601120b.lastSync;const _7aae1ace=_b4421bbb<_ed81ded3?"just now":_b4421bbb<_589fd748?Math.round(_b4421bbb/_ed81ded3)+"m ago":_b4421bbb<_582531c1?Math.round(_b4421bbb/_589fd748)+"h ago":Math.round(_b4421bbb/_582531c1)+"d ago";_92ca2f0e.className="note"+(_b4421bbb>3*_582531c1?" bad":_b4421bbb>_582531c1?" warnish":"");_92ca2f0e.textContent="Synced "+_7aae1ace+" as "+_edd6c4f2()+(_b4421bbb>_582531c1?" — check both devices still have the same code.":".")}function _00f0f250(_92ca2f0e){const _96a0f96b=_5a57abd5("homeWarn");if(!_96a0f96b||!_1601120b)return;let _b4421bbb="";if(!_6bdb898b)_b4421bbb+='<div class="warn bad">This device is refusing to save. Export a backup now and check that Safari is not in Private Browsing.</div>';const _ed81ded3=_1601120b.sinceExport||0,_589fd748=!!_1601120b.settings.syncCode;if(_6bdb898b&&!_589fd748&&_ed81ded3>=150)_b4421bbb+='<div class="warn">'+_ed81ded3+" ratings since the last backup. Settings → Export a backup file.</div>";if(_6bdb898b&&_589fd748&&_1601120b.lastSync&&Date.now()-_1601120b.lastSync>3*_582531c1)_b4421bbb+='<div class="warn">Sync has not gone through since '+new Date(_1601120b.lastSync).toLocaleDateString()+". Check both devices still have the same code and are online.</div>";_96a0f96b.innerHTML=_b4421bbb}function _edd6c4f2(){const _92ca2f0e=(_1601120b.settings.deviceName||"").trim();return _92ca2f0e||"this device"}function _9f8d29e6(){try{_1601120b.lastDevice=_edd6c4f2();const _92ca2f0e=new Blob([JSON.stringify(_7d16c078())],{type:"application/json"});const _96a0f96b=URL.createObjectURL(_92ca2f0e);const _b4421bbb=document.createElement("a");_b4421bbb.href=_96a0f96b;_b4421bbb.download="riverbank-latin-"+(new Date).toISOString().slice(0,10)+".json";document.body.appendChild(_b4421bbb);_b4421bbb.click();setTimeout(()=>{document.body.removeChild(_b4421bbb);URL.revokeObjectURL(_96a0f96b)},1500);_1601120b.sinceExport=0;_1601120b.lastExport=Date.now();_5bac78d1();_407ea0a2("Backup saved")}catch(_92ca2f0e){_5bac78d1();_407ea0a2("Export failed — try again from Settings")}}function _a2dae4e4(_92ca2f0e){const _96a0f96b=new FileReader;_96a0f96b.onload=()=>{try{const _92ca2f0e=_5361e9ea(JSON.parse(_96a0f96b.result));if(!_92ca2f0e)throw 0;if(_92ca2f0e.log.length<_1601120b.log.length&&!confirm("That file ("+(_92ca2f0e.lastDevice?"from "+_92ca2f0e.lastDevice+", ":"")+_92ca2f0e.log.length+" reviews) has fewer than this device ("+_edd6c4f2()+", "+_1601120b.log.length+" reviews). Replace anyway?"))return;_76a21c05(_92ca2f0e);_00512a8d();_407ea0a2("Restored "+_1601120b.log.length+" reviews");if(_1601120b.settings.syncCode)_f8010ca0(true)}catch(_92ca2f0e){_407ea0a2("That file could not be read — it may belong to the other deck")}};_96a0f96b.readAsText(_92ca2f0e)}const _d89862cb="https://riverbank-sync.karsten-vun.workers.dev";const _4163b8e5=2e4;let _f9b45b99=0;function _b96845f7(_92ca2f0e,_96a0f96b){if(!_92ca2f0e)return"none";return _96a0f96b==null?"reconcile-first":"debounce-push"}function _7970ad20(_92ca2f0e,_96a0f96b,_b4421bbb,_ed81ded3){const _589fd748=_b4421bbb;const _582531c1=Math.max(0,(_96a0f96b||0)+_ed81ded3-_92ca2f0e);return Math.max(_589fd748,_582531c1)}function _cdc7872e(_92ca2f0e){return{kvInput:"kv:"+_92ca2f0e+":"+DECK_ID,encInput:"enc:"+_92ca2f0e+":"+DECK_ID}}async function _caf7aafc(_92ca2f0e){const _96a0f96b=new TextEncoder;const _b4421bbb=_cdc7872e(_92ca2f0e);const _ed81ded3=await crypto.subtle.digest("SHA-256",_96a0f96b.encode(_b4421bbb.kvInput));const _589fd748=await crypto.subtle.digest("SHA-256",_96a0f96b.encode(_b4421bbb.encInput));const _582531c1=Array.from(new Uint8Array(_ed81ded3)).map(_92ca2f0e=>_92ca2f0e.toString(16).padStart(2,"0")).join("");const _7aae1ace=await crypto.subtle.importKey("raw",_589fd748,"AES-GCM",false,["encrypt","decrypt"]);return{kvKey:_582531c1,cryptoKey:_7aae1ace}}function _ddd1203f(_92ca2f0e){return btoa(String.fromCharCode.apply(null,new Uint8Array(_92ca2f0e)))}function _a1e687fe(_92ca2f0e){return Uint8Array.from(atob(_92ca2f0e),_92ca2f0e=>_92ca2f0e.charCodeAt(0))}async function _343849b1(_92ca2f0e){if(typeof CompressionStream==="undefined")return null;const _96a0f96b=new CompressionStream("gzip");const _b4421bbb=_96a0f96b.writable.getWriter();_b4421bbb.write(_92ca2f0e);_b4421bbb.close();return new Uint8Array(await new Response(_96a0f96b.readable).arrayBuffer())}async function _0405cc3e(_92ca2f0e){const _96a0f96b=new DecompressionStream("gzip");const _b4421bbb=_96a0f96b.writable.getWriter();_b4421bbb.write(_92ca2f0e);_b4421bbb.close();return new Uint8Array(await new Response(_96a0f96b.readable).arrayBuffer())}function _a1174609(_92ca2f0e){return _92ca2f0e>=1048576?(_92ca2f0e/1048576).toFixed(1)+" MB":Math.round(_92ca2f0e/1024)+" KB"}async function _b2ed46ac(_92ca2f0e,_96a0f96b){let _b4421bbb=(new TextEncoder).encode(JSON.stringify(_92ca2f0e)),_ed81ded3=0;const _589fd748=await _343849b1(_b4421bbb);if(_589fd748&&_589fd748.length<_b4421bbb.length){_b4421bbb=_589fd748;_ed81ded3=1}const _582531c1=crypto.getRandomValues(new Uint8Array(12));const _7aae1ace=await crypto.subtle.encrypt({name:"AES-GCM",iv:_582531c1},_96a0f96b,_b4421bbb);return{iv:_ddd1203f(_582531c1),data:_ddd1203f(_7aae1ace),z:_ed81ded3}}async function _170a460d(_92ca2f0e,_96a0f96b){let _b4421bbb=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:_a1e687fe(_92ca2f0e.iv)},_96a0f96b,_a1e687fe(_92ca2f0e.data)));if(_92ca2f0e.z)_b4421bbb=await _0405cc3e(_b4421bbb);return JSON.parse((new TextDecoder).decode(_b4421bbb))}function _107cdfe8(_92ca2f0e,_96a0f96b){if(!_92ca2f0e)return null;let _b4421bbb;try{_b4421bbb=JSON.parse(_92ca2f0e)}catch(_92ca2f0e){return null}if(!_b4421bbb||!_b4421bbb.settings)return null;if("theme"in _96a0f96b)_b4421bbb.theme=_96a0f96b.theme;Object.assign(_b4421bbb.settings,_96a0f96b.settings);return JSON.stringify(_b4421bbb)}function _2430d615(){const _92ca2f0e={theme:_1601120b.theme,settings:{deviceName:_1601120b.settings.deviceName,reviewDay:_1601120b.settings.reviewDay}};_b776a48d.forEach(_96a0f96b=>{try{const _b4421bbb=KEY.replace("."+DECK_ID+".","."+_96a0f96b+".");const _ed81ded3=_107cdfe8(localStorage.getItem(_b4421bbb),_92ca2f0e);if(_ed81ded3)localStorage.setItem(_b4421bbb,_ed81ded3)}catch(_92ca2f0e){}})}const _9a4989f1="riverbank.global.v1";function _d78d2494(_92ca2f0e,_96a0f96b){if(!_92ca2f0e)return _96a0f96b;let _b4421bbb;try{_b4421bbb=JSON.parse(_92ca2f0e)}catch(_92ca2f0e){return _96a0f96b}if(!_b4421bbb||typeof _b4421bbb!=="object")return _96a0f96b;const _ed81ded3=Object.assign({},_96a0f96b);if(typeof _b4421bbb.studyStats==="boolean")_ed81ded3.studyStats=_b4421bbb.studyStats;if(typeof _b4421bbb.studyHints==="boolean")_ed81ded3.studyHints=_b4421bbb.studyHints;if(typeof _b4421bbb.studyMotion==="boolean")_ed81ded3.studyMotion=_b4421bbb.studyMotion;if(typeof _b4421bbb.syncCode==="string"&&_b4421bbb.syncCode)_ed81ded3.syncCode=_b4421bbb.syncCode;return _ed81ded3}function _c69814c3(_92ca2f0e){try{_92ca2f0e.settings=_d78d2494(localStorage.getItem(_9a4989f1),_92ca2f0e.settings)}catch(_92ca2f0e){}}function _7d16c078(){return Object.assign({},_1601120b,{settings:Object.assign({},_1601120b.settings,{syncCode:""})})}async function _f8010ca0(_92ca2f0e){const _96a0f96b=_1601120b.settings.syncCode;if(!_96a0f96b){if(!_92ca2f0e)_407ea0a2("Add a sync code on the Settings page first");return}_1601120b.lastDevice=_edd6c4f2();let _b4421bbb=0;try{const{kvKey:_ed81ded3,cryptoKey:_589fd748}=await _caf7aafc(_96a0f96b);const _582531c1=await _b2ed46ac(_7d16c078(),_589fd748);const _7aae1ace=JSON.stringify(_582531c1);_b4421bbb=_7aae1ace.length;_1601120b.lastPushBytes=_b4421bbb;const _2316a329=await fetch(_d89862cb+"/sync/"+_ed81ded3,{method:"PUT",headers:{"Content-Type":"application/json"},body:_7aae1ace});if(!_2316a329.ok)throw new Error("HTTP "+_2316a329.status);_1601120b.lastSync=Date.now();_1601120b.syncedLogLen=_1601120b.log.length;_1601120b.sinceExport=0;_f9b45b99=_1601120b.lastSync;_1601120b.lastPushError=null;_1601120b.lastPushErrorAt=null;try{localStorage.setItem(KEY,JSON.stringify(_1601120b))}catch(_92ca2f0e){}if(!_92ca2f0e)_407ea0a2("Synced as "+_1601120b.lastDevice+" ("+_a1174609(_b4421bbb)+")")}catch(_96a0f96b){_1601120b.lastPushError=String(_96a0f96b&&_96a0f96b.message||_96a0f96b);_1601120b.lastPushErrorAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(_1601120b))}catch(_92ca2f0e){}if(!_92ca2f0e)_407ea0a2("Sync failed ("+(_96a0f96b.message||_96a0f96b)+")")}}function _76a21c05(_92ca2f0e){_92ca2f0e.settings.syncCode=_1601120b.settings.syncCode;_92ca2f0e.settings.deviceName=_1601120b.settings.deviceName;_1601120b=_92ca2f0e;_1601120b.lastSync=Date.now();_1601120b.syncedLogLen=_1601120b.log.length;_86ba3ad6=[];_bf318fcd=null;_5bac78d1();_f6ca93db();_585db8f1()}async function _15ebddcf(_92ca2f0e){const _96a0f96b=_1601120b.settings.syncCode;let _b4421bbb,_ed81ded3,_589fd748;try{({kvKey:_b4421bbb,cryptoKey:_ed81ded3}=await _caf7aafc(_96a0f96b));_589fd748=await fetch(_d89862cb+"/sync/"+_b4421bbb)}catch(_96a0f96b){if(!_92ca2f0e)_407ea0a2("Sync pull failed -- check your connection");return null}if(_589fd748.status===404){if(!_92ca2f0e)_407ea0a2("Nothing synced under this code yet");return null}if(!_589fd748.ok){if(!_92ca2f0e)_407ea0a2("Sync pull failed ("+_589fd748.status+")");return null}try{const _92ca2f0e=await _589fd748.json();const _96a0f96b=_5361e9ea(await _170a460d(_92ca2f0e,_ed81ded3));if(!_96a0f96b)throw new Error("that code holds a different deck");return _96a0f96b}catch(_96a0f96b){if(!_92ca2f0e)_407ea0a2("Sync pull failed ("+_96a0f96b.message+")");return null}}function _ee273f12(_92ca2f0e,_96a0f96b,_b4421bbb){const _ed81ded3=_92ca2f0e>_b4421bbb,_589fd748=_96a0f96b>_b4421bbb;if(_ed81ded3&&_589fd748)return"conflict";if(_589fd748)return"take-remote";if(_ed81ded3)return"push-local";return"in-sync"}function _ad7e780f(_92ca2f0e,_96a0f96b){const _b4421bbb=_edd6c4f2(),_ed81ded3=_92ca2f0e.lastDevice||"the other device";const _589fd748=_1601120b.log.length-_96a0f96b,_582531c1=_92ca2f0e.log.length-_96a0f96b;return"This device ("+_b4421bbb+") has "+_589fd748+" review"+(_589fd748===1?"":"s")+" the synced copy does not have yet.\n"+"The synced copy was last pushed by "+_ed81ded3+" and has "+_582531c1+" review"+(_582531c1===1?"":"s")+" this device does not have.\n\n"+"OK = take the copy from "+_ed81ded3+" ("+_b4421bbb+"'s "+_589fd748+" new review"+(_589fd748===1?"":"s")+" will be lost unless you export a backup file first).\n"+"Cancel = decide later -- nothing changes now. To keep "+_b4421bbb+"'s copy instead, use "+'"Sync now" in Settings once you\'re sure.'}function _27781057(_92ca2f0e,_96a0f96b){if(confirm(_ad7e780f(_92ca2f0e,_96a0f96b))){_76a21c05(_92ca2f0e);_00512a8d();_407ea0a2("Took the copy from "+(_92ca2f0e.lastDevice||"the other device"))}else{_407ea0a2("Left as is -- sync from Settings when you're ready to keep this copy instead",3200)}}async function _ccd44560(){if(!_1601120b.settings.syncCode)return;const _92ca2f0e=_1601120b.log.length;const _96a0f96b=await _15ebddcf(true);if(!_96a0f96b)return;if(_1601120b.log.length!==_92ca2f0e)return;const _b4421bbb=_1601120b.syncedLogLen==null?_1601120b.log.length:_1601120b.syncedLogLen;const _ed81ded3=_ee273f12(_1601120b.log.length,_96a0f96b.log.length,_b4421bbb);if(_ed81ded3==="conflict"){_27781057(_96a0f96b,_b4421bbb)}else if(_ed81ded3==="take-remote"){_76a21c05(_96a0f96b);_00512a8d();_407ea0a2("Synced — "+_1601120b.log.length+" reviews from "+(_96a0f96b.lastDevice||"your other device"),2600)}else if(_ed81ded3==="push-local"){_f8010ca0(true)}}const _7d2fa7d2="riverbank.kill.v1";function _4c0b2328(){return localStorage.getItem(_7d2fa7d2)==="1"}function _93bc80ea(_92ca2f0e){try{localStorage.setItem(_7d2fa7d2,_92ca2f0e?"1":"0")}catch(_92ca2f0e){}_5a57abd5("killLock").classList.toggle("on",_92ca2f0e)}async function _bb759a10(){if(_4c0b2328())_5a57abd5("killLock").classList.add("on");try{const _92ca2f0e=await fetch(_d89862cb+"/status",{signal:AbortSignal.timeout(4e3)});if(!_92ca2f0e.ok)return;const{killed:_96a0f96b}=await _92ca2f0e.json();_93bc80ea(!!_96a0f96b)}catch(_92ca2f0e){}}async function _a2e39084(){const _92ca2f0e=_1601120b.settings.syncCode;if(!_92ca2f0e){_407ea0a2("Add a sync code on the Settings page first");return}const _96a0f96b=await _15ebddcf(false);if(!_96a0f96b)return;if(_96a0f96b.log.length<_1601120b.log.length&&!confirm("The synced copy (last pushed by "+(_96a0f96b.lastDevice||"another device")+") has fewer reviews ("+_96a0f96b.log.length+") than this device ("+_edd6c4f2()+", "+_1601120b.log.length+"). Replace anyway?"))return;_76a21c05(_96a0f96b);_00512a8d();_407ea0a2("Pulled "+_1601120b.log.length+" reviews from "+(_96a0f96b.lastDevice||"sync"))}function _371bfe2a(_92ca2f0e){const _96a0f96b=new Date(_f9ee67c1(_92ca2f0e)+12*_589fd748);return _96a0f96b.getFullYear()+"-"+String(_96a0f96b.getMonth()+1).padStart(2,"0")+"-"+String(_96a0f96b.getDate()).padStart(2,"0")}function _cdc4ae44(_92ca2f0e,_96a0f96b,_b4421bbb){const _ed81ded3=_96a0f96b[_92ca2f0e];if(!_ed81ded3||!_ed81ded3.n)return null;const _589fd748=_b4421bbb.reduce((_96a0f96b,_b4421bbb)=>_926e567b(_b4421bbb[2])===_92ca2f0e&&_b4421bbb[4]!=null?_96a0f96b+_b4421bbb[4]:_96a0f96b,0);return{reviews:_ed81ded3.n,newWords:_ed81ded3.intro||0,activeMinutes:Math.round(_589fd748/6e4)}}async function _6d225166(_92ca2f0e,_96a0f96b,_b4421bbb){try{const _ed81ded3=await fetch(_d89862cb+"/stats",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({date:_371bfe2a(_92ca2f0e),deck:DECK_ID,..._96a0f96b})});if(_ed81ded3.ok){if(!_b4421bbb)_407ea0a2("Thanks — usage stats sent");return true}if(!_b4421bbb)_407ea0a2(_ed81ded3.status===429?"Please wait a bit before sending again":"Could not send — try again later");return false}catch(_92ca2f0e){if(!_b4421bbb)_407ea0a2("Could not send — check your connection");return false}}async function _a1059e38(){if(!_1601120b.settings.shareStats)return;const _92ca2f0e=_d6ee6737()-1;if(_1601120b.statsSentThrough!=null&&_1601120b.statsSentThrough>=_92ca2f0e)return;const _96a0f96b=_cdc4ae44(_92ca2f0e,_1601120b.days,_1601120b.log);if(!_96a0f96b){_1601120b.statsSentThrough=_92ca2f0e;_5bac78d1();return}const _b4421bbb=await _6d225166(_92ca2f0e,_96a0f96b,true);if(_b4421bbb){_1601120b.statsSentThrough=_92ca2f0e;_5bac78d1()}}async function _237a1a24(){if(!_1601120b.settings.shareStats){_407ea0a2("Turn on sharing above first");return}const _92ca2f0e=_d6ee6737();const _96a0f96b=_cdc4ae44(_92ca2f0e,_1601120b.days,_1601120b.log);if(!_96a0f96b){_407ea0a2("Nothing studied today yet");return}await _6d225166(_92ca2f0e,_96a0f96b,false)}const _dd9cb0ea=3,_47322d47=500,_32da68e6=6e4;function _c31303d0(){_5a57abd5("feedbackCount").textContent=_5a57abd5("fFeedback").value.length+"/"+_47322d47}async function _c0b1fc37(){const _92ca2f0e=_5a57abd5("fFeedback").value.trim();if(_92ca2f0e.length<_dd9cb0ea){_407ea0a2("A little more detail would help");return}const _96a0f96b=parseInt(localStorage.getItem("rbFeedbackLast")||"0",10);if(Date.now()-_96a0f96b<_32da68e6){_407ea0a2("You can send another suggestion in a moment",2200);return}const _b4421bbb=_5a57abd5("feedbackSendBtn");_b4421bbb.disabled=true;try{const _96a0f96b=await fetch(_d89862cb+"/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:_92ca2f0e,deck:DECK_ID,hp:_5a57abd5("fFeedbackHp").value})});if(_96a0f96b.ok){localStorage.setItem("rbFeedbackLast",String(Date.now()));_5a57abd5("fFeedback").value="";_c31303d0();_407ea0a2("Thanks — sent!")}else if(_96a0f96b.status===429){_407ea0a2("Please wait a bit before sending more",2600)}else{_407ea0a2("Could not send — try again later")}}catch(_92ca2f0e){_407ea0a2("Could not send — check your connection")}finally{_b4421bbb.disabled=false}}function _42895c04(){_5a57abd5("logBody").innerHTML=CHANGES.map(([_92ca2f0e,_96a0f96b])=>'<div class="logv">'+_92ca2f0e+"</div>"+_96a0f96b.map(_92ca2f0e=>'<div class="logi">'+_92ca2f0e+"</div>").join("")).join("")}const _ad4872c7=[0,0,0,0,1,0,0,0,0,2];let _10ba9bfa=[];let _565368ca=false;function _e76adb41(){const _92ca2f0e=_8ad49e33(_1601120b.palette)?_1601120b.palette:"vellum";const _96a0f96b=(_92ca2f0e,_96a0f96b)=>'<span class="palHalf" data-palette="'+_92ca2f0e+'" data-theme="'+_96a0f96b+'">'+'<span class="palMini">'+_801f2611(_3a778c6d)+"</span>"+'<span class="palAccent"></span>'+"</span>";const _b4421bbb=_92ca2f0e=>'<span class="palRatings" data-palette="'+_92ca2f0e+'" data-theme="dark">'+'<span class="palDot again"></span><span class="palDot good"></span><span class="palDot easy"></span>'+"</span>";const _ed81ded3=_c1c31ff0.map(_ed81ded3=>'<button type="button" class="palCard'+(_ed81ded3===_92ca2f0e?" on":"")+'" data-pal="'+_ed81ded3+'" '+'aria-pressed="'+(_ed81ded3===_92ca2f0e?"true":"false")+'">'+'<span class="palPrev">'+_96a0f96b(_ed81ded3,"light")+_96a0f96b(_ed81ded3,"dark")+"</span>"+_b4421bbb(_ed81ded3)+'<span class="palName">'+_801f2611(_cc4c33ea[_ed81ded3])+"</span>"+"</button>").join("")+(_565368ca?'<button type="button" class="palCard'+(_92ca2f0e==="secret"?" on":"")+'" data-pal="secret" '+'aria-pressed="'+(_92ca2f0e==="secret"?"true":"false")+'">'+'<span class="palPrev">'+_96a0f96b("secret","light")+_96a0f96b("secret","dark")+"</span>"+_b4421bbb("secret")+'<span class="palName">'+_801f2611(_f771107d)+"</span>"+"</button>":"");_5a57abd5("palGrid").innerHTML=_ed81ded3;_5a57abd5("palGrid").querySelectorAll(".palCard").forEach(_92ca2f0e=>{_7019bc3d(_92ca2f0e,()=>{const _96a0f96b=_92ca2f0e.dataset.pal;if(_96a0f96b!=="secret"){_10ba9bfa.push(_c1c31ff0.indexOf(_96a0f96b));if(_10ba9bfa.length>_ad4872c7.length)_10ba9bfa.shift();if(!_565368ca&&_10ba9bfa.length===_ad4872c7.length&&_10ba9bfa.every((_92ca2f0e,_96a0f96b)=>_92ca2f0e===_ad4872c7[_96a0f96b])){_565368ca=true;_1601120b.palette="secret";_5bac78d1();_f6ca93db();_89622f4f();_00512a8d();_407ea0a2("A smoo theme has appeared",3200);return}}_1601120b.palette=_96a0f96b;if(_1601120b.rotate==="daily")_1601120b.rotDay=_d6ee6737();_5bac78d1();_f6ca93db();_89622f4f();_00512a8d()})});_d73624a8(_92ca2f0e)}function _d73624a8(_92ca2f0e){const _96a0f96b=_96a0f96b=>'<div class="cardPreviewHalf" data-palette="'+_92ca2f0e+'" data-theme="'+_96a0f96b+'">'+'<span class="cardPreviewWord">'+_801f2611(_3a778c6d)+"</span>"+'<span class="cardPreviewRule"></span>'+'<span class="cardPreviewGloss">'+_801f2611(_4902c93d)+"</span>"+'<span class="cardPreviewRates">'+'<span class="cpRate again">Again</span>'+'<span class="cpRate good">Good</span><span class="cpRate easy">Easy</span>'+"</span>"+'<span class="cardPreviewLbl">'+(_96a0f96b==="light"?"Light":"Dark")+"</span>"+"</div>";_5a57abd5("cardPreview").innerHTML=_96a0f96b("light")+_96a0f96b("dark")}function _89622f4f(){const _92ca2f0e=_1601120b.settings;_5a57abd5("fNew").value=_92ca2f0e.newPerDay;_5a57abd5("fRet").value=Math.round(_92ca2f0e.retention*100);_5a57abd5("fRetVal").textContent=Math.round(_92ca2f0e.retention*100)+"%";_5a57abd5("fDevice").value=_92ca2f0e.deviceName||"";_c31303d0();_5a57abd5("fShareStats").value=_92ca2f0e.shareStats?"1":"0";_5a57abd5("fTheme").value=_1601120b.theme||"light";_e76adb41();_5a57abd5("fRot").value=_1601120b.rotate||"off";_5a57abd5("palNote").innerHTML='<span class="swatch" style="background:var(--coral)"></span>'+_c42c4e36(_1601120b.palette)+" · "+(_1601120b.theme==="auto"?"following the system":_1601120b.theme)+(_1601120b.rotate==="daily"?" · rotating daily":"");_5a57abd5("fRevDay").value=String(_92ca2f0e.reviewDay===undefined?-1:_92ca2f0e.reviewDay);_5a57abd5("fWeak").value=_92ca2f0e.weakFirst?"1":"0";_5a57abd5("backupNote").textContent=(_1601120b.lastExport?"Last backup "+new Date(_1601120b.lastExport).toLocaleString()+" · ":"No backup yet · ")+(_1601120b.sinceExport||0)+" ratings since."+(_1601120b.settings.syncCode?"  Sync: "+(_1601120b.lastPushError?"last push failed ("+_1601120b.lastPushError+") — tap Sync now to retry.":(_1601120b.lastSync?"synced "+new Date(_1601120b.lastSync).toLocaleString():"not yet synced")+(_1601120b.lastDevice?" (last synced by "+_1601120b.lastDevice+")":"")+"."):"  Add a sync code on the Settings page (from the Riverbank home screen) to sync across devices.")+(_341db5dd===false?"  This device has not marked storage persistent -- the browser may clear it if space runs short.":"");_215bd686(document.querySelector("#scSet .setCols"))}function _7019bc3d(_92ca2f0e,_96a0f96b){_92ca2f0e.addEventListener("click",_92ca2f0e=>{_92ca2f0e.preventDefault();_96a0f96b()})}_7019bc3d(_5a57abd5("cardArea"),()=>{if(_5a57abd5("rateRow").classList.contains("hidden"))_d2c0ee66()});_7019bc3d(_5a57abd5("revealBtn"),_d2c0ee66);_7019bc3d(_5a57abd5("bAgain"),()=>_60a04229(_33d4f2bc));_7019bc3d(_5a57abd5("bGood"),()=>_60a04229(_ae87b3c3));_7019bc3d(_5a57abd5("bEasy"),()=>_60a04229(_69ff6a72));_7019bc3d(_5a57abd5("undoBtn"),_fda154f9);["toHome","toHome2","toHome3","doneBack","statsBack","logBack","browseBack"].forEach(_92ca2f0e=>_7019bc3d(_5a57abd5(_92ca2f0e),()=>{_3c15f734();_00512a8d();_b847294d("scHome")}));_7019bc3d(_5a57abd5("toSettings"),()=>{_89622f4f();_b847294d("scSet")});_7019bc3d(_5a57abd5("toStats"),()=>{_55b7a4ee();_b847294d("scStats")});_7019bc3d(_5a57abd5("statsDirL"),()=>{_1601120b.dir="L";_5bac78d1();_55b7a4ee()});_7019bc3d(_5a57abd5("statsDirE"),()=>{_1601120b.dir="E";_5bac78d1();_55b7a4ee()});_7019bc3d(_5a57abd5("dirLtoE"),()=>{_1601120b.dir="L";_5bac78d1();_00512a8d()});_7019bc3d(_5a57abd5("dirEtoL"),()=>{_1601120b.dir="E";_5bac78d1();_00512a8d()});_7019bc3d(_5a57abd5("startBtn"),()=>{_86ba3ad6=[];_bd4aebe4();if(_bf318fcd)_b847294d("scStudy")});_5a57abd5("calFold").addEventListener("toggle",()=>{if(_5a57abd5("calFold").open)_10520df1()});function _f2160e0d(_92ca2f0e){if(_ba9369c0==null){const _92ca2f0e=new Date;_ba9369c0=_92ca2f0e.getFullYear();_25d330ed=_92ca2f0e.getMonth()}_25d330ed+=_92ca2f0e;if(_25d330ed<0){_25d330ed=11;_ba9369c0--}else if(_25d330ed>11){_25d330ed=0;_ba9369c0++}_10520df1()}_7019bc3d(_5a57abd5("calPrev"),()=>_f2160e0d(-1));_7019bc3d(_5a57abd5("calNext"),()=>_f2160e0d(1));_5a57abd5("calViewChips").addEventListener("click",_92ca2f0e=>{const _96a0f96b=_92ca2f0e.target.closest("button[data-view]");if(!_96a0f96b)return;_1601120b.settings.heatmapView=_96a0f96b.dataset.view;_5bac78d1();_10520df1()});_5a57abd5("calColChips").addEventListener("click",_92ca2f0e=>{const _96a0f96b=_92ca2f0e.target.closest("button[data-col]");if(!_96a0f96b)return;_1601120b.settings.heatmapColourMode=_96a0f96b.dataset.col;_5bac78d1();_10520df1()});_7019bc3d(_5a57abd5("calGearBtn"),()=>{_5a57abd5("calGearPanel").classList.toggle("hidden")});_5a57abd5("gearAccent").addEventListener("change",_92ca2f0e=>{_1601120b.settings.heatmapAccent=_92ca2f0e.target.value;_5bac78d1();_10520df1()});_5a57abd5("gearAvgWindow").addEventListener("change",_92ca2f0e=>{_1601120b.settings.heatmapAvgWindow=_92ca2f0e.target.value;_5bac78d1();_10520df1()});_7019bc3d(_5a57abd5("toBrowse"),()=>{_b9952f8e=_1601120b.dir;_ff31b191();_b847294d("scBrowse")});_7019bc3d(_5a57abd5("browseDirL"),()=>{_b9952f8e="L";_ff31b191()});_7019bc3d(_5a57abd5("browseDirE"),()=>{_b9952f8e="E";_ff31b191()});_7019bc3d(_5a57abd5("partPickerBtn"),()=>_d550f731("home"));_7019bc3d(_5a57abd5("browsePartBtn"),()=>_d550f731("browse"));_7019bc3d(_5a57abd5("partSheetDone"),_3803856b);_5a57abd5("partSheet").addEventListener("click",_92ca2f0e=>{if(_92ca2f0e.target.id==="partSheet")_3803856b()});_7019bc3d(_5a57abd5("addWordBtn"),_dc357f51);_7019bc3d(_5a57abd5("awCancel"),_73a05ff5);_7019bc3d(_5a57abd5("awSave"),_d7e1c770);_5a57abd5("addWordSheet").addEventListener("click",_92ca2f0e=>{if(_92ca2f0e.target.id==="addWordSheet")_73a05ff5()});_7019bc3d(_5a57abd5("cdClose"),_db3fc0a2);_7019bc3d(_5a57abd5("cdSaveTerm"),_dc38c316);_7019bc3d(_5a57abd5("cdDelete"),_62aaa7bc);_5a57abd5("cardSheet").addEventListener("click",_92ca2f0e=>{if(_92ca2f0e.target.id==="cardSheet")_db3fc0a2()});_7019bc3d(_5a57abd5("partSheetAll"),()=>{_1601120b.parts=_91a7ea77.slice();_5bac78d1();_6d272b02();_4996dcd9()});_5a57abd5("partSheetList").addEventListener("click",_92ca2f0e=>{const _96a0f96b=_92ca2f0e.target.closest(".partRow");if(!_96a0f96b)return;_92ca2f0e.preventDefault();const _b4421bbb=_96a0f96b.dataset.sec;if(_1f5bd9f1==="home"){let _92ca2f0e=_d96acdf6().slice();_92ca2f0e=_92ca2f0e.includes(_b4421bbb)?_92ca2f0e.filter(_92ca2f0e=>_92ca2f0e!==_b4421bbb):_92ca2f0e.concat([_b4421bbb]);if(!_92ca2f0e.length)_92ca2f0e=[_b4421bbb];_1601120b.parts=_91a7ea77.filter(_96a0f96b=>_92ca2f0e.includes(_96a0f96b));_5bac78d1();_6d272b02();_4996dcd9()}else{_7070eafc=_b4421bbb===""?null:_b4421bbb;_3803856b();_ff31b191()}});_5a57abd5("browseSearch").addEventListener("input",_92ca2f0e=>{_10cb0633=_92ca2f0e.target.value;_ff31b191()});_5a57abd5("browseResults").addEventListener("click",_92ca2f0e=>{const _96a0f96b=_92ca2f0e.target.closest(".wrInfo");if(_96a0f96b){_92ca2f0e.preventDefault();_b708219c(_96a0f96b.dataset.info);return}const _b4421bbb=_92ca2f0e.target.closest(".wordRow");if(!_b4421bbb)return;_b4421bbb.classList.toggle("revealed")});function _8f91aa28(_92ca2f0e){const _96a0f96b=_d6ee6737(),_b4421bbb=_1601120b.days[_96a0f96b]||(_1601120b.days[_96a0f96b]={n:0,intro:0,ok:0,tot:0});const _ed81ded3=_b4421bbb.cap!=null?_b4421bbb.cap:_1601120b.settings.newPerDay;_b4421bbb.cap=Math.min(Math.max(_ed81ded3+_92ca2f0e,0),400);_5bac78d1();_00512a8d()}_7019bc3d(_5a57abd5("capMinus"),()=>_8f91aa28(-5));_7019bc3d(_5a57abd5("capPlus"),()=>_8f91aa28(5));_7019bc3d(_5a57abd5("doneMore"),()=>{const _92ca2f0e=_d6ee6737(),_96a0f96b=_1601120b.days[_92ca2f0e]||(_1601120b.days[_92ca2f0e]={n:0,intro:0,ok:0,tot:0});_96a0f96b.cap=(_96a0f96b.cap!=null?_96a0f96b.cap:_1601120b.settings.newPerDay)+10;_5bac78d1();_bd4aebe4();if(_bf318fcd)_b847294d("scStudy");else _407ea0a2("No unseen words left in this direction")});_7019bc3d(_5a57abd5("expBtn"),()=>_9f8d29e6(false));_7019bc3d(_5a57abd5("impBtn"),()=>_5a57abd5("impFile").click());_5a57abd5("impFile").addEventListener("change",_92ca2f0e=>{if(_92ca2f0e.target.files[0])_a2dae4e4(_92ca2f0e.target.files[0]);_92ca2f0e.target.value=""});_7019bc3d(_5a57abd5("pushBtn"),()=>_f8010ca0(false));_7019bc3d(_5a57abd5("pullBtn"),_a2e39084);_7019bc3d(_5a57abd5("resetBtn"),()=>{if(!confirm("Erase every rating and interval on this device? A backup downloads first."))return;_86ba3ad6=[];_bf318fcd=null;_9f8d29e6();setTimeout(()=>{_1601120b=JSON.parse(JSON.stringify(_f0e33faa));_5bac78d1();_00512a8d();_b847294d("scHome");_407ea0a2("Erased")},700)});_5a57abd5("fNew").addEventListener("change",_92ca2f0e=>{_1601120b.settings.newPerDay=Math.max(0,_92ca2f0e.target.value|0);_5bac78d1()});_5a57abd5("fRet").addEventListener("input",_92ca2f0e=>{_1601120b.settings.retention=_92ca2f0e.target.value/100;_5a57abd5("fRetVal").textContent=_92ca2f0e.target.value+"%"});_5a57abd5("fRet").addEventListener("change",()=>_5bac78d1());_5a57abd5("fTheme").addEventListener("change",_92ca2f0e=>{_1601120b.theme=_92ca2f0e.target.value;_5bac78d1();_2430d615();_f6ca93db();_89622f4f()});_5a57abd5("fRot").addEventListener("change",_92ca2f0e=>{_1601120b.rotate=_92ca2f0e.target.value;_1601120b.rotDay=_d6ee6737();_1601120b.rotSeen=[_1601120b.palette];_5bac78d1();_89622f4f()});_5a57abd5("surpriseBtn").addEventListener("click",_6369064b);_5a57abd5("buildTag").addEventListener("click",()=>{_42895c04();_b847294d("scLog")});_5a57abd5("fRevDay").addEventListener("change",_92ca2f0e=>{_1601120b.settings.reviewDay=parseInt(_92ca2f0e.target.value,10);_5bac78d1();_2430d615()});_5a57abd5("fWeak").addEventListener("change",_92ca2f0e=>{_1601120b.settings.weakFirst=_92ca2f0e.target.value==="1";_5bac78d1()});_5a57abd5("fDevice").addEventListener("change",_92ca2f0e=>{_1601120b.settings.deviceName=_92ca2f0e.target.value.trim();_5bac78d1();_2430d615()});_5a57abd5("fShareStats").addEventListener("change",_92ca2f0e=>{_1601120b.settings.shareStats=_92ca2f0e.target.value==="1";_5bac78d1();_a1059e38()});_5a57abd5("fFeedback").addEventListener("input",_c31303d0);_7019bc3d(_5a57abd5("feedbackSendBtn"),_c0b1fc37);_7019bc3d(_5a57abd5("statsSendBtn"),_237a1a24);_7019bc3d(_5a57abd5("killLockExport"),_9f8d29e6);document.addEventListener("keydown",_92ca2f0e=>{if(_4c0b2328())return;if(_5a57abd5("scStudy").classList.contains("on")){if(_92ca2f0e.key===" "||_92ca2f0e.key==="Enter"){_92ca2f0e.preventDefault();if(_5a57abd5("rateRow").classList.contains("hidden"))_d2c0ee66();else _60a04229(_ae87b3c3)}else if(!_5a57abd5("rateRow").classList.contains("hidden")){if(_92ca2f0e.key==="1")_60a04229(_33d4f2bc);if(_92ca2f0e.key==="2")_60a04229(_ae87b3c3);if(_92ca2f0e.key==="3")_60a04229(_69ff6a72)}if(_92ca2f0e.key==="z"||_92ca2f0e.key==="Z")_fda154f9()}});document.addEventListener("gesturestart",_92ca2f0e=>_92ca2f0e.preventDefault());function _ac718f73(){if(_d6599aa6){clearTimeout(_d6599aa6);_d6599aa6=null;_f8010ca0(true)}}document.addEventListener("visibilitychange",()=>{if(document.hidden){_3efe6b44=true;_3c15f734();_ac718f73()}if(!document.hidden){_bb759a10();if(_5a57abd5("scStudy").classList.contains("on"))_5a46df65(false);if(_5a57abd5("scHome").classList.contains("on")){_00512a8d();_ccd44560()}}});window.addEventListener("pagehide",()=>{_3c15f734();_ac718f73()});function _b09074b7(_92ca2f0e){const _96a0f96b=_92ca2f0e.source||"file";if(_96a0f96b==="file")return new Promise((_96a0f96b,_b4421bbb)=>{const _ed81ded3=document.createElement("script");_ed81ded3.src="decks/"+_92ca2f0e.id+".js";_ed81ded3.onload=()=>{try{_96a0f96b({DATA:DATA,DECK:DECK,KEY:KEY,DECK_TITLE:DECK_TITLE,CHANGES:CHANGES})}catch(_96a0f96b){_b4421bbb(new Error("decks/"+_92ca2f0e.id+".js loaded but its content globals are unusable: "+_96a0f96b))}};_ed81ded3.onerror=()=>_b4421bbb(new Error("decks/"+_92ca2f0e.id+".js failed to load"));document.head.appendChild(_ed81ded3)});if(_96a0f96b==="idb")return _c860074d().then(_96a0f96b=>new Promise((_b4421bbb,_ed81ded3)=>{if(!_96a0f96b){_ed81ded3(new Error("IndexedDB unavailable; an idb-sourced deck cannot boot without it"));return}if(!_96a0f96b.objectStoreNames.contains("content")){_ed81ded3(new Error('registry entry "'+_92ca2f0e.id+'" says source:idb, but this build has no content store yet'));return}const _589fd748=_96a0f96b.transaction("content","readonly").objectStore("content").get(_92ca2f0e.id);_589fd748.onsuccess=()=>{if(_589fd748.result)_b4421bbb(_589fd748.result);else _ed81ded3(new Error("content["+_92ca2f0e.id+"] is empty"))};_589fd748.onerror=()=>_ed81ded3(_589fd748.error||new Error("content["+_92ca2f0e.id+"] read failed"))}));return Promise.reject(new Error('unknown content source "'+_96a0f96b+'" on registry entry "'+_92ca2f0e.id+'"'))}function _fe9de004(_92ca2f0e){try{console.error(_92ca2f0e)}catch(_92ca2f0e){}const _96a0f96b=document.createElement("style");_96a0f96b.textContent="body>*:not(#deckErr){display:none!important}"+"#deckErr{font:16px/1.6 var(--sans);color:var(--ink);max-width:30rem;margin:0 auto;"+"padding:calc(52px + env(safe-area-inset-top)) 20px 40px}"+"#deckErr h1{font-family:var(--serif);font-weight:400;font-size:2.05rem;margin:0 0 4px}"+"#deckErr p{color:var(--muted);margin:0 0 14px}"+"#deckErr a{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 18px;margin-top:22px}";document.head.appendChild(_96a0f96b);const _b4421bbb=document.createElement("div");_b4421bbb.id="deckErr";const _ed81ded3=document.createElement("h1");_ed81ded3.textContent="Riverbank";const _589fd748=document.createElement("p");_589fd748.textContent="This deck’s content could not be loaded. Nothing is changed or lost — your reviews live in this device’s own storage, not in the file that failed — and reloading usually fixes a one-off network hiccup.";const _582531c1=document.createElement("a");_582531c1.href="index.html";_582531c1.textContent="Back to the launcher →";_b4421bbb.appendChild(_ed81ded3);_b4421bbb.appendChild(_589fd748);_b4421bbb.appendChild(_582531c1);document.body.appendChild(_b4421bbb)}let _341db5dd=null;(function _92ca2f0e(){try{if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().then(_92ca2f0e=>{_341db5dd=!!_92ca2f0e}).catch(()=>{})}}catch(_92ca2f0e){}})();(function _92ca2f0e(){const _96a0f96b=window.DECK_ENTRY;if(!_96a0f96b)return;_b09074b7(_96a0f96b).then(_92ca2f0e=>{_33a192b9(_92ca2f0e);document.title=DECK_TITLE+" — Riverbank";const _96a0f96b=document.querySelector('meta[name="apple-mobile-web-app-title"]');if(_96a0f96b)_96a0f96b.setAttribute("content",DECK_TITLE);return _6eae784b()}).then(()=>{_ce817843();_f6ca93db();_585db8f1();_00512a8d();_b847294d("scHome");if(location.hash==="#changelog"){_42895c04();_b847294d("scLog")}_ccd44560();_a1059e38();_bb759a10();setTimeout(_585db8f1,300)}).catch(_fe9de004)})();if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(_1601120b&&_1601120b.theme==="auto")_f6ca93db()});</script>
+</body>
+</html>

@@ -1,8 +1,15 @@
 {
-  "name": "ripa",
-  "compatibility_date": "2026-01-01",
-  "assets": {
-    "directory": ".",
-    "not_found_handling": "none"
-  }
+	"name": "ripa",
+	"compatibility_date": "2026-01-01",
+	"assets": {
+		"directory": ".",
+		"not_found_handling": "none"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "RIVERBANK_STATS",
+			"id": "5ff7cb350bc14f4798cb852d39f19f89",
+			"remote": true
+		}
+	]
 }

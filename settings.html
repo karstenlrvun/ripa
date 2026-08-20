@@ -52,33 +52,15 @@ input[type=text]::placeholder{text-transform:none}
 <p class="sub">Applies across Latin, Greek, Italian, and SAT alike — set once here, not per language.</p>
 
 <h2>Wide-screen study</h2>
-<p class="groupNote">Only visible on a tablet, laptop, or a phone turned sideways — three optional extras, on by default.</p>
+<p class="groupNote">Only visible on a tablet, laptop, or a phone turned sideways.</p>
 
 <div class="field">
-  <label for="fStudyStats">Review history</label>
-  <select id="fStudyStats">
-    <option value="0">Hide review history on the card</option>
-    <option value="1">Show review history on the card</option>
+  <label for="fSimple">Study screen, wide layout</label>
+  <select id="fSimple">
+    <option value="0">Full — review history, keyboard hints, animation</option>
+    <option value="1">Simplified — the card and nothing else</option>
   </select>
-  <p class="fh">Shows past attempts and your last result on wide screens.</p>
-</div>
-
-<div class="field">
-  <label for="fStudyHints">Keyboard hints</label>
-  <select id="fStudyHints">
-    <option value="0">Hide keyboard hints</option>
-    <option value="1">Show keyboard hints</option>
-  </select>
-  <p class="fh">Prints each button's key on wide screens.</p>
-</div>
-
-<div class="field">
-  <label for="fStudyMotion">Animation</label>
-  <select id="fStudyMotion">
-    <option value="0">No extra animation</option>
-    <option value="1">Animate reveal and card changes</option>
-  </select>
-  <p class="fh">Adds a brief motion when you reveal an answer or move on.</p>
+  <p class="fh">The last card you rated is always shown either way.</p>
 </div>
 
 <h2>Sync</h2>
@@ -198,10 +180,14 @@ function loadGlobal(){
 
 let G=loadGlobal();
 
+// One switch over three independent flags (2026-08-19, ported from
+// vocabula 2026.08.16.1). The three flags are still three flags in
+// DEFAULT_GLOBAL/mirroredGlobalSettings()/bootstrappedGlobalSettings()
+// above -- only this page's UI collapsed. "Simplified" means all three
+// off; anything else (including an old mixed combination) reads as Full,
+// so nothing is silently lost.
 function renderUI(){
-  $('fStudyStats').value=G.studyStats?'1':'0';
-  $('fStudyHints').value=G.studyHints?'1':'0';
-  $('fStudyMotion').value=G.studyMotion?'1':'0';
+  $('fSimple').value=(G.studyStats||G.studyHints||G.studyMotion)?'0':'1';
   $('fSyncCode').value=G.syncCode||'';
 }
 renderUI();
@@ -211,9 +197,10 @@ function applyPatch(patch){
   persistGlobal(G);
 }
 
-$('fStudyStats').addEventListener('change',e=>applyPatch({studyStats:e.target.value==='1'}));
-$('fStudyHints').addEventListener('change',e=>applyPatch({studyHints:e.target.value==='1'}));
-$('fStudyMotion').addEventListener('change',e=>applyPatch({studyMotion:e.target.value==='1'}));
+$('fSimple').addEventListener('change',e=>{
+  const full=e.target.value!=='1';
+  applyPatch({studyStats:full, studyHints:full, studyMotion:full});
+});
 
 $('fSyncCode').addEventListener('change',e=>{
   const code=e.target.value.trim().toUpperCase();

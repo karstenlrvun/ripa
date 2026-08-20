@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
@@ -20,49 +20,187 @@
 html{background:var(--bg)}
 body{margin:0 auto;padding:56px 22px 80px;max-width:28rem;background:var(--bg);color:var(--ink);
   font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-text-size-adjust:100%}
-h1{font-family:var(--serif);font-weight:400;font-size:2.1rem;margin:0 0 4px}
-.sub{color:var(--muted);font-size:15px;margin:0 0 32px}
+h1{font-family:var(--serif);font-weight:400;font-size:2.1rem;margin:0}
+.sub{color:var(--muted);font-size:15px;margin:4px 0 32px}
+/* Header: the title/subtitle on the left, everything that ISN'T a deck --
+   Settings, Guide, What's new, Export all -- as small icon buttons on the
+   right (2026-08-18, Karsten's own ask: "move the buttons 'settings'
+   'manual' -- basically anything that isn't a deck -- to icons near the
+   top"). The card list below is decks only now. */
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.headIcons{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+a.iconBtn,button.iconBtn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;
+  border-radius:11px;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  font-size:17px;text-decoration:none;cursor:pointer;font-family:inherit;padding:0;flex:none}
+a.iconBtn:active,button.iconBtn:active{border-color:var(--coral)}
 a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
   border:1px solid var(--line);border-radius:15px;padding:17px 19px;margin-bottom:11px}
 a.card:active{border-color:var(--coral)}
 a.card .t{font-family:var(--serif);font-size:1.32rem;margin-bottom:2px}
 a.card .d{color:var(--muted);font-size:14px}
 .note{margin-top:28px;color:var(--muted);font-size:13.5px;line-height:1.6}
+.exportNote{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5;min-height:1.2em}
+/* Per-card "today" line -- streak + what's actually happened today, read
+   straight from that deck's own saved days record, no engine load (2026-08-20,
+   his ask: "none of the smart features (say streak counting) on the
+   buttons"). Same idiom as vocabula's own .todayStats. Empty (min-height only)
+   until data resolves, so a never-opened deck's card just stays quiet rather
+   than showing a zero that never happened. */
+.todayStats{margin-top:8px;font-size:12.5px;color:var(--muted);min-height:1.3em}
+/* Changelog link, moved to the foot of the page (2026-08-20, his ask: "like
+   vocabula does it") -- was an icon up top next to Settings/Guide. Same small
+   uppercase idiom as every deck's own .build tag. */
+.verlink{display:block;text-align:center;margin:30px 0 0;padding:8px;font-size:11px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-decoration:none}
+.verlink:active{color:var(--coral)}
 </style>
 </head>
 <body>
-<h1>Riverbank</h1>
-<p class="sub">Vocabulary, spaced out</p>
+<div class="head">
+  <div>
+    <h1>Riverbank</h1>
+    <p class="sub">Vocabulary, spaced out</p>
+  </div>
+  <div class="headIcons">
+    <a class="iconBtn" href="settings" aria-label="Settings">&#9881;</a>
+    <a class="iconBtn" href="manual" aria-label="Guide">?</a>
+    <button class="iconBtn" id="exportAllBtn" aria-label="Export a backup of every language">&#11015;</button>
+  </div>
+</div>
 
-<a class="card" href="latin.html">
+<a class="card" href="deck?deck=latin">
   <div class="t">Latin</div>
   <div class="d">848 words, OCR AS Level, both directions</div>
+  <div class="todayStats" id="statLatin"></div>
 </a>
-<a class="card" href="greek.html">
+<a class="card" href="deck?deck=greek">
   <div class="t">Ελληνικά</div>
   <div class="d">765 words, OCR AS Level, both directions</div>
-</a>
-<a class="card" href="italian.html">
-  <div class="t">Italiano</div>
-  <div class="d">635 words &amp; phrases, both directions</div>
-</a>
-<a class="card" href="sat.html">
-  <div class="t">SAT English</div>
-  <div class="d">500 words, both directions</div>
-</a>
-<a class="card" href="settings.html">
-  <div class="t">Settings</div>
-  <div class="d">Wide-screen study extras and your sync code — applies to every language</div>
-</a>
-<a class="card" href="manual.html">
-  <div class="t">Guide</div>
-  <div class="d">Add to your Home Screen, study basics, syncing</div>
-</a>
-<a class="card" href="latin.html#changelog">
-  <div class="t">What's new</div>
-  <div class="d">The update log — shared across every language</div>
+  <div class="todayStats" id="statGreek"></div>
 </a>
 
+<p class="exportNote" id="exportNote"></p>
 <p class="note">Add each language to your Home Screen separately and open it from there, not from a browser tab — see the Guide above for how. Safari clears stored data for sites left unvisited for a week; installed apps are exempt.</p>
+<a class="verlink" id="verLink" href="deck?deck=latin#changelog">What's new</a>
+<script>
+// Exports a real backup of every language this browser actually has data
+// for -- latin/greek (this engine) and italian/sat (their own untouched
+// standalone decks, still fully live at their own URLs -- see
+// RIVERBANK_PORT_PLAN.md) -- in one tap, rather than needing to open each
+// deck's own Settings and export one at a time. index.html deliberately
+// never loads a deck's engine ("the launcher stays a reader"), so this
+// reads each deck's real localStorage entry directly rather than through
+// any of deck.html's own functions -- there's nothing here those functions
+// do beyond that read, except doExport()'s own sanitised() strip of the
+// sync code before it leaves the device, which this replicates by hand
+// (the RAW stored value legitimately keeps it in the clear, for this
+// device's own future syncing -- only an exported file or a synced payload
+// should ever have it blanked).
+//
+// Downloads are spaced out with a real gap between each rather than fired
+// back to back: Safari (and, less reliably, other browsers) can silently
+// drop the second and later of several downloads triggered from one tap if
+// they land in the same instant -- the same reason deck.html's own
+// doExport() comment gives for never trying to trigger a download nobody
+// tapped for.
+// ============================================================
+// Per-card "today" line (2026-08-20, his ask: streak counting on the
+// buttons, "like vocabula does it" for the changelog placement). Read-only,
+// same guarantee as the export script above -- reads each deck's own
+// localStorage entry directly rather than loading deck.html's engine ("the
+// launcher stays a reader"). dayKey/currentStreak copied verbatim from
+// deck.html so this page's idea of "today" and "streak" can never disagree
+// with the deck's own. Rollover is riverbank's one fixed hour (4am, no
+// per-device UI since 2026-08-09 -- see HANDOFF), so unlike vocabula's
+// launcher this never needs to read a per-deck settings.rollover.
+//
+// Deliberately narrower than vocabula's own version: no "N due" figure.
+// That needs the scheduler's queue-building logic (which words are actually
+// ready right now), which this page cannot compute without loading the
+// engine -- vocabula's launcher only shows it because deck.html there
+// writes a small summary snapshot on every save() for exactly this reader
+// to consume, and riverbank's engine has no equivalent snapshot. What's
+// shown instead -- streak, today's rating count, today's study time -- is
+// everything already sitting in the saved days record with nothing to add.
+const HOUR=3600000, DAY=86400000, RIVERBANK_ROLLOVER=4;
+const dayKey=(ts,roll)=>Math.floor((ts-new Date(ts).getTimezoneOffset()*60000-roll*HOUR)/DAY);
+function currentStreak(days,todayKey){
+  let streak=0;
+  for(let k=todayKey;;k--){
+    if(days[k]&&days[k].n) streak++;
+    else { if(k!==todayKey) break; }
+    if(todayKey-k>3650) break;
+  }
+  return streak;
+}
+function fmtDuration(ms){
+  if(!(ms>0)) return null;
+  const mins=Math.round(ms/60000);
+  if(mins<1) return '<1m';
+  if(mins<60) return mins+'m';
+  return Math.floor(mins/60)+'h '+(mins%60)+'m';
+}
+function renderDeckStats(){
+  const d=dayKey(Date.now(),RIVERBANK_ROLLOVER);
+  [['riverbank.latin.v1','statLatin'],['riverbank.greek.v1','statGreek']].forEach(([key,elId])=>{
+    const el=document.getElementById(elId);
+    let raw; try{ raw=localStorage.getItem(key); }catch(e){ raw=null; }
+    if(!raw){ el.textContent=''; return; }
+    let obj; try{ obj=JSON.parse(raw); }catch(e){ el.textContent=''; return; }
+    if(!obj||typeof obj!=='object'||!obj.days){ el.textContent=''; return; }
+    const streak=currentStreak(obj.days,d);
+    const today=obj.days[d]||{};
+    const done=today.n|0;
+    const timeStr=fmtDuration(today.studyMs);
+    const parts=[];
+    parts.push(streak?(streak+' day'+(streak===1?'':'s')+' running'):'No streak yet');
+    if(done) parts.push(done+' today'+(timeStr?' · '+timeStr:''));
+    el.textContent=parts.join(' · ');
+  });
+}
+renderDeckStats();
+
+const EXPORT_DECKS = [
+  {key:'riverbank.latin.v1',   name:'latin',   label:'Latin'},
+  {key:'riverbank.greek.v1',   name:'greek',   label:'Greek'},
+  {key:'riverbank.italian.v1', name:'italian', label:'Italian'},
+  {key:'riverbank.sat.v1',     name:'sat',     label:'SAT'}
+];
+function downloadOneBackup(deckName, obj){
+  const blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='riverbank-'+deckName+'-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1500);
+}
+function exportAllBackups(){
+  const note=document.getElementById('exportNote');
+  const found=[];
+  EXPORT_DECKS.forEach(d=>{
+    let raw;
+    try{ raw=localStorage.getItem(d.key); }catch(e){ raw=null; }
+    if(!raw) return;
+    let obj;
+    try{ obj=JSON.parse(raw); }catch(e){ return; }
+    if(!obj||typeof obj!=='object') return;
+    if(obj.settings) obj.settings=Object.assign({},obj.settings,{syncCode:''});   // never let the sync code leave the device inside a backup file
+    found.push({name:d.name,label:d.label,obj:obj});
+  });
+  if(!found.length){
+    note.textContent='Nothing to export yet -- open a language and study a little first.';
+    return;
+  }
+  note.textContent='Saving '+found.length+' file'+(found.length===1?'':'s')+'…';
+  found.forEach((f,i)=>{ setTimeout(()=>downloadOneBackup(f.name,f.obj), i*600); });
+  setTimeout(()=>{
+    note.textContent='Saved '+found.map(f=>f.label).join(', ')+
+      (found.length<EXPORT_DECKS.length ? ' — the others have no data on this device yet.' : '.');
+  }, found.length*600);
+}
+document.getElementById('exportAllBtn').addEventListener('click',exportAllBackups);
+</script>
 </body>
 </html>
