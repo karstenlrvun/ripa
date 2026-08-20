@@ -1,4 +1,6 @@
-HANDOFF.md
+docs/
+upload-bundle/
+archive/
 .claude/
 tests/
 sync-worker/
