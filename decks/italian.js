@@ -17,6 +17,15 @@ const DECK={"name": "Riverbank", "fwd": "Italian â†’ English", "rev": "English â
 const KEY='riverbank.italian.v1';
 const DECK_TITLE='Italian';
 const CHANGES=[
+  ['1.1',[
+    'A short reminder of what the four buttons mean now appears at the start of each sitting, and goes away at your first rating. The wording changes each time so it does not become wallpaper. If you would rather not have it, Settings -> Grade reminder turns it off.',
+    'Your devices now name themselves. A device with no name typed in used to call itself "this device" -- which every device did, so "last synced by this device" identified nothing. It now says "iPhone - Home Screen" or "Mac - Safari" on its own, and a name you type still wins.',
+    'An automatic sync no longer writes over a copy it has not seen. If another device has pushed since this one last caught up, the automatic push now stands down and lets the next catch-up sort it out, instead of overwriting.',
+    'A fourth rating button: Hard. Again, Hard, Good, Easy -- keys 1, 2, 3 and 4, in that order, on every card. Until now there were three, and Hard was something that happened to you rather than something you chose: a Good you took a while over was quietly recorded as Hard instead, and given Hard\'s much shorter interval.',
+    'Easy now means what it says -- you knew it instantly. It is still recorded as Good if you take more than five seconds, which is the one and only place the app changes what you pressed; a Good or a Hard is now recorded exactly as you press it. Easy carrying grades it had not earned is the thing the scheduler is least able to absorb, so this matters more than it sounds.',
+    'Pulling from sync works again. Since sync data started being compressed, the server was dropping the marker that said so, and every device that tried to pull silently failed to read what came back -- so one device could sit behind another however many times you pulled.',
+    'A language you have never synced before now sends its first copy up by itself, instead of waiting for a copy that was never there. Latin worked; Greek, Italian and SAT would have waited indefinitely.'
+  ]],
   ['1.0',[
     'First build (2026-08-20), on the same engine as Latin and Greek from day one -- registry-driven, no separate standalone page. 360 words across 22 topics: calendar, seasons, weather, house, daily routine, school, family, appearance and personality, free time, celebrations, food, clothes, friendship, town and transport, environment, education and career, technology, countries and social issues, prepositions, connectives, and a block of exam-style sentence starters (the ones with a bracketed note on what follows them, e.g. "Mi piacerebbe... [+ infinitive]").',
   ]],

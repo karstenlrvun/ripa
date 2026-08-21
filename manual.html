@@ -29,10 +29,12 @@ li{margin-bottom:6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
 .rate{display:inline-block;padding:3px 10px;border-radius:999px;font-size:14px;font-weight:500;margin:0 2px}
 .r-again{background:#f0ded3;color:#812f25}
+.r-hard{background:#f3e6cf;color:#7a5320}
 .r-good{background:#e6e5d4;color:#5a6b32}
 .r-easy{background:#ebe3e2;color:#7d5f9c}
 @media (prefers-color-scheme: dark){
   .r-again{background:#462c23;color:#e28879}
+  .r-hard{background:#453722;color:#dcb063}
   .r-good{background:#393b25;color:#a9bd72}
   .r-easy{background:#3f353d;color:#c3a3e0}
 }
@@ -73,16 +75,22 @@ a{color:var(--coral)}
 <p>Tap <b>Study</b>, then tap the card to reveal the answer. Rate how it went:</p>
 <p>
   <span class="rate r-again">Again</span> you didn't get it —
-  <span class="rate r-good">Good</span> you got it —
-  <span class="rate r-easy">Easy</span> you knew it instantly
+  <span class="rate r-hard">Hard</span> you got it, only just —
+  <span class="rate r-good">Good</span> you got it with a moment's thought —
+  <span class="rate r-easy">Easy</span> it was there instantly, no thought
 </p>
+<p>On a keyboard those are <b>1</b>, <b>2</b>, <b>3</b> and <b>4</b>. Each grade keeps its own number on every card, whatever state the word is in.</p>
 <p>The app decides when to show you each word again based on how you rate it. Words you find easy come back less often; words you struggle with come back sooner. You don't need to manage this yourself — just answer honestly.</p>
+<p><b>Press Easy only on a word you really did know instantly.</b> Everything the app does rests on your grades being honest. If you're generous, it schedules words too far out, you forget them, and you conclude the app doesn't work. Being harsh on yourself costs you a few extra reviews; being generous costs you the word.</p>
+<h2>A slow Easy is recorded as Good</h2>
+<p>The app times the gap between seeing a word and revealing the answer. It never shows a clock and never interrupts you. One rule: <b>take more than five seconds and an Easy is recorded as Good.</b> That is the only place anything you press is ever changed — an Again is never altered, and a Good or a Hard is recorded exactly as you pressed it.</p>
 <p>Each word can appear in two directions — for example Latin→English and English→Latin. They're tracked separately, so knowing one direction doesn't automatically mean you know the other.</p>
 
 <h2>Settings, in brief</h2>
 <p><b>New words a day</b> — how many unfamiliar words get introduced each day.</p>
 <p><b>Target retention</b> — how often you want to succeed when a word comes up. Higher means more review, but less forgetting.</p>
 <p><b>Weekly review day</b> — nudges some reviews onto a day that suits you, like a Sunday catch-up.</p>
+<p><b>Grade reminder</b> — a one-line note at the start of each sitting about what the four buttons mean, gone at your first rating. On by default; turn it off here once it stops being useful.</p>
 <p><b>Theme</b> — pick a look, light or dark, and whether it changes daily.</p>
 <p>Two more live on the <b>Settings</b> page from the Riverbank home screen instead of inside each language, because they're the same for every deck: <b>wide-screen study</b> (on a tablet, laptop, or a sideways phone, three optional extras — review history on the card, keyboard-shortcut labels, and a bit of motion when you reveal or move on, all on by default) and your <b>sync code</b>, below.</p>
 

@@ -13,6 +13,15 @@ const DECK={"name": "Riverbank", "fwd": "Latin → English", "rev": "English →
 const KEY='riverbank.latin.v1';
 const DECK_TITLE='Latin';
 const CHANGES=[
+  ['1.8',[
+    'A short reminder of what the four buttons mean now appears at the start of each sitting, and goes away at your first rating. The wording changes each time so it does not become wallpaper. If you would rather not have it, Settings -> Grade reminder turns it off.',
+    'Your devices now name themselves. A device with no name typed in used to call itself "this device" -- which every device did, so "last synced by this device" identified nothing. It now says "iPhone - Home Screen" or "Mac - Safari" on its own, and a name you type still wins.',
+    'An automatic sync no longer writes over a copy it has not seen. If another device has pushed since this one last caught up, the automatic push now stands down and lets the next catch-up sort it out, instead of overwriting.',
+    'A fourth rating button: Hard. Again, Hard, Good, Easy -- keys 1, 2, 3 and 4, in that order, on every card. Until now there were three, and Hard was something that happened to you rather than something you chose: a Good you took a while over was quietly recorded as Hard instead, and given Hard\'s much shorter interval.',
+    'Easy now means what it says -- you knew it instantly. It is still recorded as Good if you take more than five seconds, which is the one and only place the app changes what you pressed; a Good or a Hard is now recorded exactly as you press it. Easy carrying grades it had not earned is the thing the scheduler is least able to absorb, so this matters more than it sounds.',
+    'Pulling from sync works again. Since sync data started being compressed, the server was dropping the marker that said so, and every device that tried to pull silently failed to read what came back -- so one device could sit behind another however many times you pulled.',
+    'A language you have never synced before now sends its first copy up by itself, instead of waiting for a copy that was never there. Latin worked; Greek, Italian and SAT would have waited indefinitely.'
+  ]],
   ['1.7',[
     'Seven new themes -- Dracula, Amphora, Marble, Steel, Glass, Neon, Wood -- alongside the five you already had, twelve in all. Two have their own material: Glass is frosted and translucent, Neon glows.',
     'The theme picker is now a grid of real previews, each showing its own light and dark side by side, with a bigger preview of your current theme above it -- rather than a row of plain colour dots.',
