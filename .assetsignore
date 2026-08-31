@@ -1,15 +1,33 @@
-docs/
+# Everything here is dev-only and must never be served as a public asset, even
+# though wrangler.jsonc's assets.directory is "." (the whole folder). Verified
+# with `WRANGLER_LOG=debug wrangler deploy --dry-run` -- see
+# in-progress/CLOUDFLARE_SYNC.md.
+#
+# Folder layout matches the sibling vocabula project (2026-08-23):
+#   evergreen/    documents that stay live and get edited
+#   in-progress/  research memos still in flight
+#   archive/      retired code and finished documents
+#   upload-bundle/  generated; the exact contents of the deploy repo. It MUST
+#                 be ignored here or the whole app would be served a second
+#                 time under /upload-bundle/.
+evergreen/
+in-progress/
+archive/
 upload-bundle/
+*.md
+BUILD
 .claude/
 tests/
+# Test-only data: the two appendix inventories and the cells archived out of
+# the deck. None is loaded by any HTML page; shipping them would add a quarter
+# of a megabyte to every install for nothing.
+data/appendix.js
+data/latin-appendix.js
+data/greek-archive.js
 sync-worker/
 tools/
-src/
-node_modules/
-package.json
-package-lock.json
-.gitignore
-wrangler.jsonc
 .assetsignore
+wrangler.jsonc
 .git/
 .wrangler/
+.DS_Store

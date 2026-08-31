@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- connect-src names the deployed sync Worker exactly, matching SYNC_ENDPOINT in js/sync.js. It was a wildcard over the whole workers.dev space while the subdomain was still unknown; it is known now, so this is the tighter form. Change both together if the Worker is ever redeployed under another name. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src https://cotidie-sync.karsten-vun.workers.dev; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cotidie">
+<meta name="theme-color" content="#fbf7ec">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Cotidie — Latin</title>
+<style>
+:root{
+  --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --bg:#fbf7ec; --panel:#f5efdf; --ink:#2a2318; --muted:#6f6350; --faint:#988c75;
+  --line:#e3d9c1; --coral:#8c2f26; --accent-soft:#f0e3d8; --raise:#fffdf6;
+  --good:#5a6b32; --good-bg:#e6e5d4; --good-br:#c7cab0;
+  --bad:#8c2f26; --bad-bg:#f3ded9; --bad-br:#dcb9ac;
+  /* 2026-08-31: five sizes with real steps, replacing nine that collapsed into
+     three tiers -- 12, 12.5, 13 and 13.33px were all doing the same job. Every
+     step here is at least 1.18x, so each one reads as a different rank. */
+  --fs-label:11px; --fs-meta:13px; --fs-body:15px; --fs-title:19px; --fs-display:27px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1a160f; --panel:#241f16; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c;
+    --line:#3a3222; --coral:#d4795e; --accent-soft:#3f2a1f; --raise:#2c2519;
+    --good:#a9bd72; --good-bg:#393b25; --good-br:#565c39;
+    --bad:#d4795e; --bad-bg:#3f2a1f; --bad-br:#5c3a2c;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg)}
+body{
+  color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+  padding:calc(20px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom));
+  max-width:30rem; margin:0 auto;
+}
+h1{font-family:var(--serif);font-weight:400;font-size:1.7rem;margin:0 0 2px}
+h2{font-family:var(--serif);font-weight:400;font-size:1.3rem;margin:0 0 2px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 22px}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+button.back{background:none;border:none;color:var(--muted);font-size:15px;padding:6px 0;cursor:pointer;font-family:var(--sans)}
+button.back:active{color:var(--coral)}
+
+a.card,button.card{display:block;width:100%;text-align:left;text-decoration:none;color:inherit;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+  margin-bottom:16px;font-family:var(--sans);cursor:pointer;line-height:1.5}
+a.card:active,button.card:active{border-color:var(--coral);background:var(--accent-soft)}
+.card .t{font-family:var(--serif);font-size:var(--fs-title);line-height:1.25;margin-bottom:3px}
+.card .d{color:var(--muted);font-size:var(--fs-meta);line-height:1.45}
+.card.study{border-color:var(--good-br);background:var(--good-bg)}
+.card.study .t{color:var(--good)}
+
+.sect{margin-top:34px}
+.sect h3{font-size:var(--fs-label);font-weight:600;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.09em;margin:0 0 12px;line-height:1.4}
+
+.tabs{display:flex;gap:6px;margin:16px 0}
+.tabs button{flex:1;padding:9px 0;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);border-radius:10px;font-family:var(--sans);font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--coral);border-color:var(--coral);color:var(--raise)}
+
+table.para{width:100%;border-collapse:collapse;margin:14px 0 6px;font-family:var(--serif);font-size:1.02rem}
+table.para th{text-align:left;color:var(--faint);font-family:var(--sans);font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.06em;font-weight:500;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+table.para td{padding:7px 8px;border-bottom:1px solid var(--line)}
+table.para td.case{color:var(--muted);font-family:var(--sans);font-size:12.5px;white-space:nowrap}
+.vtable{margin:18px 0}
+.vtable h4{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
+
+.wordlist{margin-top:8px}
+.wordrow{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;
+  border-bottom:1px solid var(--line);cursor:pointer}
+.wordrow:active{background:var(--accent-soft)}
+.wordrow .lemma{font-family:var(--serif);font-size:1.05rem}
+.wordrow .gloss{color:var(--muted);font-size:13px}
+.wordrow .gender{color:var(--faint);font-size:11px;margin-left:6px}
+
+.prompt-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 20px;margin:18px 0}
+.prompt-head{color:var(--muted);font-size:13px;margin-bottom:4px}
+.prompt-lemma{font-family:var(--serif);font-size:1.6rem;margin-bottom:2px}
+.prompt-cell{color:var(--coral);font-size:14px;font-weight:600;letter-spacing:.02em}
+.answer-row{display:flex;gap:8px;margin-top:16px}
+input.ans{flex:1;font-family:var(--serif);font-size:1.15rem;padding:11px 13px;border-radius:10px;
+  border:1px solid var(--line);background:var(--raise);color:var(--ink)}
+input.ans:focus{outline:none;border-color:var(--coral)}
+button.go{background:var(--coral);color:var(--raise);border:none;border-radius:10px;padding:0 18px;font-size:15px;cursor:pointer}
+button.go:active{opacity:.85}
+
+.feedback{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14.5px}
+.feedback.ok{background:var(--good-bg);border:1px solid var(--good-br);color:var(--good)}
+.feedback.no{background:var(--bad-bg);border:1px solid var(--bad-br);color:var(--bad)}
+.feedback .answer{font-family:var(--serif);font-size:1.05rem;margin-top:2px;color:var(--ink)}
+
+.quietlink{background:none;border:none;color:var(--faint);font-size:13px;cursor:pointer;
+  padding:8px 0;font-family:var(--sans);text-decoration:underline}
+.progress{color:var(--faint);font-size:12.5px;margin-bottom:2px}
+.progress-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--coral)}
+
+.empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:15px}
+.note{color:var(--faint);font-size:var(--fs-meta);margin-top:16px;line-height:1.55}
+.summary-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.summary-row .k{color:var(--muted)}
+
+/* ---- Settings form controls (2026-08-21, rollover + new-cell allowance) ---- */
+.faintcell{color:var(--faint)}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.field label{color:var(--muted);font-size:14px}
+.field select,.field input.num,.field input[type="text"]{font-family:var(--sans);font-size:15px;
+  padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--raise);
+  color:var(--ink);min-width:8.5rem}
+.field select:focus,.field input.num:focus,.field input[type="text"]:focus{outline:none;border-color:var(--coral)}
+.field input[type="text"]{flex:1;min-width:0;letter-spacing:.06em;text-transform:uppercase}
+.field input[type="text"]::placeholder{text-transform:none;letter-spacing:0}
+/* The one thing on Home that is not an invitation: how far this device has
+   drifted from the last copy that reached the server. */
+.warn{display:block;width:100%;text-align:left;background:var(--bad-bg);border:1px solid var(--bad-br);
+  color:var(--bad);border-radius:12px;padding:11px 14px;margin:0 0 16px;font-family:var(--sans);
+  font-size:var(--fs-meta);line-height:1.45;cursor:pointer}
+
+/* ---- Stats screen + Study-days calendar (ported from vocabula, 2026-08-09) ---- */
+:root{ --amber:#a67c1e; --amber-bg:#efe6cf; }
+@media (prefers-color-scheme: dark){ :root{ --amber:#d9b04c; --amber-bg:#3a3018; } }
+
+.s-unseen{background:var(--line)}
+.s-learning{background:var(--coral)}
+.s-young{background:var(--amber)}
+.s-mature{background:var(--good)}
+.cellDot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle}
+
+.stackbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-top:4px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+.wpart{margin:16px 0}
+.wpart h3{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;
+  font-weight:600;color:var(--muted);margin:0 0 8px;text-transform:none;letter-spacing:0}
+.wpart h3 b{color:var(--faint);font-weight:500;font-size:12px}
+.wgrid{display:flex;flex-wrap:wrap;gap:3px}
+.wbox{width:11px;height:11px;border-radius:2px}
+
+.strip{display:flex;gap:3px;margin-top:6px}
+.dot{flex:1;aspect-ratio:1;border-radius:2px;background:var(--line);max-width:9px}
+.dot.did{background:var(--coral)}
+.dot.today{outline:1.5px solid var(--ink);outline-offset:1px}
+.streakNote{margin-top:8px}
+
+.fold{margin-top:14px}
+.fold summary{cursor:pointer;color:var(--coral);font-size:13px;list-style:none}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::before{content:'\25B8\0020';display:inline-block;transition:transform .15s}
+.fold[open] summary::before{transform:rotate(90deg)}
+
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.calNav{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 10px}
+.calTitle{font-family:var(--serif);font-size:1rem}
+.calDow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:var(--faint);
+  font-size:10.5px;margin-top:10px}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:4px}
+.calCell{position:relative;aspect-ratio:1;border-radius:6px;background:var(--panel);
+  border:1px solid var(--line);font-size:10px;padding:3px;overflow:hidden}
+.calCell.out{opacity:.35;border-color:transparent;background:none}
+.calCell.did{background:var(--accent-soft);border-color:var(--coral)}
+.calCell.today{border-color:var(--ink);border-width:1.5px}
+.calNum{display:block;color:var(--faint);font-size:9.5px}
+.calCell.did .calNum{color:var(--muted)}
+.calNew,.calWords,.calTot{display:block;font-size:9px;line-height:1.3}
+.calNew{color:var(--good)}
+.calWords{color:var(--coral)}
+.calTot{color:var(--faint)}
+/* ================= 2026-08-30: the interface port from vocabula ==========
+   Eleven decisions, his; the reasoning is in in-progress/UI_PORT_DECISIONS.md
+   and the demo beside it. Everything below is additive -- no existing rule
+   was changed, so every screen not named here looks exactly as it did.
+   ======================================================================== */
+
+/* ---- the bar. Stats and Settings stop being two of four full-width cards
+   and become the two top corners, which is what freed 185px on Home. The
+   negative margin pulls it out of body's own 20px padding so the icons sit
+   where a phone's thumbs expect them, at 12px from each edge. ---- */
+.hidden{display:none!important}
+.bar{display:flex;align-items:center;gap:10px;margin:-6px -8px 12px}
+.bar .icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;color:var(--muted);font-size:19px;border-radius:11px;
+  cursor:pointer;flex:0 0 auto;font-family:var(--sans);line-height:1}
+.bar .icon:active{background:var(--panel);color:var(--coral)}
+.bar .wm{flex:1;text-align:center;font-family:var(--serif);font-size:var(--fs-title);color:var(--ink)}
+.bar .icon svg{display:block}
+.bar .title{flex:1;text-align:center;font-size:15px;font-weight:500;color:var(--ink)}
+.bar .spacer{width:44px;flex:0 0 auto}
+
+/* ---- Review three-quarters, Look up one quarter. The narrow one is a
+   magnifier with a caption under it, his choice over letting "Look up a
+   form" wrap: at a quarter of 335px there are 84px to play with. ---- */
+/* ---- Review, number-first (2026-08-31). Look up left this row for the top
+   bar, so Review takes the whole width. The count is what the button is
+   offering and it used to be 13px muted under an 18px word that never
+   changes; now it is the number. ---- */
+.card.study .rvTop{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.09em;
+  font-weight:600;color:var(--good);line-height:1.2;margin-bottom:5px}
+.card.study .rvNum{font-family:var(--serif);font-size:var(--fs-display);line-height:1.05;
+  color:var(--good);font-variant-numeric:tabular-nums}
+.card.study .rvNum small{font-size:var(--fs-meta);color:var(--muted);letter-spacing:.01em}
+.card.study .rvSub{color:var(--muted);font-size:var(--fs-meta);line-height:1.45;margin-top:4px}
+.capHint{display:block;width:100%;text-align:left;background:none;border:none;padding:8px 2px 0;
+  color:var(--coral);font-size:var(--fs-meta);font-family:var(--sans);cursor:pointer;
+  text-decoration:underline;line-height:1.45}
+
+/* ---- Paradigms as a ruled list (2026-08-31). Eight instances of one thing:
+   a name, a system count, a due count. As cards the counts were incomparable
+   -- each was the tail of a muted sentence -- so nothing showed that one group
+   is twenty-two times another. Right-aligned and tabular, that reads at a
+   glance, and there are no boxes left to nest. ---- */
+.rowHead{display:flex;align-items:baseline;gap:12px;padding:0 2px 7px;
+  border-bottom:1px solid var(--line);font-size:var(--fs-label);text-transform:uppercase;
+  letter-spacing:.08em;color:var(--faint);font-weight:600;line-height:1.3}
+.rowHead .rowT{font-family:var(--sans);font-size:var(--fs-label)}
+button.row{display:flex;width:100%;align-items:baseline;gap:12px;text-align:left;color:inherit;
+  background:none;border:0;border-bottom:1px solid var(--line);padding:13px 2px;cursor:pointer;
+  font-family:var(--sans);line-height:1.5}
+button.row:active{background:var(--accent-soft)}
+.rowT{font-family:var(--serif);font-size:var(--fs-title);line-height:1.25;flex:1;min-width:0}
+.rowM{font-size:var(--fs-meta);color:var(--faint);white-space:nowrap;
+  font-variant-numeric:tabular-nums;min-width:3.4rem;text-align:right}
+.rowD{font-size:var(--fs-body);color:var(--ink);font-variant-numeric:tabular-nums;
+  white-space:nowrap;min-width:3.6rem;text-align:right;font-weight:600}
+.rowD.zero{color:var(--faint);font-weight:400}
+@media (hover:hover) and (pointer:fine){ button.row:hover{background:var(--accent-soft)} }
+
+/* ---- graded study-days strip: same 35 squares, shaded by how much was done
+   against his own average rather than on/off. Geometry unchanged. ---- */
+.dot.lit{background:var(--coral)}
+
+/* ---- where you keep slipping ---- */
+.trow{display:grid;grid-template-columns:auto 1fr auto;gap:2px 9px;padding:9px 2px;
+  border-bottom:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;
+  border-top:0;text-align:left;font-family:var(--sans);color:inherit;cursor:pointer;align-items:baseline}
+.trow:last-of-type{border-bottom:none}
+.trow:active{background:var(--accent-soft)}
+.tFlag{grid-row:1/3;align-self:center;width:10px;color:var(--coral);font-size:11px;line-height:1}
+.tLemma{font-family:var(--serif);font-size:1.02rem;min-width:0;overflow-wrap:anywhere}
+.tScore{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;justify-self:end}
+.tScore b{color:var(--bad-ink);font-weight:600}
+/* the grammar label gets the full width of the row's second line, so it is
+   never the thing that gets cut */
+.tCell{grid-column:2/4;color:var(--muted);font-size:12.5px;line-height:1.35}
+.tGroup{font-family:var(--sans);font-size:.95rem;min-width:0}
+.troubleBar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.troubleFoot{color:var(--faint);font-size:12.5px;margin-top:12px;line-height:1.5}
+
+/* ---- keycaps. Shown only where there is a keyboard to press: on a phone a
+   picture of a key is decoration, and this app is mostly used on one. ---- */
+.keycap{display:none}
+@media (hover:hover) and (pointer:fine){
+  .keycap{display:inline-block;margin-left:7px;font-family:var(--sans);font-size:10px;
+    line-height:1;padding:3px 5px;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:4px;color:var(--faint);background:var(--raise);vertical-align:middle;
+    letter-spacing:.02em}
+  .icon .keycap{margin-left:5px}
+}
+.scRow{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:5px 0;font-size:13.5px;color:var(--muted)}
+.scRow .keycap{display:inline-block;margin:0}
+
+/* ---- what changed ---- */
+.logEntry{border-bottom:1px solid var(--line);padding:13px 0}
+.logEntry:last-child{border-bottom:none}
+.logVer{font-size:11px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.logLine{font-size:13.5px;color:var(--muted);margin-bottom:7px;line-height:1.5}
+.logLine:last-child{margin-bottom:0}
+.logLine b{color:var(--ink);font-weight:600}
+
+/* ---- on a laptop: two balanced columns instead of a 480px ribbon down the
+   middle of an empty screen. Home only, and only where there is room --
+   below the threshold .cols2 is display:contents, so the markup flows in
+   exactly the single column it did before and nothing else changes. ---- */
+.cols2, .cols2 > div{display:contents}
+@media (min-width:900px){
+  /* Two equal columns ended 408px apart, which reads as broken; a narrower
+     rail that ends early reads as intentional. The section panels are gone
+     with them -- a card used to sit on its third surface, padded wider (18px)
+     than the panel holding it (16px), with a radius that made its corners
+     bulge against the outer ones. */
+  body[data-screen="home"]{max-width:70rem}
+  body[data-screen="home"] .cols2{display:grid;
+    grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:44px;align-items:start;margin-top:34px}
+  body[data-screen="home"] .cols2 > div{display:block;min-width:0}
+  body[data-screen="home"] .cols2 .sect{margin-top:30px}
+  body[data-screen="home"] .cols2 .sect:first-child{margin-top:0}
+  /* Review is the primary action and keeps the full width on a phone, but at
+     70rem a 1,120px band holding three short lines in its left corner reads as
+     unfinished -- an emptiness that only appeared once Look up left the row.
+     Capping it to the content column, by the same arithmetic the grid uses,
+     lines it up with the list it acts on. */
+  body[data-screen="home"] .card.study,
+  body[data-screen="home"] .warn{max-width:calc((100% - 44px) * 1.9 / 2.9)}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="data/latin-paradigms.js?v=202608312"></script>
+<script src="data/latin-vocab.js?v=202608312"></script>
+<script src="js/engine.js?v=202608312"></script>
+<script src="js/store.js?v=202608312"></script>
+<script src="js/fsrs.js?v=202608312"></script>
+<script src="js/stats.js?v=202608312"></script>
+<script src="js/changes.js?v=202608312"></script>
+<script src="js/sync.js?v=202608312"></script>
+<script>
+/* ======================================================================
+   Cotidie — Latin engine UI. Vanilla DOM, event delegation, no framework.
+   Three modes per HANDOFF.md §2: Table (reference, always open) ->
+   Recite (whole paradigm in canonical order, self-checked) -> Drill
+   (FSRS-scheduled random cell, auto-graded). Table/Recite need no vocab
+   pick beyond the class's own `example` specimen -- that IS the paradigm
+   students traditionally recite (mensa/mensae..., amo/amas/amat...), not
+   a random word. Drill pulls a due-card queue across the whole deck (or
+   one system, if entered from a system screen).
+   ====================================================================== */
+
+const NOUN_CLASSES = classesOfKind(LATIN_PARADIGMS, 'noun');
+const VERB_CLASSES = classesOfKind(LATIN_PARADIGMS, 'verb').filter(k => !LATIN_PARADIGMS[k].literal);
+const IRREGULAR_VERB_CLASSES = classesOfKind(LATIN_PARADIGMS, 'verb').filter(k => LATIN_PARADIGMS[k].literal);
+
+// ------------------------------------------------------------ GROUPS ----
+// Home shows one card per GROUP; each group's systems now live on their own
+// screen. The groups, their order and their contents are UNCHANGED -- every
+// split has its reason recorded on the class lists above and none of them
+// moved. What changed is only that a group is reached rather than scrolled
+// to. Home was 22 cards over 2.8 phone screenfuls -- not the problem Greek had,
+// but the two decks stay the same shape on purpose.
+// A group with no classes drops out, exactly as the `if (X.length)` guards
+// this replaces did.
+const CLASS_GROUPS = [
+  { id:'nouns',   label:'Nouns',           classes:NOUN_CLASSES },
+  { id:'verbs',   label:'Verbs',           classes:VERB_CLASSES },
+  { id:'irregt',  label:'Irregular verbs', classes:IRREGULAR_VERB_CLASSES },
+].filter(g => g.classes.length);
+
+// class key -> group id, for bucketing the due list and nothing else.
+const GROUP_OF_CLASS = {};
+CLASS_GROUPS.forEach(g => g.classes.forEach(k => { GROUP_OF_CLASS[k] = g.id; }));
+
+const STORE_KEY = STORE_KEYS.latin;   // defined once in js/sync.js
+const DECK_ID = 'latin';   // folded into the sync-code hash so this deck gets its own KV slot -- see js/sync.js
+// Starts empty and is replaced by boot() below once IndexedDB has answered.
+// Nothing renders before that, so no screen is ever drawn from this placeholder.
+let store = defaultStore();
+// A rollover change scheduled on a previous visit matures at a boundary, not
+// at a moment anything is running -- so it is folded in on load rather than
+// by a timer. No-op until that boundary has passed. Applied on every store
+// arrival, not once, since a sync adopt replaces the store wholesale.
+function applyDeckDefaults(){
+  commitRollover(store.settings, Date.now());
+}
+
+let view = { screen:'home' };   // {screen:'home'} | {screen:'system',cls} | {screen:'recite',cls,entry} | {screen:'drill',cls|null} | {screen:'stats'} | {screen:'settings'}
+
+// Study-days calendar's own view state (HANDOFF.md §10c) -- not persisted,
+// resets to the current month each fresh load, same as vocabula's calY/calM.
+let calY=null, calM=null, calOpen=false;
+
+const app = document.getElementById('app');
+
+function render(){
+  if (view.screen==='home') app.innerHTML = renderHome();
+  else if (view.screen==='group') app.innerHTML = renderGroup(view.gid);
+  else if (view.screen==='system') app.innerHTML = renderSystem(view.cls, view.tab||'table');
+  else if (view.screen==='recite') renderRecite();     // manages its own DOM (needs live input focus/state)
+  else if (view.screen==='drill') renderDrill();        // ditto
+  else if (view.screen==='stats') app.innerHTML = renderStats();
+  else if (view.screen==='settings'){ app.innerHTML = renderSettings(); wireSettings(); }
+  else if (view.screen==='lookup'){ app.innerHTML = renderLookup(); wireLookup(); }
+  else if (view.screen==='trouble') app.innerHTML = renderTrouble();
+  else if (view.screen==='log') app.innerHTML = renderLog();
+  // The two-column laptop layout keys off this rather than off a class the
+  // render functions have to remember to add: one place, set for every
+  // screen, impossible to forget when a screen is added later.
+  document.body.dataset.screen = view.screen;
+}
+
+function go(next){ view = next; render(); window.scrollTo(0,0); }
+
+// ---------------------------------------------------------------- HOME ----
+// capNew, not the raw due list: if a new-cell allowance is set, the number
+// on the home screen has to be the number the drill will really ask for.
+function homeDue(){
+  const now = Date.now();
+  const due = capNew(store, dueCards(store, LATIN_VOCAB, LATIN_PARADIGMS, now), now);
+  // Bucketed from ONE capped list, deliberately: capNew() spends a per-day
+  // new-cell allowance, so calling it once per group would hand every group
+  // the same remaining allowance and the group numbers would sum to more than
+  // the Review button's. Bucketing makes them add up by construction.
+  const byGroup = {};
+  due.forEach(it => {
+    const g = GROUP_OF_CLASS[it.entry.class];
+    if (g) byGroup[g] = (byGroup[g]||0) + 1;
+  });
+  return { total: due.length, byGroup };
+}
+
+// What the Review button promises -- see greek.html for the reasoning; the two
+// decks stay the same shape, which is his standing rule for this app.
+function reviewCardHtml(n){
+  if (!n) return `<div class="rvTop">Review</div><div class="rvNum">Nothing due</div>
+      <div class="rvSub">practice anytime below</div>`;
+  const est = fmtDuration(estimateMs(store, n));
+  return `<div class="rvTop">Review</div>
+      <div class="rvNum">${n.toLocaleString('en-GB')} <small>cell${n===1?'':'s'}</small></div>
+      ${est ? `<div class="rvSub">${est}</div>` : ''}`;
+}
+// Vocabula's own threshold and its reasoning: a device this far from the last
+// copy that reached the server has a real amount to lose, and nothing else on
+// the screen says so before it is gone. With no code set up at all the count is
+// the whole log, which is the honest number -- none of it is anywhere else.
+function backupWarnHtml(){
+  const st = loadSyncStatus(DECK_ID);
+  const since = ratingsSinceBackup(store.log.length, st.pushedLogLen);
+  if (since < BACKUP_WARN_RATINGS) return '';
+  return `<button class="warn" data-action="open-settings">${since} reviews since a copy last reached the
+    sync server. Set up a sync code in Settings, or export a backup from the launcher &rarr;</button>`;
+}
+
+function newLimitHintHtml(n){
+  if ((store.settings.newPerDay|0) > 0 || n < 200) return '';
+  return `<button class="capHint" data-action="open-settings">That is everything you have never met. Set a daily&nbsp;limit&nbsp;&rarr;</button>`;
+}
+
+function renderHome(){
+  const due = homeDue();
+  const n = due.total;
+  const trouble = troubleCells(store).slice(0, 5);
+  let groups = '';
+  CLASS_GROUPS.forEach(g=>{
+    const d = due.byGroup[g.id]||0;
+    groups += `<button class="row" data-action="open-group" data-group="${g.id}">
+      <span class="rowT">${g.label}</span>
+      <span class="rowM">${g.classes.length}</span>
+      <span class="rowD${d?'':' zero'}">${d.toLocaleString('en-GB')}</span></button>`;
+  });
+  return `
+    <div class="bar">
+      <button class="icon" data-action="open-stats" aria-label="Stats" title="Stats">&#9638;</button>
+      <span class="spacer" aria-hidden="true"></span>
+      <div class="wm">Cotidie</div>
+      <button class="icon" data-action="open-lookup" aria-label="Look up a form" title="Look up a form"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/></svg></button>
+      <button class="icon" data-action="open-settings" aria-label="Settings" title="Settings">&#9881;&#65038;</button>
+    </div>
+    <button class="card study" data-action="start-drill">${reviewCardHtml(n)}</button>
+    ${backupWarnHtml()}
+    ${newLimitHintHtml(n)}
+    <div class="cols2"><div>
+      <div class="sect"><h3>Paradigms</h3>
+        <div class="rowHead"><span class="rowT"></span><span class="rowM">systems</span><span class="rowD">due</span></div>
+        ${groups}</div>
+    </div><div>
+      ${troubleSectionHtml(trouble)}
+      <div class="sect">
+        <h3>Study days</h3>
+        <div class="strip">${stripHtml()}</div>
+        <p class="note streakNote">${streakNoteText()}</p>
+        <details class="fold"${calOpen?' open':''}>
+          <summary data-action="toggle-cal">Full calendar</summary>
+          ${calOpen?calendarHtml():''}
+        </details>
+      </div>
+      <div class="sect">
+        <h3>Cotidie</h3>
+        <button class="card" data-action="open-log"><div class="t">What changed</div>
+          <div class="d">Version ${BUILD}</div></button>
+      </div>
+    </div></div>
+    <p class="note">Table always open; Drill pulled from whatever's actually due. Macrons optional — grading ignores them. Nothing here is timed or gamified.</p>`;
+}
+
+// The five worst cells, and the button that drills only those.
+function troubleSectionHtml(list){
+  // Nothing to say on a deck that has never been answered -- an empty section
+  // explaining a feature you have not reached yet is just noise on a first
+  // run. Once there IS history, say why it is still empty rather than leaving
+  // a feature he chose invisible with no explanation.
+  if (!list.length){
+    if (!store.log.length) return '';
+    return `<div class="sect"><h3>Where you keep slipping</h3>
+      <p class="note" style="margin-top:0">Nothing yet. A cell appears here once you have
+      answered it ${TROUBLE_FLOOR} times and missed at least one &mdash; sooner than that sounds,
+      because a cell you miss comes back within minutes.</p></div>`;
+  }
+  const rows = list.map(t => troubleRowHtml(t)).join('');
+  return `<div class="sect"><h3>Where you keep slipping</h3>${rows}
+    <button class="card" data-action="drill-trouble" style="margin-top:11px">
+      <div class="t">Drill just these</div>
+      <div class="d">the cells you miss most, nothing else</div></button>
+    <button class="card" data-action="open-trouble">
+      <div class="t">See the full list</div>
+      <div class="d">every cell ranked, and by tense, voice or case</div></button></div>`;
+}
+
+// Latin's cellLabel() needs the word's CLASS, which a trouble row -- rebuilt
+// from the log -- does not carry. Resolved through a lazily-built id->entry
+// map rather than a .find() per row: the full list runs to hundreds of rows
+// and LATIN_VOCAB to 153, and that product is a real cost on every render.
+let _vocabById = null;
+function entryById(id){
+  if (!_vocabById){ _vocabById = Object.create(null); LATIN_VOCAB.forEach(e => { _vocabById[e.id] = e; }); }
+  return _vocabById[id] || null;
+}
+function troubleCellLabel(t){
+  const p = splitCardId(t.cardId);
+  const e = p && entryById(p.wordId);
+  // A word can leave the deck while its log rows remain; naming the category
+  // alone is better than throwing on a row nobody can act on any more.
+  if (!e || !LATIN_PARADIGMS[e.class]) return CATEGORY_LABELS[t.category] || String(t.category);
+  return cellLabel(e.class, { category:t.category, cell:t.cell });
+}
+
+// Pressing a row turns its flag on or off -- the only per-cell action there
+// is, so the row IS the button and nothing appears on hover.
+function troubleRowHtml(t){
+  const pct = Math.round(t.rate*100);
+  return `<button class="trow" data-action="toggle-flag" data-id="${escHtml(t.cardId)}"
+      aria-label="${isFlagged(store, t.cardId)?'Unflag':'Flag'} ${escHtml(t.lemma||'')}">
+    <span class="tFlag">${isFlagged(store, t.cardId) ? '&#9873;' : ''}</span>
+    <span class="tLemma">${escHtml(t.lemma||'')}</span>
+    <span class="tScore"><b>${t.misses}</b>/${t.attempts} &middot; ${pct}%</span>
+    <span class="tCell">${escHtml(troubleCellLabel(t))}</span>
+  </button>`;
+}
+
+// ----------------------------------------------- STUDY DAYS / STATS (§10c) ----
+// All derived on demand from store.log via js/stats.js's computeDayIndex() --
+// no persisted day-aggregate, see that file's own header comment for why.
+// Shaded by how much was done that day against his own average, not merely
+// on/off -- a 12-answer day and a 90-answer day used to look identical. The
+// baseline is the mean of the days actually STUDIED rather than of all 35: a
+// week off would otherwise drag the average down and repaint every ordinary
+// day afterwards as a heavy one. Capped at twice that average so a single
+// enormous session cannot wash every other day out to nothing, and floored at
+// 22% so a day with one answer still reads as a day worked.
+function stripHtml(){
+  const idx = computeDayIndex(store.log, store.settings.rollover);
+  const d = dayKey(Date.now(), store.settings.rollover);
+  const counts = [];
+  for (let i=34;i>=0;i--){ const r = idx[d-i]; if (r && r.n) counts.push(r.n); }
+  const avg = counts.length ? counts.reduce((a,b)=>a+b,0)/counts.length : 0;
+  let h = '';
+  for (let i=34; i>=0; i--){
+    const rec = idx[d-i], n = (rec && rec.n) || 0;
+    const pct = n ? Math.round(22 + 78*Math.min(1, n/Math.max(1, avg*2))) : 0;
+    // .lit carries a flat fallback, so a browser without color-mix() still
+    // shows a worked day as worked rather than as an empty one
+    const style = n ? ` style="background:color-mix(in srgb, var(--coral) ${pct}%, var(--panel))"` : '';
+    h += `<div class="dot${n?' lit':''}${i===0?' today':''}"${style} title="${n?n+' answered':'nothing'}"></div>`;
+  }
+  return h;
+}
+
+function streakNoteText(){
+  const idx = computeDayIndex(store.log, store.settings.rollover);
+  const streak = currentStreak(idx, dayKey(Date.now(), store.settings.rollover));
+  return streak ? (streak+' day'+(streak===1?'':'s')+' running') : 'No streak yet — the first day starts it.';
+}
+function calendarHtml(){
+  if (calY==null){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth(); }
+  const idx = computeDayIndex(store.log, store.settings.rollover);
+  const d0 = dayKey(Date.now(), store.settings.rollover);
+  const sun = new Date(); sun.setDate(sun.getDate()-sun.getDay());
+  const dowHtml = [0,1,2,3,4,5,6].map(i =>
+    `<div>${new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+i).toLocaleDateString(undefined,{weekday:'narrow'})}</div>`
+  ).join('');
+  let gridHtml = '';
+  monthMatrix(calY,calM).forEach(week => week.forEach(cell => {
+    if (!cell.inMonth){ gridHtml += `<div class="calCell out">${cell.d}</div>`; return; }
+    const dk = dayKeyForDate(cell.y, cell.m, cell.d, store.settings.rollover);
+    const st = dayStatsFor(idx, dk);
+    const cls = ['calCell'];
+    if (st.studied) cls.push('did');
+    if (dk===d0) cls.push('today');
+    const nums = st.studied
+      ? `<span class="calNew">${st.intro}</span><span class="calWords">${st.words}</span><span class="calTot">${st.ratings}</span>`
+      : '';
+    gridHtml += `<div class="${cls.join(' ')}"><span class="calNum">${cell.d}</span>${nums}</div>`;
+  }));
+  return `
+    <div class="calHead">
+      <button class="calNav" data-action="cal-prev" aria-label="Previous month">&lsaquo;</button>
+      <div class="calTitle">${new Date(calY,calM,1).toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div>
+      <button class="calNav" data-action="cal-next" aria-label="Next month">&rsaquo;</button>
+    </div>
+    <div class="calDow">${dowHtml}</div>
+    <div class="calGrid">${gridHtml}</div>`;
+}
+function shiftCalMonth(delta){
+  if (calY==null){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth(); }
+  calM += delta;
+  if (calM<0){ calM=11; calY--; } else if (calM>11){ calM=0; calY++; }
+}
+
+// ------------------------------------------------- TROUBLE (2026-08-30) ----
+// The ranked list behind Home's five rows. Two things it does that the
+// shortlist cannot: it runs all the way down to the cells he never gets
+// wrong (he asked for "worst to best", which has to include the best), and
+// it pivots onto the axes of the category -- tense, voice, mood for verbs,
+// case for nouns and adjectivals -- so "the aorist is what kills me" is a
+// question the app can answer, not just "this one cell is".
+//
+// The grouped numbers are SUMS, not averages of the per-cell rates: see
+// troubleByAxis() in js/stats.js for why that distinction decides the order.
+const TROUBLE_AXIS_TITLE = { tense:'By tense', voice:'By voice', mood:'By mood', 'case':'By case' };
+
+function renderTrouble(){
+  const axis = view.axis || 'cells';
+  const flaggedOnly = !!view.flagged;
+  const axes = troubleAxes(store);
+  const chips = ['cells'].concat(axes).map(a =>
+    `<button class="togglebtn${a===axis?' active':''}" data-action="trouble-axis" data-axis="${a}">${
+      a==='cells' ? 'Every cell' : TROUBLE_AXIS_TITLE[a]}</button>`).join('');
+  const nFlagged = flaggedCount(store);
+  const flagChip = nFlagged
+    ? `<button class="togglebtn${flaggedOnly?' active':''}" data-action="trouble-flagged">&#9873; Flagged (${nFlagged})</button>`
+    : '';
+
+  const group = view.group || null;
+  const groupChip = group
+    ? `<button class="togglebtn active" data-action="trouble-clear-group">${
+        escHtml(axisLabel(group.axis, group.key))} &times;</button>`
+    : '';
+
+  let body, foot;
+  if (axis === 'cells'){
+    let list = troubleCells(store, { includeClean:true });
+    if (group) list = list.filter(t => categoryAxes(t.category)[group.axis] === group.key);
+    if (flaggedOnly) list = list.filter(t => isFlagged(store, t.cardId));
+    body = list.length
+      ? list.map(troubleRowHtml).join('')
+      : `<p class="empty">${flaggedOnly ? 'Nothing flagged yet.'
+          : 'Nothing ranked yet — a cell joins this list once you have answered it '+TROUBLE_FLOOR+' times.'}</p>`;
+    foot = `Ranked by how often you get it wrong, not by how many times &mdash; a cell you have
+      missed 3 of 4 sits above one you have missed 9 of 200. Cells answered fewer than
+      ${TROUBLE_FLOOR} times are left out until there is enough to judge them on. Press any row
+      to flag it.`;
+  } else {
+    const groups = troubleByAxis(store, axis);
+    body = groups.length
+      ? groups.map(g => `<button class="trow" data-action="trouble-group" data-axis="${axis}" data-key="${escHtml(g.key)}">
+          <span class="tFlag"></span>
+          <span class="tGroup">${escHtml(axisLabel(axis, g.key))}</span>
+          <span class="tScore"><b>${g.misses}</b>/${g.attempts} &middot; ${Math.round(g.rate*100)}%</span>
+          <span class="tCell">${g.cellCount} cell${g.cellCount===1?'':'s'} answered &mdash; open</span>
+        </button>`).join('')
+      : `<p class="empty">Not enough answers yet to rank ${axis==='case'?'the cases':'by '+axis}.</p>`;
+    foot = `Every cell of a ${axis} added together &mdash; the misses and the attempts are summed
+      and the rate worked out from those, rather than averaging the rates of the cells, which
+      would let one rarely-asked form outweigh a hundred common ones. Groups with fewer than
+      ${TROUBLE_GROUP_FLOOR} answers are left out.`;
+  }
+
+  const canDrill = axis === 'cells';
+  return `
+    <div class="bar">
+      <button class="icon" data-action="home" aria-label="Back">&#8249;</button>
+      <div class="title">Where you keep slipping</div>
+      <div class="spacer"></div>
+    </div>
+    <div class="troubleBar">${chips}${flagChip}${groupChip}</div>
+    ${body}
+    ${canDrill ? `<button class="card study" data-action="drill-trouble" style="margin-top:14px">
+        <div class="t">Drill ${flaggedOnly ? 'the flagged cells' : group ? escHtml(axisLabel(group.axis, group.key).toLowerCase()) : 'these'}</div>
+        <div class="d">nothing else in the queue</div></button>` : ''}
+    <p class="troubleFoot">${foot}</p>`;
+}
+
+// A drill built from a list of cards rather than from what is due. Cells the
+// deck no longer contains are dropped silently -- a card id survives in the
+// log after its word is corrected out of the data, and scheduling a drill for
+// a word that is gone is how a queue ends up with a blank prompt.
+function startTroubleDrill(cardIds){
+  const byId = Object.create(null);
+  LATIN_VOCAB.forEach(e => { byId[e.id] = e; });
+  const queue = [];
+  cardIds.forEach(id => {
+    const parts = splitCardId(id);
+    if (!parts) return;
+    const entry = byId[parts.wordId];
+    if (!entry || !entryHasCell(entry, parts.category, parts.cell)) return;
+    queue.push({ wordId: entry.id, entry, category: parts.category, cell: parts.cell,
+                 card: store.cards[id] || null });
+  });
+  for (let i=queue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [queue[i],queue[j]]=[queue[j],queue[i]]; }
+  drillState = { clsKey:null, queue, pos:0, correct:0, total:queue.length };
+  go({ screen:'drill' });
+}
+
+// -------------------------------------------------- WHAT CHANGED (2026-08-30)
+// Read on the phone, which is the only reason it is worth having in the app
+// at all -- the memos that record the same changes live in the repo, and the
+// repo is not somewhere he is standing when he wonders what moved.
+function renderLog(){
+  const entries = CHANGES.map(([ver, lines]) => `
+    <div class="logEntry">
+      <div class="logVer">${escHtml(ver)}</div>
+      ${lines.map(l => `<div class="logLine">${l}</div>`).join('')}
+    </div>`).join('');
+  return `
+    <div class="bar">
+      <button class="icon" data-action="home" aria-label="Back">&#8249;</button>
+      <div class="title">What changed</div>
+      <div class="spacer"></div>
+    </div>
+    ${entries}
+    <p class="note">Running ${escHtml(BUILD)}.</p>`;
+}
+
+function renderStats(){
+  const { totals, bySystem } = wholeDeckStats(store, LATIN_VOCAB, LATIN_PARADIGMS);
+  const total = STATUS_ORDER.reduce((n,k) => n+totals[k], 0);
+  let barHtml = '';
+  STATUS_ORDER.forEach(k => {
+    const n = totals[k]; if (!n) return;
+    barHtml += `<div class="s-${k}" style="width:${100*n/total}%" title="${STATUS_LABEL[k]}: ${n}"></div>`;
+  });
+  let legendHtml = '';
+  STATUS_ORDER.forEach(k => {
+    const n = totals[k]; if (!n) return;
+    legendHtml += `<span><i class="sw s-${k}"></i>${STATUS_LABEL[k]} — ${n} (${Math.round(100*n/total)}%)</span>`;
+  });
+  const allClasses = [...NOUN_CLASSES, ...VERB_CLASSES, ...IRREGULAR_VERB_CLASSES];
+  let gridHtml = '';
+  allClasses.forEach(k => {
+    const sys = bySystem[k]; if (!sys) return;
+    const met = sys.cells.filter(s => s!=='unseen').length;
+    gridHtml += `<div class="wpart"><h3><span>${escHtml(LATIN_PARADIGMS[k].label)}</span><b>${met} / ${sys.cells.length}</b></h3><div class="wgrid">`;
+    sys.cells.forEach(s => { gridHtml += `<div class="wbox s-${s}"></div>`; });
+    gridHtml += `</div></div>`;
+  });
+  return `
+    <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+    <h2>Stats</h2>
+    <p class="sub">Every cell across every system — not just what's due.</p>
+    <div class="sect" style="margin-top:8px">
+      <h3>Where you stand</h3>
+      <div class="stackbar">${barHtml}</div>
+      <div class="legend">${legendHtml}</div>
+    </div>
+    <div class="sect"><h3>By system</h3>${gridHtml || '<p class="empty">No systems to show.</p>'}</div>`;
+}
+
+// ------------------------------------------------------------- SYNC (§10e) ----
+// Credentials live only in js/sync.js's shared key, never duplicated into
+// this deck's own store.settings -- see that file's header comment.
+//
+// Reconciliation is a MERGE as of 2026-08-23, not a choice. What was here
+// before had a silent data-loss path, and it is worth writing down because
+// the shape of it recurs: the three-way split needed a "base" -- the log
+// length both sides last agreed on -- and on a fresh page load there was no
+// such number, so it fell back to `store.log.length`. With base equal to the
+// local length, local can never read as having moved. A genuine fork on a
+// freshly-loaded tab therefore came out as 'take-remote', and this device's
+// reviews were replaced without a prompt. The fallback was the bug, and no
+// amount of care at the call sites would have found it, because every branch
+// was individually correct.
+//
+// There is now no base and no branch: fetch, merge, push back if this side
+// had anything the other lacked. mergeStores() is symmetric and idempotent
+// (tests, section 37), so doing it more often than strictly necessary costs
+// a few milliseconds and can never cost data.
+let saveTimer = null;
+let syncedLogLen = null;   // last log length this device pushed or merged, this session
+let lastRemoteAt = null;   // server-stamped time of the newest write this device has taken in
+// Seeded from what was persisted rather than starting empty. Held only in
+// memory, this made Settings say "Not synced yet this session" after every
+// reload -- which reads exactly like "never synced", the one thing it most
+// needs not to say.
+let lastSyncNote = (() => {
+  const st = loadSyncStatus(DECK_ID);
+  return (st && st.at) ? { when: st.at, note: st.note || 'Synced' } : null;
+})();
+let clockWarned = false;
+let spareRead = false;   // whether the one IndexedDB read for the local spare has been kicked off
+
+// One place that records what just happened. `extra` carries the facts a later
+// render needs -- how far the pushed copy got, how big it was, which install
+// the copy came from -- rather than a pre-baked sentence, so the wording can
+// change without stranding what an earlier version wrote.
+function noteSync(text, extra){
+  lastSyncNote = { when: Date.now(), note: text };
+  // `from` is cleared by default. It describes ONE arrival, and left standing
+  // in the blob it attached itself to every later note -- the local-spare
+  // restore was reporting "that copy came from another device", which is the
+  // one thing it definitely was not. Only applyMerge() sets it.
+  saveSyncStatus(DECK_ID, Object.assign({ at: lastSyncNote.when, note: text, from: '' }, extra || {}));
+}
+
+// Replaces the old bare saveStore(STORE_KEY, store) call sites: saves
+// locally as before, and additionally schedules a debounced push (6s after
+// the last save, same interval as vocabula's own) if a sync code is set.
+function save(){
+  persistStore(STORE_KEY, store);
+  const code = loadSyncCode().syncCode;
+  if (code){
+    clearTimeout(saveTimer);
+    // guardedAutoPush, not doPush: an unattended push looks at the server
+    // first, because pushStore() PUTs whatever is in memory unconditionally
+    // and two devices inside each other's six-second window would otherwise
+    // overwrite one another with no one present to notice.
+    saveTimer = setTimeout(() => { saveTimer = null; guardedAutoPush(); }, 6000);
+  }
+}
+// Deliberately NOT guarded: this fires as the app is being closed or
+// backgrounded, its PUT is built to land via keepalive, and the extra GET a
+// guard would add needs live JS to come back. Guarding it would sometimes
+// cost the catch-up push entirely -- a commoner loss than the race it closes.
+function flushPendingPush(){
+  if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; doPush(); }
+}
+
+// A clock that is badly wrong reorders a merged log silently, because `ts` is
+// what sorts it. Said once a session, and never as a refusal: refusing to
+// sync would only stop the backup.
+function noteClock(){
+  if (clockWarned) return;
+  const msg = clockSkewMessage(syncClockSkew());
+  if (msg){ clockWarned = true; noteSync(msg); }
+}
+
+// `quiet` suppresses the success note only. A FAILURE is always recorded:
+// a push that failed and a push that never happened used to render
+// identically on Settings, which is exactly how a real failure goes unnoticed
+// until the other device comes up empty.
+async function doPush(quiet){
+  const code = loadSyncCode().syncCode;
+  const res = await pushStore(store, code, DECK_ID);
+  if (res.ok){
+    syncedLogLen = store.log.length;
+    if (Number.isFinite(res.now)) lastRemoteAt = res.now;
+    // Recorded even when quiet: this is the mark the backup-drift warning
+    // counts against, and the automatic pushes are exactly the ones keeping it
+    // current. Only the visible note is suppressed.
+    const facts = { pushedLogLen: store.log.length, bytes: res.bytes||0, error:'', by: installId() };
+    if (quiet) saveSyncStatus(DECK_ID, Object.assign({ at: Date.now() }, facts));
+    else noteSync('Pushed' + (res.kept ? ' — the other device’s last copy was kept as a spare' : ''), facts);
+  } else {
+    noteSync('Push failed ('+res.error+')', { error: res.error||'failed' });
+  }
+  noteClock();
+  if (view.screen==='settings') render();
+  return res;
+}
+
+// Fold the server's copy into this one, keep the result, and push it back if
+// this side held anything the other did not. storeReplaced() is not optional:
+// the merge builds a NEW log array, and the incremental IndexedDB writer would
+// otherwise append the merged rows onto the rows already stored.
+async function applyMerge(res){
+  // One step back, taken BEFORE the arrival lands. saveLocalSpare()'s header
+  // in js/store.js says why the Worker's own spare cannot cover this case.
+  saveLocalSpare(STORE_KEY, store, 'a merge', installId());
+  const m = mergeStores(store, adoptStore(res.store));
+  store = adoptStore(m.store);
+  applyDeckDefaults();
+  storeReplaced(STORE_KEY);
+  persistStore(STORE_KEY, store);
+  syncedLogLen = store.log.length;
+  if (Number.isFinite(res.at)) lastRemoteAt = res.at;
+  noteSync(mergeSummary(m.stats), { from: res.from || '' });
+  const localHadSomething = m.stats.fromLocal > 0 || m.stats.cardsFromLocal > 0 || m.stats.prefsFrom === 'local';
+  if (localHadSomething) await doPush(true);   // quiet: the merge summary is the more useful note
+  noteClock();
+  return m;
+}
+
+// Manual "Pull now". Always merges -- there is no longer a case where one
+// side's reviews are discarded to resolve a disagreement.
+async function doPull(){
+  const code = loadSyncCode().syncCode;
+  const res = await fetchStore(code, DECK_ID);
+  if (!res.ok){
+    // Nothing stored under this code yet is not a failure; it is the normal
+    // state of a device that has just been paired, and the right response is
+    // to put this device's copy there.
+    if (res.missing){ await doPush(); render(); return res; }
+    noteSync('Pull failed ('+res.error+')', { error: res.error||'failed' });
+    if (view.screen==='settings') render();
+    return res;
+  }
+  await applyMerge(res);
+  render();
+  return res;
+}
+
+// Runs when the tab becomes visible again on the Home screen. Same merge as
+// doPull(), without the "nothing there yet -> push" branch: a launch should
+// not create a remote copy on its own.
+async function syncOnLaunch(){
+  const code = loadSyncCode().syncCode;
+  if (!code) return;
+  const lenAtStart = store.log.length;
+  const res = await fetchStore(code, DECK_ID);
+  if (!res.ok) return;
+  if (store.log.length !== lenAtStart) return;   // rated while the fetch was in flight; the debounced push will reconcile
+  await applyMerge(res);
+  if (view.screen==='home' || view.screen==='settings') render();
+}
+
+// The look-before-writing wrapper for the AUTOMATIC debounced push. One extra
+// GET per push, already spaced six seconds apart at minimum; a detected race
+// turns the push into a merge, which pushes back itself, so it is still one
+// KV write either way.
+async function guardedAutoPush(){
+  const code = loadSyncCode().syncCode;
+  if (!code) return;
+  if (syncedLogLen == null) return doPush(true);   // nothing taken in yet this session -- syncOnLaunch owns that case
+  const inc = await fetchStore(code, DECK_ID);
+  if (pushRaceDecision(inc, lastRemoteAt) === 'merge-first'){
+    try {
+      await applyMerge(inc);
+      if (view.screen==='home' || view.screen==='settings') render();
+      return;
+    } catch(e){
+      console.error('race-guard merge failed, pushing anyway', e);   // a broken merge must not block the push forever
+    }
+  }
+  return doPush(true);
+}
+
+// The spare copy the Worker keeps whenever the OTHER install pushes over this
+// one's blob. The recovery path for "something went wrong and the good copy
+// has since been overwritten": it is merged in like any other arrival, so
+// using it can only ever add reviews back, never remove any.
+async function restoreFromSpare(){
+  const code = loadSyncCode().syncCode;
+  if (!code){ noteSync('No sync code set up on this device'); render(); return; }
+  const res = await fetchPrevStore(code, DECK_ID);
+  if (!res.ok){
+    noteSync(res.missing
+      ? 'No spare copy yet — one is kept the first time a second device pushes under this code'
+      : 'Could not read the spare copy ('+res.error+')');
+    render(); return;
+  }
+  saveLocalSpare(STORE_KEY, store, 'a restore', installId());
+  const m = mergeStores(store, adoptStore(res.store));
+  store = adoptStore(m.store);
+  applyDeckDefaults();
+  storeReplaced(STORE_KEY);
+  persistStore(STORE_KEY, store);
+  syncedLogLen = store.log.length;
+  noteSync('From the server’s spare: ' + mergeSummary(m.stats));
+  if (m.stats.fromRemote) await doPush(true);
+  render();
+}
+
+// The copy THIS device last replaced, out of IndexedDB.
+//
+// Merged in rather than swapped for, which is a deliberate difference from
+// vocabula, where a restored copy wins outright. Cotidie's other spare merges;
+// mergeStores() is the only operation here that can promise no review is ever
+// lost; and two restore buttons that behaved differently from one another
+// would be worse than either rule on its own. So this brings back everything
+// the old copy had. It does not throw away what arrived.
+async function restoreLocalSpare(){
+  const rec = await readLocalSpare(STORE_KEY);
+  if (!rec || !rec.state){
+    noteSync('No spare on this device yet — one is kept the first time a sync replaces this copy');
+    render(); return;
+  }
+  saveLocalSpare(STORE_KEY, store, 'a restore', installId());
+  const m = mergeStores(store, adoptStore(rec.state));
+  store = adoptStore(m.store);
+  applyDeckDefaults();
+  storeReplaced(STORE_KEY);
+  persistStore(STORE_KEY, store);
+  syncedLogLen = store.log.length;
+  noteSync('From this device’s spare: ' + mergeSummary(m.stats));
+  if (m.stats.fromRemote) await doPush(true);
+  render();
+}
+
+// Confirm-before-overwrite, the same safeguard the launcher has: it only asks
+// when this device already has a DIFFERENT code, so first-time setup is one
+// tap. Cancel writes nothing.
+function newSyncCode(){
+  const cur = loadSyncCode().syncCode;
+  if (cur && !confirm(syncCodeReplaceMessage())){
+    noteSync('Left as it was — this device is still using the code it had');
+    render(); return;
+  }
+  saveSyncCode(randomSyncCode());
+  noteSync('Code created — enter the same code on your other device to link them');
+  render();
+}
+
+// The whole model in plain words, which cotidie had nowhere before: the
+// Settings screen only said a code was set. Ported from vocabula's and cut to
+// what is true here -- cotidie's two restore buttons both merge, so the claim
+// that a restored copy "wins" would have been wrong.
+const SYNC_EXPLANATION = `One code is the whole setup: get one here on the first
+  device, type the same code into the other, and both decks stay in step — every save is pushed a few
+  seconds later, and each launch fetches whatever the other device left and merges it in. Merging never
+  loses a review: both copies are combined, and a cell answered on both since they last agreed keeps
+  whichever answer came later. The code never leaves this device — it is turned into a lookup key and an
+  encryption key here, and only those and the encrypted copy ever reach the sync server, which cannot
+  read either. Treat it like a password: anyone holding it can read and overwrite your copy. Latin and
+  Greek get their own slot on the server from the same code, and the code is shared with the launcher
+  automatically. <em>Push now</em> sends this device's copy up as it is; <em>Pull and merge</em> fetches
+  the synced copy and merges it in. The two restore buttons are the safety net — one fetches the server's
+  spare, the last copy a different device sent, and the other puts back whatever this device last
+  replaced. Both merge rather than overwrite, so either can only ever add reviews back.`;
+
+function rollLabel(h){
+  const ampm = h===0 ? 'midnight' : (h<12 ? h+'am' : (h===12 ? 'noon' : (h-12)+'pm'));
+  return ampm;
+}
+
+/* ---------------------------------------------------------- LOOKUP ----
+   Reverse lookup over every cell in the deck (see buildFormIndex in
+   js/engine.js). Built once, on first use: it is a few thousand entries and
+   costs nothing, but there is no reason to pay for it on a boot that never
+   opens this screen.
+
+   The index is keyed through the SAME normaliser the grader uses, so looking
+   a form up matches exactly what answering it would have matched. */
+let formIndex = null;
+function lookupNormalise(s){ return (normalize)(s); }
+function ensureFormIndex(){
+  if (!formIndex) formIndex = buildFormIndex(LATIN_PARADIGMS, LATIN_VOCAB, lookupNormalise, null);
+  return formIndex;
+}
+
+function renderLookup(){
+  return `
+    <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+    <h2>Look up a form</h2>
+    <p class="sub">Every form in the deck, backwards.</p>
+    <div class="answer-row">
+      <input class="ans" id="lookupInput" autocapitalize="off" autocomplete="off"
+             autocorrect="off" spellcheck="false" placeholder="type a Latin form — mensārum, amābitis, ducta">
+    </div>
+    <div id="lookupResults"></div>`;
+}
+
+function lookupResultsHtml(q){
+  if (!q.trim()) return '<p class="note">Nothing typed yet.</p>';
+  const hits = lookupForm(ensureFormIndex(), lookupNormalise, q);
+  if (!hits.length) return `<p class="empty">No form like that in the deck.</p>`;
+  // One form very often has several answers -- λύω is both indicative and
+  // subjunctive, τρεῖς both nominative and accusative -- so every hit is
+  // listed. Showing only the first would be a confident wrong answer.
+  const rows = hits.map(hit => `
+    <button class="card" data-action="open-system" data-cls="${escHtml(hit.entry.class)}">
+      <div class="t">${escHtml(hit.form)}</div>
+      <div class="d">${escHtml(cellLabel(hit.entry.class, hit))}</div>
+      <div class="d">${escHtml(LATIN_PARADIGMS[hit.entry.class].label)} &middot; ${escHtml(hit.entry.lemma)}${hit.entry.meaning ? ' — '+escHtml(hit.entry.meaning) : ''}</div>
+    </button>`).join('');
+  return `<p class="note">${hits.length} ${hits.length===1?'match':'matches'}.</p>` + rows;
+}
+
+function wireLookup(){
+  const inp = document.getElementById('lookupInput');
+  if (!inp) return;
+  const out = document.getElementById('lookupResults');
+  const run = () => { out.innerHTML = lookupResultsHtml(inp.value); attachDelegate(); };
+  inp.addEventListener('input', run);
+  inp.focus();
+  run();
+}
+
+function renderSettings(){
+  const code = loadSyncCode().syncCode;
+  const s = store.settings;
+  const shown = (s.rolloverPending!=null) ? s.rolloverPending : (s.rollover!=null ? s.rollover : 4);
+  const rollOptions = [0,1,2,3,4,5,6,7,8,9,10,11,12]
+    .map(h => `<option value="${h}"${h===shown?' selected':''}>${rollLabel(h)}</option>`).join('');
+  const pendingLine = (s.rolloverPending!=null && s.rolloverPendingFrom!=null)
+    ? `<p class="note">Switching to ${rollLabel(s.rolloverPending)} at ${escHtml(new Date(s.rolloverPendingFrom).toLocaleString())}.</p>`
+    : '';
+  const configured = !!code;
+  const st = loadSyncStatus(DECK_ID);
+  const cameFromElsewhere = st.from && st.from !== installId();
+  const statusLine = lastSyncNote
+    ? lastSyncNote.note + ' — ' + new Date(lastSyncNote.when).toLocaleString()
+      + (cameFromElsewhere ? ' (that copy came from another device)' : '')
+    : (configured ? 'Nothing recorded from this device yet.' : 'Not synced yet.');
+  const since = ratingsSinceBackup(store.log.length, st.pushedLogLen);
+  const driftLine = configured && since >= BACKUP_WARN_RATINGS
+    ? since + ' review' + (since===1?'':'s') + ' since the last copy reached the server.' : '';
+  const sp = localSpareInfo(STORE_KEY);
+  const spareLine = sp
+    ? 'kept ' + new Date(sp.at).toLocaleString() + ' — ' + sp.n + ' review' + (sp.n===1?'':'s') + ', before ' + sp.reason
+    : 'nothing kept yet — one is saved the first time a sync replaces this copy';
+  // localSpareInfo() is filled by an IndexedDB read, so the first paint has
+  // nothing to show. Kick the read off and repaint once; the flag is what
+  // stops that repaint asking for another read.
+  if (!spareRead){
+    spareRead = true;
+    readLocalSpare(STORE_KEY).then(() => { if (view.screen==='settings') render(); });
+  }
+  return `
+    <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+    <h2>Settings</h2>
+    <p class="sub">Sync, study day, and daily intake for this deck.</p>
+    <div class="sect" style="margin-top:8px">
+      <h3>Cloud sync</h3>
+      <div class="field">
+        <label for="fSyncCode">Sync code</label>
+        <input type="text" id="fSyncCode" value="${escHtml(code||'')}" placeholder="e.g. ABCDE-FGHJK"
+          autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off">
+      </div>
+      <button class="card" data-action="sync-new-code" style="margin-top:14px">
+        <div class="t">Get a code for this device</div>
+        <div class="d">then type the same code into your other device</div></button>
+      ${configured ? `
+        <button class="card" data-action="sync-push"><div class="t">Push now</div>
+          <div class="d">send this device's reviews up as they are</div></button>
+        <button class="card" data-action="sync-pull"><div class="t">Pull and merge</div>
+          <div class="d">fetch the synced copy and merge it in</div></button>
+        <button class="card" data-action="sync-spare"><div class="t">Restore the other copy's last push</div>
+          <div class="d">the server keeps the last copy a different device sent</div></button>
+        <button class="card" data-action="sync-local-spare"><div class="t">Restore the copy this replaced</div>
+          <div class="d">${escHtml(spareLine)}</div></button>
+        <p class="note">${escHtml(statusLine)}</p>
+        ${driftLine ? `<p class="note" style="color:var(--bad)">${escHtml(driftLine)}</p>` : ''}
+      ` : ''}
+      <p class="note">${SYNC_EXPLANATION}</p>
+    </div>
+
+    <div class="sect">
+      <h3>Study day</h3>
+      <p class="note" style="margin-top:0">A new study day begins at this hour. Anything you answer before it counts
+      towards the day before &mdash; which is what stops a session that runs past midnight from being split in two.
+      A change takes effect at the start of your next study day, never immediately, so it can't move reviews
+      you have already done into different days.</p>
+      <div class="field">
+        <label for="fRollover">Day rolls over at</label>
+        <select id="fRollover">${rollOptions}</select>
+      </div>
+      ${pendingLine}
+    </div>
+
+    <div class="sect">
+      <h3>New cells a day</h3>
+      <p class="note" style="margin-top:0">How many cells you have never seen before may be introduced in a day.
+      <strong>0 means no limit</strong>, which is how it ships. Cells already in progress are never held back
+      by this &mdash; only new ones are rationed, because a review put off is a review that comes back bigger.</p>
+      <div class="field">
+        <label for="fNewPerDay">New cells a day</label>
+        <input class="num" type="number" id="fNewPerDay" min="0" max="500" step="1" inputmode="numeric" value="${s.newPerDay|0}">
+      </div>
+    </div>
+
+    <div class="sect">
+      <h3>Backup</h3>
+      <p class="note" style="margin-top:0">Both decks are exported and restored together from the Cotidie launcher.
+      Sync keeps a copy on the server under your code; the export file is the copy that doesn't depend on anything.</p>
+    </div>`;
+}
+
+// Settings has real form controls, which the delegated click handler on #app
+// does not cover -- it listens for clicks, and these fire `change`. Attached
+// after each render of the screen rather than once at boot, because the
+// screen's innerHTML is thrown away and rebuilt every time it is opened.
+function wireSettings(){
+  const roll = document.getElementById('fRollover');
+  if (roll) roll.addEventListener('change', e => {
+    setRollover(store.settings, e.target.value|0, Date.now());
+    save();
+    render();
+  });
+  const sc = document.getElementById('fSyncCode');
+  if (sc) sc.addEventListener('change', e => {
+    const v = e.target.value.trim().toUpperCase();
+    e.target.value = v;
+    saveSyncCode(v);
+    noteSync(v ? 'Sync code saved — enter the same code on your other device' : 'Sync code cleared');
+    render();
+  });
+  const npd = document.getElementById('fNewPerDay');
+  if (npd) npd.addEventListener('change', e => {
+    const v = Math.max(0, Math.min(500, e.target.value|0));
+    store.settings.newPerDay = v;
+    e.target.value = v;
+    save();
+  });
+}
+
+
+// -------------------------------------------------------------- SYSTEM ----
+function wordsOfClass(clsKey){
+  return LATIN_VOCAB.map((e,i)=>({e,i})).filter(x=>x.e.class===clsKey);
+}
+
+// One group's systems, on their own screen.
+function renderGroup(gid){
+  const g = CLASS_GROUPS.find(x => x.id === gid);
+  if (!g) return renderHome();          // unknown id: fall back rather than blank
+  let h = `
+    <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+    <h2>${g.label}</h2>
+    <p class="sub">${g.classes.length} system${g.classes.length===1?'':'s'}</p>
+    <div class="sect">`;
+  g.classes.forEach(k=>{
+    const c = LATIN_PARADIGMS[k];
+    h += `<button class="card" data-action="open-system" data-cls="${k}" data-group="${g.id}">
+      <div class="t">${c.label}</div><div class="d">${c.subtitle}</div></button>`;
+  });
+  return h + `</div>`;
+}
+
+// The system screen sits one level deeper than it used to, so its back button
+// returns to the group it was opened from. view.from carries that; when it is
+// absent -- a system reached any other way -- the old behaviour stands.
+function backTopbar(){
+  const g = view.from && CLASS_GROUPS.find(x => x.id === view.from);
+  return g ? `<button class="back" data-action="open-group" data-group="${g.id}">&larr; ${g.label}</button>`
+           : `<button class="back" data-action="home">&larr; Cotidie</button>`;
+}
+
+function renderSystem(clsKey, tab){
+  const cls = LATIN_PARADIGMS[clsKey];
+  let h = `
+    <div class="topbar">${backTopbar()}</div>
+    <h2>${cls.label}</h2>
+    <p class="sub">${cls.subtitle}</p>
+    <div class="tabs">
+      <button class="${tab==='table'?'on':''}" data-action="tab" data-tab="table">Table</button>
+      <button class="${tab==='recite'?'on':''}" data-action="tab" data-tab="recite">Recite</button>
+    </div>`;
+
+  if (tab==='table'){
+    h += cls.kind==='noun' ? renderNounTable(cls) : renderVerbTables(cls);
+    h += `<button class="card" data-action="start-drill" data-cls="${clsKey}" style="margin-top:14px">
+      <div class="t">Drill this system</div><div class="d">${capNew(store, dueCards(store, wordsOfClass(clsKey).map(x=>x.e), LATIN_PARADIGMS, Date.now()), Date.now()).length} due</div>
+    </button>`;
+  } else {
+    h += `<p class="note" style="margin:0 0 12px">Recite the whole paradigm in order, from memory. Starts with the class's own example word.</p>
+      <div class="wordlist">`;
+    h += wordRow(cls.example, -1, clsKey, true);
+    wordsOfClass(clsKey).forEach(({e,i}) => { h += wordRow(e, i, clsKey, false); });
+    h += `</div>`;
+  }
+  return h;
+}
+
+function wordRow(entry, vocabIndex, clsKey, isExample){
+  const g = entry.gender ? `<span class="gender">${entry.gender}.</span>` : '';
+  return `<div class="wordrow" data-action="start-recite" data-cls="${clsKey}" data-idx="${vocabIndex}">
+    <div><span class="lemma">${entry.lemma}</span>${g}${isExample?' <span class="gender">(example)</span>':''}</div>
+    <div class="gloss">${entry.meaning}</div>
+  </div>`;
+}
+
+// Per-cell status dots (HANDOFF.md §10d) summarize across the class's real
+// vocab words -- see cellStatusSummary()'s own comment for why this can't
+// just point at cls.example's own cells.
+function dotHtml(st){ return `<i class="cellDot s-${st}" title="${STATUS_LABEL[st]}"></i>`; }
+
+function renderNounTable(cls){
+  const clsKey = cls.example.class;
+  const rows = cls.categories.map(cat=>{
+    const sg = formsFor(LATIN_PARADIGMS, cls.example, cat, 'sg').primary;
+    const pl = formsFor(LATIN_PARADIGMS, cls.example, cat, 'pl').primary;
+    const sgSt = cellStatusSummary(store, LATIN_VOCAB, clsKey, cat, 'sg');
+    const plSt = cellStatusSummary(store, LATIN_VOCAB, clsKey, cat, 'pl');
+    return `<tr><td class="case">${CATEGORY_LABELS[cat]}</td><td>${dotHtml(sgSt)}${sg}</td><td>${dotHtml(plSt)}${pl}</td></tr>`;
+  }).join('');
+  return `<table class="para"><tr><th></th><th>Singular</th><th>Plural</th></tr>${rows}</table>`;
+}
+
+// Same shape as greek.html's: rows built from the cells that exist, not from a
+// fixed six-person grid. Latin has no ragged verb class yet, but it will the
+// moment an imperative or infinitive lands, and the failure mode is a thrown
+// exception that takes the whole Table screen with it.
+function renderVerbTables(cls){
+  const clsKey = cls.example.class;
+  const rowFor = (cat, n) => ['sg','pl'].map(num => {
+    const cell = n + num;
+    if (cls.endings[cat] === undefined || cls.endings[cat][cell] === undefined)
+      return '<td><span class="faintcell">—</span></td>';
+    const dot = dotHtml(cellStatusSummary(store, LATIN_VOCAB, clsKey, cat, cell));
+    return `<td>${dot}${formsFor(LATIN_PARADIGMS, cls.example, cat, cell).primary}</td>`;
+  }).join('');
+  let h = '';
+  cls.categories.forEach(cat=>{
+    h += `<div class="vtable"><h4>${CATEGORY_LABELS[cat]}</h4>
+      <table class="para"><tr><th></th><th>Singular</th><th>Plural</th></tr>
+      <tr><td class="case">1st</td>${rowFor(cat,'1')}</tr>
+      <tr><td class="case">2nd</td>${rowFor(cat,'2')}</tr>
+      <tr><td class="case">3rd</td>${rowFor(cat,'3')}</tr>
+      </table></div>`;
+  });
+  return h;
+}
+
+// -------------------------------------------------------------- RECITE ----
+// Recitation is deliberately NOT logged to the FSRS review store -- it's the
+// memorization step, not a graded rep. See HANDOFF.md §2.
+let reciteState = null; // {entry, clsKey, cells, pos, promptShownAt}
+
+function renderRecite(){
+  const { entry, cells } = reciteState;
+  if (reciteState.pos >= cells.length){
+    app.innerHTML = `
+      <div class="topbar"><button class="back" data-action="back-to-system">&larr; ${LATIN_PARADIGMS[reciteState.clsKey].label}</button></div>
+      <h2>Recited in full</h2>
+      <p class="sub">${entry.lemma} — ${entry.meaning}</p>
+      <button class="card study" data-action="start-drill" data-cls="${reciteState.clsKey}">
+        <div class="t">Drill this system now</div><div class="d">random cells, auto-graded</div>
+      </button>
+      <button class="card" data-action="back-to-system"><div class="t">Back to ${LATIN_PARADIGMS[reciteState.clsKey].label}</div></button>`;
+    attachDelegate(); return;
+  }
+  const cell = cells[reciteState.pos];
+  const forms = formsFor(LATIN_PARADIGMS, entry, cell.category, cell.cell);
+  const label = cellLabel(reciteState.clsKey, cell);
+  reciteState.promptShownAt = Date.now();
+  app.innerHTML = `
+    <div class="topbar"><button class="back" data-action="back-to-system">&larr; ${LATIN_PARADIGMS[reciteState.clsKey].label}</button></div>
+    <div class="progress">Reciting ${entry.lemma} — ${reciteState.pos+1} of ${cells.length}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${100*reciteState.pos/cells.length}%"></div></div>
+    <div class="prompt-box">
+      <div class="prompt-head">${entry.meaning}</div>
+      <div class="prompt-lemma">${entry.lemma}</div>
+      <div class="prompt-cell">${label}</div>
+      <div class="answer-row">
+        <input class="ans" id="ansInput" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="type the form">
+        <button class="go" data-action="recite-submit">&rarr;</button>
+      </div>
+      <div id="reciteFeedback"></div>
+    </div>
+    <button class="quietlink" data-action="recite-reveal">show answer</button>`;
+  attachDelegate();
+  const inp = document.getElementById('ansInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key==='Enter') submitRecite(); });
+}
+
+function cellLabel(clsKey, cell){
+  const cls = LATIN_PARADIGMS[clsKey];
+  if (cls.kind==='noun') return CATEGORY_LABELS[cell.category] + ' · ' + CELL_LABELS[cell.cell];
+  return CATEGORY_LABELS[cell.category] + ' · ' + CELL_LABELS[cell.cell];
+}
+
+function submitRecite(){
+  const inp = document.getElementById('ansInput');
+  const cell = reciteState.cells[reciteState.pos];
+  const forms = formsFor(LATIN_PARADIGMS, reciteState.entry, cell.category, cell.cell);
+  const correct = checkAnswer(inp.value, forms.accepted);
+  showReciteFeedback(correct, forms.primary);
+}
+function showReciteFeedback(correct, primary){
+  const fb = document.getElementById('reciteFeedback');
+  fb.innerHTML = correct
+    ? `<div class="feedback ok">Right.</div>`
+    : `<div class="feedback no">Not quite. <div class="answer">${primary}</div></div>`;
+  document.getElementById('ansInput').disabled = true;
+  const goBtn = document.querySelector('[data-action="recite-submit"]');
+  if (goBtn) goBtn.disabled = true;
+  setTimeout(() => { reciteState.pos++; renderRecite(); }, correct ? 550 : 1400);
+}
+
+// --------------------------------------------------------------- DRILL ----
+// Session is a fixed snapshot taken when Drill starts, not re-queried after
+// each rep (a card that immediately re-queues itself under a fresh FSRS
+// state would otherwise loop forever inside one sitting). See HANDOFF.md.
+let drillState = null; // {pool, queue, pos, correct, total, promptShownAt}
+
+function startDrill(clsKeyOrNull){
+  const pool = clsKeyOrNull ? wordsOfClass(clsKeyOrNull).map(x=>x.e) : LATIN_VOCAB;
+  const now = Date.now();
+  // buildQueue, not the raw due list: it shuffles (the raw list is pool order
+  // x recitation order, i.e. the same march through every paradigm each
+  // session -- the shuffle used to exist only on the "drill anyway" path
+  // below) and it applies the day's new-cell allowance if one is set.
+  const due = buildQueue(store, dueCards(store, pool, LATIN_PARADIGMS, now), now);
+  drillState = { clsKey:clsKeyOrNull, queue:due, pos:0, correct:0, total:due.length };
+  go({ screen:'drill' });
+}
+
+function renderDrill(){
+  if (!drillState || drillState.total===0){
+    app.innerHTML = `
+      <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+      <h2>Nothing due</h2>
+      <p class="empty">No cards are due${drillState&&drillState.clsKey?' in '+LATIN_PARADIGMS[drillState.clsKey].label:''} right now.<br>Come back later, or drill anyway if you want the extra practice.</p>
+      <button class="card" data-action="start-drill-anyway" data-cls="${drillState&&drillState.clsKey?drillState.clsKey:''}">
+        <div class="t">Drill anyway</div><div class="d">practice ahead of schedule</div></button>
+      <button class="card" data-action="home"><div class="t">Back to Cotidie</div></button>`;
+    attachDelegate(); return;
+  }
+  if (drillState.pos >= drillState.queue.length){
+    app.innerHTML = `
+      <div class="topbar"><button class="back" data-action="home">&larr; Cotidie</button></div>
+      <h2>Session done</h2>
+      <div class="summary-row"><span class="k">Reviewed</span><span>${drillState.total}</span></div>
+      <div class="summary-row"><span class="k">Correct</span><span>${drillState.correct} / ${drillState.total}</span></div>
+      <button class="card" data-action="home" style="margin-top:16px"><div class="t">Back to Cotidie</div></button>`;
+    attachDelegate(); return;
+  }
+  const item = drillState.queue[drillState.pos];
+  const label = cellLabel(item.entry.class, item);
+  drillState.promptShownAt = Date.now();
+  app.innerHTML = `
+    <div class="bar">
+      <button class="icon" data-action="home" aria-label="Back to Cotidie">&#8249;<span class="keycap">Esc</span></button>
+      <div class="title">Review — ${drillState.pos+1} of ${drillState.queue.length}</div>
+      <button class="icon" data-action="toggle-shortcuts" aria-label="Keyboard shortcuts">&#9000;&#65038;</button>
+    </div>
+    <div class="sect hidden" id="shortcutsCard" style="margin-top:0">${shortcutsHtml()}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${100*drillState.pos/drillState.queue.length}%"></div></div>
+    <div class="prompt-box">
+      <div class="prompt-head">${item.entry.meaning}</div>
+      <div class="prompt-lemma">${item.entry.lemma}</div>
+      <div class="prompt-cell">${label}</div>
+      <div class="answer-row">
+        <input class="ans" id="ansInput" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="type the form">
+        <button class="go" data-action="drill-submit">&rarr;<span class="keycap">&crarr;</span></button>
+      </div>
+      <div id="drillFeedback"></div>
+    </div>
+    <p class="note">Macrons optional — grading ignores them.</p>`;
+  attachDelegate();
+  const inp = document.getElementById('ansInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key==='Enter') submitDrill(); });
+  wireDrillTiming(inp);
+}
+
+// The shortcuts card, behind the keyboard icon in the drill bar. Its own
+// rows always show their keycaps -- the .keycap media query hides caps on a
+// touch device, but a list a touch user has deliberately opened is a list
+// they want to read, and on an iPad with a keyboard both are true at once.
+function shortcutsHtml(){
+  const rows = [
+    ['Submit the answer', '&crarr;'],
+    ['Move on, once graded', 'any key'],
+    ['Flag the cell, after a miss', 'F'],
+    ['Back to Cotidie', 'Esc']
+  ];
+  return '<h3>Keyboard</h3>' + rows.map(([what,key]) =>
+    `<div class="scRow"><span>${what}</span><span class="keycap">${key}</span></div>`).join('');
+}
+
+// Drill-wide keys. Bound on `document` rather than on the answer input for
+// the same reason advanceOnKeyOrTimeout() is: once an answer is graded the
+// input is disabled and cannot receive a keystroke at all. Every branch
+// checks the screen first, so nothing here fires on Home or in Settings.
+document.addEventListener('keydown', e => {
+  if (view.screen !== 'drill' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'Escape'){ e.preventDefault(); go({screen:'home'}); return; }
+  const inp = document.getElementById('ansInput');
+  const graded = !inp || inp.disabled;
+  // '/' and 'f' are ordinary characters: they must never be stolen while an
+  // answer is still being typed, only once the box is closed.
+  // Only once the answer is closed: 'f' is an ordinary character and must
+  // never be stolen from a half-typed answer.
+  if (!graded) return;
+  if (e.key === 'f' || e.key === 'F'){
+    const btn = document.querySelector('[data-action="drill-flag"]');
+    if (btn){ e.preventDefault(); btn.click(); }
+  }
+});
+
+// ---- the timing split recorded against every rep (2026-08-21) ----
+// Measured, logged, and deliberately NOT graded on -- see gradeToRating() in
+// js/fsrs.js for why speed stopped deciding anything. The split matters more
+// than the total: prompt-to-first-keystroke is recall time and does not grow
+// with how long the answer is, whereas the total does, which is what made a
+// single latency number unusable across forms of 4 and 13 keystrokes.
+//
+// Nothing here is shown during a drill. The ground rule says "nothing is
+// timed or gamified", and a visible clock would both contradict that and
+// introduce exactly the time pressure that turns a typo into an Again.
+function wireDrillTiming(inp){
+  drillState.firstKeyAt = null;
+  drillState.keyCount = 0;
+  inp.addEventListener('keydown', e => {
+    if (e.key==='Shift'||e.key==='Alt'||e.key==='Control'||e.key==='Meta') return;
+    if (drillState.firstKeyAt==null && e.key!=='Enter') drillState.firstKeyAt = Date.now();
+    if (e.key!=='Enter') drillState.keyCount++;
+  });
+}
+
+// What the answer was graded under, and on what kind of device -- a latency
+// figure fitted across a mixture of Mac and phone sessions would be fitted to
+// nothing, so the mixture has to be recorded at the time.
+function drillFlags(){
+  let f = 0;
+  // Latin has no accent setting and no input scheme -- neither flag can apply.
+  try { if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) f |= FL_TOUCH; } catch(e){}
+  return f;
+}
+
+// The three timing fields, assembled at submit. toFirstKey is null when the
+// answer was submitted without a keystroke (an empty Enter), which is a real
+// event and must not be logged as "recalled instantly".
+function drillTiming(now){
+  const t = { keys: drillState.keyCount|0, flags: drillFlags() };
+  if (drillState.firstKeyAt!=null){
+    t.toFirstKey = drillState.firstKeyAt - drillState.promptShownAt;
+    t.typing = now - drillState.firstKeyAt;
+  }
+  return t;
+}
+
+// ---- the forced pause, killed (2026-08-30) -------------------------------
+// Both Recite and Drill used to hold the next card behind a bare setTimeout
+// no key could skip -- a MINIMUM wait. Against the ground rule "nothing is
+// timed or gamified", forcing someone to sit and watch a clock IS a kind of
+// gamification. This makes the interval a MAXIMUM instead: whichever comes
+// first, the timeout or the next keystroke, moves on. Listens on `document`,
+// not the (disabled) answer input -- a disabled input cannot receive
+// keyboard focus, so it would never see the key meant to skip the wait.
+function advanceOnKeyOrTimeout(timeoutMs, fn){
+  let done = false;
+  const go = () => { if (done) return; done = true; document.removeEventListener('keydown', onKey); clearTimeout(timer); fn(); };
+  // preventDefault matters: `fn` re-renders synchronously, which creates a
+  // brand-new (enabled) answer input for the next card before this keydown
+  // event has finished. Without preventDefault, the browser's own default
+  // handling for THIS SAME keystroke still runs afterward and types the
+  // character into that new input -- caught live: skipping past a reveal
+  // with 'a' left a stray "a" sitting in the next card's answer box.
+  const onKey = e => { if (e.key==='Shift'||e.key==='Alt'||e.key==='Control'||e.key==='Meta') return; e.preventDefault(); go(); };
+  document.addEventListener('keydown', onKey);
+  const timer = setTimeout(go, timeoutMs);
+}
+
+// Same race, but with a second way to resolve early: an explicit click (the
+// "actually that was a typo" undo), which settles to a DIFFERENT outcome
+// than letting the pause run out naturally. Returns the function that
+// triggers the override -- call it from the click handler. Used only for
+// the one case that needs it: an undo-eligible miss in Drill (see
+// finishDrillTurn). Whichever of the three ways to resolve fires first wins;
+// the other two become no-ops.
+function submitDrill(){
+  const inp = document.getElementById('ansInput');
+  if (inp.disabled) return;
+  const item = drillState.queue[drillState.pos];
+  const forms = formsFor(LATIN_PARADIGMS, item.entry, item.category, item.cell);
+  const latency = Date.now() - drillState.promptShownAt;
+  const correct = checkAnswer(inp.value, forms.accepted);
+  if (correct) drillState.correct++;
+
+  const meta = { wordId: item.entry.id, category:item.category, cell:item.cell, lemma:item.entry.lemma };
+  const submittedAt = Date.now();
+  // BEFORE recordReview: afterwards the row just written is in the log, and
+  // "missed N times before" would be counting the miss you are looking at.
+  const priorMisses = correct ? 0 : missCountOf(item);
+  const result = recordReview(store, meta, correct, latency, submittedAt, drillTiming(submittedAt));
+  save();
+
+  const fb = document.getElementById('drillFeedback');
+  // No rating word any more: with two grades, "Right" and the grade say the
+  // same thing, and the old line ("Right — Hard.") was the app telling you
+  // off for being slow while claiming nothing here is timed.
+  fb.innerHTML = correct
+    ? `<div class="feedback ok">Right.${backInLine(result && result.ivl)}</div>`
+    : `<div class="feedback no">Not quite. <div class="answer">${forms.primary}</div>${backInLine(result && result.ivl)}${missLine(priorMisses)}</div>`
+      + (correct ? '' : flagButtonHtml(item));
+  inp.disabled = true;
+  const goBtn = document.querySelector('[data-action="drill-submit"]');
+  if (goBtn) goBtn.disabled = true;
+  // A MAXIMUM, not a minimum: any key moves on. Longer after a miss than it
+  // was, because there is now something on screen worth reading and a flag
+  // worth pressing -- and nothing forces you to wait it out.
+  advanceOnKeyOrTimeout(correct ? 550 : 2600, () => { drillState.pos++; renderDrill(); });
+}
+
+// ---- the three lines a graded answer can carry (2026-08-30) ----------------
+// All three are his call: "add the return, the miss count, and a flag".
+// Deliberately quiet -- one line of small text inside the feedback box, not a
+// second panel. The interval comes from the scheduler that just ran, so it is
+// what will really happen rather than an estimate.
+function backInLine(ivlMs){
+  if (!ivlMs || ivlMs <= 0) return '';
+  const mins = ivlMs/60000, hrs = mins/60, days = hrs/24;
+  let when;
+  if (mins < 90)   when = 'in ' + Math.max(1, Math.round(mins)) + ' minutes';
+  else if (hrs < 36) when = 'in ' + Math.round(hrs) + ' hours';
+  else if (days < 60) when = 'in ' + Math.round(days) + ' days';
+  else               when = 'in ' + Math.round(days/30) + ' months';
+  return `<div class="note" style="margin-top:6px">Back ${when}.</div>`;
+}
+// Silent until a cell has actually beaten him more than once: "missed 1 time"
+// on a first slip is noise, and nine is the number that means go and read the
+// paradigm rather than keep guessing.
+function missCountOf(item){
+  const id = cardId(item.entry.id, item.category, item.cell);
+  let misses = 0;
+  for (let i=0;i<store.log.length;i++){ const r = store.log[i]; if (r.cardId===id && !r.correct) misses++; }
+  return misses;
+}
+// Counting and rendering are separate because the two decks reach this at
+// different moments: Greek's miss path still has an undo pause open and has
+// not written the review yet, whereas Latin's has already committed -- so
+// Latin must capture the count BEFORE recordReview or the miss just made
+// would be counted as one that came before it.
+function missLine(misses){
+  if (misses < 2) return '';
+  return `<div class="note" style="margin-top:2px">Missed ${misses} times before.</div>`;
+}
+
+function flagButtonHtml(item){
+  const id = cardId(item.entry.id, item.category, item.cell);
+  const on = isFlagged(store, id);
+  return `<button class="quietlink" data-action="drill-flag">${on ? '\u2691 flagged' : '\u2690 flag this cell'}</button>`;
+}
+
+// ------------------------------------------------------------ delegation ----
+function attachDelegate(){
+  app.onclick = e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    if (action==='home') go({screen:'home'});
+    else if (action==='open-stats') go({screen:'stats'});
+    else if (action==='open-settings') go({screen:'settings'});
+    else if (action==='open-lookup') go({screen:'lookup'});
+    else if (action==='open-trouble') go({screen:'trouble', axis:'cells'});
+    else if (action==='open-log') go({screen:'log'});
+    // Changing axis drops any group filter: a group is a value OF one axis,
+    // so "Aorist" is meaningless once you are looking at voices.
+    else if (action==='trouble-axis') go({screen:'trouble', axis:el.dataset.axis, flagged:view.flagged});
+    else if (action==='trouble-flagged') go({screen:'trouble', axis:view.axis||'cells', flagged:!view.flagged, group:view.group});
+    else if (action==='trouble-group') go({screen:'trouble', axis:'cells', flagged:view.flagged,
+      group:{axis:el.dataset.axis, key:el.dataset.key}});
+    else if (action==='trouble-clear-group') go({screen:'trouble', axis:'cells', flagged:view.flagged});
+    else if (action==='toggle-flag'){
+      const id = el.dataset.id;
+      setFlag(store, id, !isFlagged(store, id));
+      save();
+      render();
+    }
+    else if (action==='drill-trouble'){
+      // The Home button drills the same five rows it is showing; the Trouble
+      // screen's drills whatever that screen is currently listing, flag
+      // filter included -- in both cases what you press is what you get.
+      let list = troubleCells(store);
+      if (view.screen === 'trouble'){
+        if (view.group) list = list.filter(t => categoryAxes(t.category)[view.group.axis] === view.group.key);
+        if (view.flagged) list = list.filter(t => isFlagged(store, t.cardId));
+      } else {
+        list = list.slice(0, 5);   // Home's button drills the five rows it is showing
+      }
+      startTroubleDrill(list.map(t => t.cardId));
+    }
+    else if (action==='drill-flag'){
+      const item = drillState && drillState.queue[drillState.pos];
+      if (!item) return;
+      const id = cardId(item.entry.id, item.category, item.cell);
+      setFlag(store, id, !isFlagged(store, id));
+      save();
+      el.textContent = isFlagged(store, id) ? '\u2691 flagged' : '\u2690 flag this cell';
+    }
+    else if (action==='toggle-shortcuts'){
+      const card = document.getElementById('shortcutsCard');
+      if (card) card.classList.toggle('hidden');
+    }
+    else if (action==='sync-push') doPush();
+    else if (action==='sync-pull') doPull();
+    else if (action==='sync-spare') restoreFromSpare();
+    else if (action==='sync-local-spare') restoreLocalSpare();
+    else if (action==='sync-new-code') newSyncCode();
+    else if (action==='toggle-cal'){ e.preventDefault(); calOpen=!calOpen; render(); }
+    else if (action==='cal-prev'){ shiftCalMonth(-1); render(); }
+    else if (action==='cal-next'){ shiftCalMonth(1); render(); }
+    else if (action==='open-group') go({screen:'group', gid:el.dataset.group});
+    else if (action==='open-system') go({screen:'system', cls:el.dataset.cls, tab:'table', from:el.dataset.group||null});
+    else if (action==='tab') go({screen:'system', cls:view.cls, tab:el.dataset.tab, from:view.from});
+    else if (action==='back-to-system') go({screen:'system', cls:reciteState?reciteState.clsKey:view.cls, tab:'recite', from:view.from});
+    else if (action==='start-drill') startDrill(null);
+    else if (action==='start-drill-anyway') startDrillAnyway(el.dataset.cls||null);
+    else if (action==='start-recite'){
+      const clsKey = el.dataset.cls;
+      const idx = parseInt(el.dataset.idx,10);
+      const entry = idx>=0 ? LATIN_VOCAB[idx] : LATIN_PARADIGMS[clsKey].example;
+      // orderedCellsFor, not orderedCells: Recite walks a real WORD, and a word
+      // may lack cells its class defines. Walking the class asked faciō for its
+      // passive and formsFor() happily returned `facior` -- the class does
+      // define that ending -- so Recite would have quietly taught back the
+      // exact non-words the verification pass removed. Silently wrong, not a
+      // crash, which is why it needed looking for.
+      reciteState = { entry, clsKey, cells: orderedCellsFor(LATIN_PARADIGMS, entry), pos:0 };
+      // carry the group through Recite too, or back-to-system lands on a
+      // system screen that has forgotten which group opened it.
+      go({ screen:'recite', from:view.from });
+    }
+    else if (action==='recite-submit') submitRecite();
+    else if (action==='recite-reveal'){
+      const cell = reciteState.cells[reciteState.pos];
+      const forms = formsFor(LATIN_PARADIGMS, reciteState.entry, cell.category, cell.cell);
+      showReciteFeedback(false, forms.primary);
+    }
+    else if (action==='drill-submit') submitDrill();
+  };
+}
+
+function startDrillAnyway(clsKeyOrNull){
+  const pool = clsKeyOrNull ? wordsOfClass(clsKeyOrNull).map(x=>x.e) : LATIN_VOCAB;
+  // build a queue of EVERY cell, ignoring due-ness, for on-demand extra practice
+  const queue = [];
+  pool.forEach(entry => orderedCells(LATIN_PARADIGMS, entry.class).forEach(({category,cell}) =>
+    queue.push({ wordId: entry.id, entry, category, cell })));
+  // shuffle (Fisher-Yates) so "drill anyway" isn't just alphabetical order
+  for (let i=queue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [queue[i],queue[j]]=[queue[j],queue[i]]; }
+  drillState = { clsKey:clsKeyOrNull, queue, pos:0, correct:0, total:queue.length };
+  go({ screen:'drill' });
+}
+
+// The delegated click handler lives on #app itself, which innerHTML swaps
+// never remove -- so this is attached exactly once, not per-render. (An
+// earlier version called attachDelegate() only from renderRecite/renderDrill,
+// which meant the home and system screens had no click handling at all.)
+// Boot. The one asynchronous step in the whole app: a deck cannot draw a
+// screen until its store has been read out of IndexedDB. attachDelegate() is
+// safe to wire first -- it delegates from #app, which innerHTML swaps never
+// replace -- and there is nothing on screen to click until render() runs.
+attachDelegate();
+bootStore(STORE_KEY).then(loaded => {
+  store = loaded;
+  applyDeckDefaults();
+  render();
+}).catch(() => {
+  // Never leave a blank page: an unreadable store is worth showing an empty
+  // deck for, not nothing at all.
+  applyDeckDefaults();
+  render();
+});
+
+// Flush a pending debounced push immediately on tab-hide/close rather than
+// dropping it silently; check for remote changes when coming back to Home.
+// Same pattern as vocabula's own visibilitychange/pagehide hooks.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) flushPendingPush();
+  else if (view.screen==='home') syncOnLaunch();
+});
+window.addEventListener('pagehide', flushPendingPush);
+</script>
+</body>
+</html>

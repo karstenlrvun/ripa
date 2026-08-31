@@ -2,449 +2,229 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cotidie">
+<meta name="theme-color" content="#fbf7ec">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
-<title>Riverbank</title>
+<title>Cotidie</title>
 <style>
 :root{
-  /* Vocabula's own Vellum values (2026-08-20, his ask: "make it look more
-     like vocabula" -- the launcher had its own separate, hand-picked
-     light/dark pair that had drifted, dark mode especially: a navy-blue
-     scheme nothing else in either app uses. This is not a dynamic palette
-     system -- deck.html's own 12-palette picker stays deck-scoped, matching
-     vocabula's own index.html, which is ALSO fixed-look rather than
-     palette-aware -- just the actual Vellum numbers instead of a guess. */
-  --bg:#fbf7ec; --ink:#2a2318; --muted:#6f6350; --faint:#988c75; --line:#e3d9c1; --panel:#f5efdf; --coral:#8c2f26;
-  /* good/again/easy/amber added 2026-08-20 for the Activity heatmap below --
-     heatCellBg() colour-mixes against whichever of these the deck's own
-     "Volume colour" setting picked, plus --good/--again for Retention mode. */
-  --good:#5a6b32; --again:#a3342a; --easy:#755992; --amber:#9a7318;
   --serif:"Palatino","Palatino Linotype","Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --bg:#fbf7ec; --panel:#f5efdf; --ink:#2a2318; --muted:#6f6350; --faint:#988c75;
+  --line:#e3d9c1; --coral:#8c2f26; --accent-soft:#f0e3d8; --raise:#fffdf6;
 }
 @media (prefers-color-scheme: dark){
-  :root{--bg:#1a160f; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c; --line:#3a3222; --panel:#241f16; --coral:#d4795e;
-    --good:#a9bd72; --again:#e28073; --easy:#c3a3e0; --amber:#d4a24a;}
+  :root{
+    --bg:#1a160f; --panel:#241f16; --ink:#ece3cf; --muted:#a89a80; --faint:#7a6f5c;
+    --line:#3a3222; --coral:#d4795e; --accent-soft:#3f2a1f; --raise:#2c2519;
+  }
 }
-*{box-sizing:border-box}
-html{background:var(--bg)}
-body{margin:0 auto;padding:56px 22px 80px;max-width:28rem;background:var(--bg);color:var(--ink);
-  font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-text-size-adjust:100%}
-h1{font-family:var(--serif);font-weight:400;font-size:2.1rem;margin:0}
-.sub{color:var(--muted);font-size:15px;margin:4px 0 32px}
-/* Header: the title/subtitle on the left, everything that ISN'T a deck --
-   Settings, Guide, What's new, Export all -- as small icon buttons on the
-   right (2026-08-18, Karsten's own ask: "move the buttons 'settings'
-   'manual' -- basically anything that isn't a deck -- to icons near the
-   top"). The card list below is decks only now. */
-.head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.headIcons{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
-a.iconBtn,button.iconBtn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;
-  border-radius:11px;background:var(--panel);border:1px solid var(--line);color:var(--ink);
-  font-size:17px;text-decoration:none;cursor:pointer;font-family:inherit;padding:0;flex:none}
-a.iconBtn:active,button.iconBtn:active{border-color:var(--coral)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg)}
+body{
+  color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+  padding:calc(52px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom));
+  max-width:30rem; margin:0 auto;
+}
+h1{font-family:var(--serif);font-weight:400;font-size:2.05rem;margin:0 0 4px}
+.sub{color:var(--muted);font-size:14.5px;margin:0 0 30px}
 a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
-  border:1px solid var(--line);border-radius:15px;padding:17px 19px;margin-bottom:11px}
-a.card:active{border-color:var(--coral)}
-a.card .t{font-family:var(--serif);font-size:1.32rem;margin-bottom:2px}
-a.card .d{color:var(--muted);font-size:14px}
-.note{margin-top:28px;color:var(--muted);font-size:13.5px;line-height:1.6}
-.exportNote{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5;min-height:1.2em}
-/* Per-card live stats -- due/done/an honest time estimate, read straight
-   from that deck's own S.summary (written on every save(), 2026-08-20 --
-   see deck.html's buildSummary(), ported from vocabula's own §2.3) plus
-   today's day record for the two figures a stale snapshot cannot be
-   trusted for. Same split vocabula's own renderTodayStats()/summaryLine()
-   use, and the same reason: a snapshot from yesterday saying "12 done"
-   next to today's true "0m" read as one sentence disagreeing with itself.
-   Empty (min-height only) until data resolves, so a never-opened deck's
-   card just stays quiet rather than showing a zero that never happened. */
-.todayStats{margin-top:8px;font-size:12.5px;color:var(--muted);min-height:1.3em}
-/* Changelog link, moved to the foot of the page (2026-08-20, his ask: "like
-   vocabula does it") -- was an icon up top next to Settings/Guide. Same small
-   uppercase idiom as every deck's own .build tag. */
-.verlink{display:block;text-align:center;margin:30px 0 0;padding:8px;font-size:11px;
-  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-decoration:none}
-.verlink:active{color:var(--coral)}
-/* Activity (2026-08-20, his ask: "add the heatmap too" -- ported from
-   vocabula's own cross-deck dashboard, PLATFORM_PLAN.md §6a there. One
-   shared-scroll strip per visible deck, all sharing the same day columns,
-   so scrolling is a single action across every deck at once rather than N
-   independently-scrolling rows that drift out of alignment. Read-only, same
-   guarantee as everything else on this page -- reads state[key] directly,
-   writes nothing back to any deck. */
+  border:1px solid var(--line);border-radius:14px;padding:15px 18px;margin-bottom:10px}
+a.card:active{border-color:var(--coral);background:var(--accent-soft)}
+a.card .t{font-family:var(--serif);font-size:1.28rem;margin-bottom:2px}
+a.card .d{color:var(--muted);font-size:13.5px}
 .sect{margin-top:30px}
 .sect h2{font-size:12.5px;font-weight:500;color:var(--faint);text-transform:uppercase;
   letter-spacing:.07em;margin:0 0 12px}
-.streakLine{font-size:13.5px;color:var(--muted);margin-bottom:10px;min-height:1.4em}
-.calToggleRow{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
-.calToggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);
-  -webkit-user-select:none;user-select:none}
-.calToggle input{margin:0;accent-color:var(--coral)}
-.calAllScroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 10px}
-.calDeckRow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.calDeckRow:last-child{margin-bottom:0}
-.calDeckRow .lbl{flex:0 0 auto;width:38px;font-size:10.5px;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.05em;text-align:right}
-.calDeckRow .dots{display:flex;gap:2px}
-.calDot{width:9px;height:9px;border-radius:2px;background:var(--line);flex:0 0 auto}
-.calDot.today{box-shadow:inset 0 -2px 0 var(--coral)}
-/* Archived decks (2026-08-20, his ask: "a collapsed section, but
-   accessible from index"). Native <details> -- no JS needed to open/close
-   it, and it degrades safely if script is ever blocked. Only SAT lives
-   here: italian.html was superseded outright by the new registry-driven
-   Italian deck above, not kept alongside it, so there is nothing useful an
-   "archived Italian" would add next to a real one. */
-details.archived{margin-top:22px;border:1px solid var(--line);border-radius:12px;padding:2px 15px}
-details.archived summary{cursor:pointer;padding:11px 0;font-size:13.5px;color:var(--muted);
-  list-style:none}
-details.archived summary::-webkit-details-marker{display:none}
-details.archived summary::before{content:'▸ ';display:inline-block;transition:transform .15s}
-details.archived[open] summary::before{transform:rotate(90deg)}
-details.archived .archNote{margin:0 0 13px;font-size:13px;color:var(--muted);line-height:1.55}
-details.archived a{color:var(--coral)}
+
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.field input{width:100%;font-family:var(--sans);font-size:14.5px;padding:9px 11px;
+  border-radius:9px;border:1px solid var(--line);background:var(--raise);color:var(--ink)}
+.field input:focus{outline:none;border-color:var(--coral)}
+.btnRow{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+button.btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:9px 14px;font-size:13.5px;font-family:var(--sans);cursor:pointer}
+button.btn:active{border-color:var(--coral);background:var(--accent-soft)}
+button.btn.primary{background:var(--coral);border-color:var(--coral);color:var(--raise)}
+.syncNote{color:var(--faint);font-size:12px;margin-top:10px;line-height:1.5}
+.syncStatus{color:var(--muted);font-size:13px;margin-top:10px;min-height:1.2em}
 </style>
 </head>
 <body>
-<div class="head">
-  <div>
-    <h1>Riverbank</h1>
-    <p class="sub">Vocabulary, spaced out</p>
-  </div>
-  <div class="headIcons">
-    <a class="iconBtn" href="settings" aria-label="Settings">&#9881;</a>
-    <a class="iconBtn" href="manual" aria-label="Guide">?</a>
-    <button class="iconBtn" id="exportAllBtn" aria-label="Export a backup of every language">&#11015;</button>
-  </div>
-</div>
+<h1>Cotidie</h1>
+<p class="sub">Daily Latin &amp; Greek grammar practice</p>
 
-<div id="deckCards"></div>
+<a class="card" href="latin.html">
+  <div class="t">Latin</div>
+  <div class="d">Declension &amp; conjugation — table, recitation, drill</div>
+</a>
+<a class="card" href="greek.html">
+  <div class="t">Greek</div>
+  <div class="d">Declension &amp; conjugation — table, recitation, drill</div>
+</a>
 
 <div class="sect">
-  <h2>Activity</h2>
-  <div class="streakLine" id="streakLine"></div>
-  <div class="calToggleRow" id="calToggleRow"></div>
-  <div class="calAllScroll" id="calAllScroll"></div>
+  <h2>Sync</h2>
+  <p class="sub" style="margin:0 0 14px">A Cloudflare Worker backs up both decks under one code — no GitHub
+  account or token needed. Type the same code on every device; Latin and Greek each show their own
+  push/pull status on their own Settings screen. The code is encrypted before it ever leaves this
+  device (see <code>js/sync.js</code>), so this is the one place it's entered or shared.</p>
+
+  <div class="field">
+    <label for="fSyncCode">Sync code</label>
+    <input type="text" id="fSyncCode" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="tap Get a code, or type one from another device">
+  </div>
+  <div class="btnRow">
+    <button class="btn primary" id="btnSaveCode">Save</button>
+    <button class="btn" id="btnNewCode">Get a code for this device</button>
+  </div>
+  <p class="syncStatus" id="credStatus"></p>
 </div>
 
-<details class="archived">
-  <summary>Archived</summary>
-  <p class="archNote">Retired from the main list, not from your data -- a backup made while it was live still restores fine. <a href="archive/sat.html">Open SAT English &#8594;</a></p>
-</details>
+<div class="sect">
+  <h2>Backup</h2>
+  <p class="sub" style="margin:0 0 14px">One file holding both decks. Sync already keeps a copy on the server,
+  but it is the same copy every device writes to &mdash; a file is the one that stays put. Saving is a tap because
+  Safari silently blocks a download nothing asked for, so nothing here happens on its own.</p>
+  <div class="btnRow">
+    <button class="btn primary" id="btnExport">Export both decks</button>
+    <button class="btn" id="btnImport">Restore from a file</button>
+  </div>
+  <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+  <p class="syncStatus" id="backupStatus"></p>
+</div>
 
-<p class="exportNote" id="exportNote"></p>
-<p class="note">Add each language to your Home Screen separately and open it from there, not from a browser tab — see the Guide above for how. Safari clears stored data for sites left unvisited for a week; installed apps are exempt.</p>
-<a class="verlink" id="verLink" href="deck?deck=latin#changelog">What's new</a>
-<script src="decks/registry.js"></script>
+<div class="sect">
+  <h2>About</h2>
+  <!-- The version is here so a device can answer "did my upload actually land?" without
+     guesswork. tools/bump_build.py rewrites it alongside the ?v= stamps, and
+     tools/make_upload_bundle.sh refuses to build a bundle where the two disagree. -->
+  <p class="sub" style="margin:0">Personal use only. Version 2026.08.31.2.</p>
+  <p class="sub" style="margin:6px 0 0">Ground rules and open items are in <code>evergreen/HANDOFF.md</code> in the working tree — dev-only, never uploaded here.</p>
+</div>
+
+<script src="js/store.js?v=202608312"></script>
+<script src="js/sync.js?v=202608312"></script>
 <script>
-// Deck cards, rendered from REGISTRY rather than hand-written (2026-08-20 --
-// adding Italian as a third deck is what made this worth doing; see
-// decks/registry.js's own header). One <a class="card"> per row, in
-// registry order. blurb is the static fallback shown until a live summary
-// is available for that deck -- summaryLine() below replaces it in place,
-// same "never blank, degrade to the fallback" idiom the version link at
-// the foot already uses.
-function renderDeckCards(){
-  const el=document.getElementById('deckCards');
-  el.innerHTML=REGISTRY.map(d=>
-    '<a class="card" href="deck?deck='+d.id+'">'+
-      '<div class="t">'+d.title+'</div>'+
-      '<div class="d" id="sub-'+d.id+'">'+d.blurb+'</div>'+
-      '<div class="todayStats" id="stat-'+d.id+'"></div>'+
-    '</a>'
-  ).join('');
-}
-renderDeckCards();
+/* ======================================================================
+   Cotidie — launcher's sync code setup (see js/sync.js's header comment).
+   The code lives only in the shared key (loadSyncCode/saveSyncCode) --
+   this page is the one intended place to enter, generate, or share it;
+   each deck's own Settings screen just reads this same key. "Pairing"
+   another device is just typing (or pasting) the same code into this
+   same field there -- no separate pairing flow needed now that a single
+   code is the whole credential, unlike the old gist id+token pair.
+   ====================================================================== */
+const $ = id => document.getElementById(id);
 
-// ============================================================
-// Live per-card stats (2026-08-20, his ask: stats "along with" the colour
-// fix, matching vocabula's own launcher). Read-only, same guarantee the
-// export script below already relies on: reads each deck's own localStorage
-// entry directly rather than loading deck.html's engine ("the launcher
-// stays a reader"). RIVERBANK_ROLLOVER is riverbank's one fixed hour (4am,
-// no per-device UI -- see HANDOFF), so unlike vocabula's launcher this never
-// needs to read a per-deck settings.rollover.
-//
-// No longer narrower than vocabula's own version, as of today: deck.html's
-// save() now writes S.summary on every save (buildSummary(), mirroring
-// vocabula's PHASE2_PLAN.md §2.3) precisely so this page can show due/done/
-// an honest time estimate without loading the scheduler itself.
-const HOUR=3600000, DAY=86400000, RIVERBANK_ROLLOVER=4;
-const dayKey=(ts,roll)=>Math.floor((ts-new Date(ts).getTimezoneOffset()*60000-roll*HOUR)/DAY);
-// avgMsPerRating() and fmtDuration() ported verbatim from deck.html/vocabula's
-// shared.js -- see either's own comment for the gating rule.
-function avgMsPerRating(days,todayKey,windowDays){
-  let sumMs=0,sumN=0,daysWithData=0;
-  for(let k=todayKey-windowDays;k<todayKey;k++){
-    const r=days[k];
-    if(r&&r.n&&r.studyMs){ sumMs+=r.studyMs; sumN+=r.n; daysWithData++; }
-  }
-  return (daysWithData>=3&&sumN>=10)?(sumMs/sumN):null;
+function refreshCredFields(){
+  $('fSyncCode').value = loadSyncCode().syncCode;
 }
-function fmtDuration(ms){
-  if(!(ms>0)) return '0m';
-  const mins=Math.round(ms/60000);
-  if(mins<1) return '<1m';
-  if(mins<60) return mins+'m';
-  return Math.floor(mins/60)+'h '+(mins%60)+'m';
-}
-// diff in days between a snapshot's own day and today -- null (say nothing)
-// for today or (clock skew) the future, same as vocabula's relDay().
-function relDay(day,todayKey){
-  const diff=todayKey-day;
-  if(diff<=0) return null;
-  return diff===1?'yesterday':(diff+' days ago');
-}
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+refreshCredFields();
 
-// Load every registry deck's saved state once, synchronously (riverbank's
-// storage is plain localStorage, not vocabula's IndexedDB -- no async load
-// needed here the way vocabula's own renderAll() has to do). Shared by the
-// per-card stats above and the combined Activity section below, so neither
-// reads localStorage twice for the same key.
-function loadAllDeckData(){
-  const out={};
-  REGISTRY.forEach(deck=>{
-    let raw; try{ raw=localStorage.getItem(deck.key); }catch(e){ raw=null; }
-    if(!raw) return;
-    let obj; try{ obj=JSON.parse(raw); }catch(e){ return; }
-    if(obj&&typeof obj==='object'&&obj.days) out[deck.id]=obj;
-  });
-  return out;
-}
-
-// ============================================================
-// Activity: a combined streak + one shared-scroll heatmap row per visible
-// deck (2026-08-20, his ask -- ported from vocabula's own cross-deck
-// dashboard, PLATFORM_PLAN.md §6a there). heatRec/heatCellBg and their
-// small helpers are ported verbatim from vocabula's shared.js/deck.html's
-// own Track B port of the same -- riverbank has no shared.js of its own
-// yet (nothing else needed one), so these are a second copy rather than an
-// import; if they ever drift from deck.html's own versions, that's the
-// signal it's finally worth factoring out, the same way vocabula's own
-// shared.js started as index.html's copy before 2026-08-17.
-const HEAT_SPACE='oklch';
-const AVG_WINDOW_DAYS={week:7,month:30,year:365};
-function windowedDailyAverage(days,todayKey,window){
-  if(window==='all'){
-    let sum=0,n=0;
-    for(const k in days){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
-    return n?Math.round(sum/n):0;
-  }
-  const span=AVG_WINDOW_DAYS[window]||AVG_WINDOW_DAYS.month;
-  let sum=0,n=0;
-  for(let k=todayKey;k>todayKey-span;k--){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
-  return n?Math.round(sum/n):0;
-}
-function heatmapAvgRatings(days){
-  let sum=0,n=0;
-  for(const k in days){ const r=days[k]; if(r&&r.n){ sum+=r.n; n++; } }
-  return n?sum/n:0;
-}
-function heatmapBaseline(days,todayKey,window){
-  return windowedDailyAverage(days,todayKey,window) || heatmapAvgRatings(days);
-}
-function volumePct(ratings,avg){
-  if(!avg) return 0;
-  return Math.max(0,Math.min(1,ratings/(avg*1.6)))*100;
-}
-function retentionPct(ok,tot){
-  if(!tot) return 0;
-  const r=100*ok/tot;
-  return Math.max(0,Math.min(1,(r-60)/40))*100;
-}
-function heatRec(days,dk){
-  const r=days[dk];
-  return {ratings:(r&&r.n)||0, ok:(r&&r.ok)||0, tot:(r&&r.tot)||0};
-}
-function heatCellBg(rec,avg,mode,accent){
-  if(!rec||!rec.ratings) return '';
-  if(mode==='retention'&&rec.tot){
-    const p=retentionPct(rec.ok,rec.tot);
-    return 'background:color-mix(in '+HEAT_SPACE+', var(--good) '+p+'%, var(--again) '+(100-p)+'%)';
-  }
-  const p=volumePct(rec.ratings,avg);
-  return 'background:color-mix(in '+HEAT_SPACE+', var(--'+accent+') '+p+'%, var(--panel))';
-}
-// Merges every visible deck's day map into one: a day counts toward the
-// COMBINED streak if any visible deck studied that day. No streakStart to
-// honour here (riverbank has no such setting -- see makeDefaults()), which
-// is the one real simplification against vocabula's own mergeDayMaps().
-function mergeDayMaps(dayMaps){
-  const merged={};
-  for(const days of dayMaps){
-    for(const k in days){
-      const n=(days[k]&&days[k].n)||0;
-      if(!n) continue;
-      (merged[k]||(merged[k]={n:0})).n+=n;
+/* ---------------------------------------------------------------- backup ----
+   Both decks in one file (js/sync.js: buildBackup/readBackup). The launcher
+   owns this rather than either deck page, because a per-deck backup is a
+   half backup, and the half you didn't take is the one you needed. */
+$('btnExport').addEventListener('click', async () => {
+  try {
+    // readStoreAnywhere, not localStorage: the decks moved to IndexedDB, and a
+    // backup that quietly read the abandoned copy would look like it worked
+    // while capturing nothing that has happened since.
+    const stores = {};
+    for (const k of Object.keys(STORE_KEYS)){
+      const st = await readStoreAnywhere(STORE_KEYS[k]);
+      if (st) stores[k] = st;
     }
-  }
-  return merged;
-}
-function renderStreakLine(datasById){
-  const merged=mergeDayMaps(REGISTRY.map(d=>(datasById[d.id]&&datasById[d.id].days)||{}));
-  const combined=currentStreak(merged,dayKey(Date.now(),RIVERBANK_ROLLOVER));
-  const parts=REGISTRY.map(d=>{
-    const data=datasById[d.id]; if(!data) return null;
-    return d.title+' '+currentStreak(data.days||{},dayKey(Date.now(),RIVERBANK_ROLLOVER));
-  }).filter(Boolean);
-  document.getElementById('streakLine').textContent=
-    (combined?combined+'-day streak':'No streak yet — study something today to start one')+
-    (parts.length?' ('+parts.join(' · ')+')':'');
-}
-// currentStreak() -- same shape as deck.html's own (2 args, no streakStart).
-function currentStreak(days,todayKey){
-  let streak=0;
-  for(let k=todayKey;;k--){
-    if(days[k]&&days[k].n) streak++;
-    else { if(k!==todayKey) break; }
-    if(todayKey-k>3650) break;
-  }
-  return streak;
-}
-let calHiddenIds=new Set();
-function renderCalStack(datasById){
-  const toggleRow=document.getElementById('calToggleRow');
-  toggleRow.innerHTML=REGISTRY.map(d=>
-    '<label class="calToggle"><input type="checkbox" data-deck-id="'+esc(d.id)+'"'+
-    (calHiddenIds.has(d.id)?'':' checked')+'> '+esc(d.title)+'</label>'
-  ).join('');
-  toggleRow.querySelectorAll('input[data-deck-id]').forEach(cb=>{
-    cb.addEventListener('change',()=>{
-      if(cb.checked) calHiddenIds.delete(cb.dataset.deckId); else calHiddenIds.add(cb.dataset.deckId);
-      renderCalStack(datasById);
-    });
-  });
-  const visible=REGISTRY.filter(d=>!calHiddenIds.has(d.id));
-  const scroller=document.getElementById('calAllScroll');
-  if(!visible.length){ scroller.innerHTML=''; return; }
-  const d0=dayKey(Date.now(),RIVERBANK_ROLLOVER);
-  let startKey=d0;
-  for(const d of visible){
-    const data=datasById[d.id];
-    if(data&&data.created) startKey=Math.min(startKey,dayKey(data.created,RIVERBANK_ROLLOVER));
-    for(const k in ((data&&data.days)||{})) startKey=Math.min(startKey,+k);
-  }
-  let rowsHtml='';
-  for(const d of visible){
-    const data=datasById[d.id]||{};
-    const days=data.days||{}, settings=data.settings||{};
-    const avgR=heatmapBaseline(days,d0,settings.heatmapAvgWindow||'month');
-    const mode=settings.heatmapColourMode||'volume', accent=settings.heatmapAccent||'coral';
-    let dots='';
-    for(let k=startKey;k<=d0;k++){
-      const bg=heatCellBg(heatRec(days,k),avgR,mode,accent);
-      dots+='<div class="calDot'+(k===d0?' today':'')+'"'+(bg?' style="'+bg+'"':'')+'></div>';
+    if (!Object.keys(stores).length){
+      $('backupStatus').textContent = 'Nothing to export yet — neither deck has been studied on this device.';
+      return;
     }
-    rowsHtml+='<div class="calDeckRow"><div class="lbl">'+esc(d.title)+'</div><div class="dots">'+dots+'</div></div>';
+    const backup = buildBackup(stores, Date.now());
+    const counts = Object.keys(backup.decks)
+      .map(k => k + ' ' + ((backup.decks[k].log||[]).length) + ' reviews').join(', ');
+    const blob = new Blob([JSON.stringify(backup)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cotidie-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);          // Safari will not click a detached link
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+    $('backupStatus').textContent = 'Saved — ' + counts + '.';
+  } catch(e){
+    $('backupStatus').textContent = 'Export failed. Nothing was changed.';
   }
-  scroller.innerHTML=rowsHtml;
-  scroller.scrollLeft=scroller.scrollWidth;
-}
+});
 
-function renderDeckStats(datasById){
-  const d=dayKey(Date.now(),RIVERBANK_ROLLOVER);
-  REGISTRY.forEach(deck=>{
-    const subEl=document.getElementById('sub-'+deck.id), statEl=document.getElementById('stat-'+deck.id);
-    const obj=datasById[deck.id];
-    if(!obj) return;   // never opened on this device -- static blurb and empty stats line stand
-    const days=obj.days, sum=obj.summary;
-    if(sum){
-      const left=(sum.due|0)+(sum.learn|0)+(sum.intro|0);
-      const base=left?(left+' word'+(left===1?'':'s')+' ready'):'Nothing due right now';
-      const rel=relDay(sum.day,d);
-      subEl.textContent=rel?(base+' · as of '+rel):base;
-      const todayRec=days[d]||{};
-      const spentMs=todayRec.studyMs||0, done=todayRec.n|0;
-      const avg=avgMsPerRating(days,d,14);
-      const timePart=(avg&&left>0) ? (fmtDuration(spentMs)+' / ~'+fmtDuration(spentMs+avg*left)) : fmtDuration(spentMs);
-      statEl.textContent=(sum.due|0)+' due · '+done+' done · '+timePart;
-    } else {
-      // A device that opened this deck before today's build -- no summary
-      // yet. Falls back to the streak-only line this page showed before,
-      // rather than a blank stats row; the next save() on that device
-      // writes a real summary and this branch stops firing for it.
-      const streak=currentStreak(days,d);
-      const today=days[d]||{};
-      const doneToday=today.n|0, timeStr=today.studyMs>0?fmtDuration(today.studyMs):null;
-      const parts=[streak?(streak+' day'+(streak===1?'':'s')+' running'):'No streak yet'];
-      if(doneToday) parts.push(doneToday+' today'+(timeStr?' · '+timeStr:''));
-      statEl.textContent=parts.join(' · ');
+$('btnImport').addEventListener('click', () => $('impFile').click());
+
+$('impFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';                     // so choosing the same file twice still fires
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onerror = () => { $('backupStatus').textContent = "That file couldn't be read."; };
+  fr.onload = () => {
+    let parsed = null;
+    try { parsed = JSON.parse(fr.result); }
+    catch(err){ $('backupStatus').textContent = "That file isn't valid JSON, so it wasn't touched."; return; }
+    const res = readBackup(parsed);
+    if (!res.ok){ $('backupStatus').textContent = res.error; return; }
+    const names = Object.keys(res.decks);
+    const detail = names.map(k => k + ' (' + (res.decks[k].log||[]).length + ' reviews)').join(' and ');
+    const when = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString() : 'an unknown date';
+    if (!confirm('Restore ' + detail + ' from ' + when + '?\n\nThis REPLACES what is on this device for '
+                 + (names.length>1 ? 'both decks' : 'the ' + names[0] + ' deck')
+                 + '. Export first if you are not sure.')) {
+      $('backupStatus').textContent = 'Restore cancelled — nothing was changed.';
+      return;
     }
-  });
-}
-// Combined streak and the calendar stack need every deck's data at once (a
-// combined streak can't be computed one deck at a time) -- loaded once here
-// and handed to all three render functions, so nothing reads the same
-// localStorage key twice.
-const datasById=loadAllDeckData();
-renderDeckStats(datasById);
-renderStreakLine(datasById);
-renderCalStack(datasById);
+    (async () => {
+      try {
+        for (const k of names){
+          const ok = await writeStoreAnywhere(STORE_KEYS[k], res.decks[k]);
+          if (!ok) throw new Error('write failed for ' + k);
+        }
+        $('backupStatus').textContent = 'Restored ' + detail + '. Open a deck to check it.';
+      } catch(err){
+        $('backupStatus').textContent = 'Restore failed part-way. Check both decks before studying.';
+      }
+    })();
+  };
+  fr.readAsText(file);
+});
 
-// Exports a real backup of every language this browser actually has data
-// for -- in one tap, rather than needing to open each deck's own Settings
-// and export one at a time. index.html deliberately never loads a deck's
-// engine ("the launcher stays a reader"), so this reads each deck's real
-// localStorage entry directly rather than through any of deck.html's own
-// functions -- there's nothing here those functions do beyond that read,
-// except doExport()'s own sanitised() strip of the sync code before it
-// leaves the device, which this replicates by hand (the RAW stored value
-// legitimately keeps it in the clear, for this device's own future syncing
-// -- only an exported file or a synced payload should ever have it blanked).
-// italian is now a live registry deck like latin/greek; sat stays listed
-// (archived, not deleted) purely so a device that still has old sat data
-// sitting in localStorage can still get it out in a backup.
-//
-// Downloads are spaced out with a real gap between each rather than fired
-// back to back: Safari (and, less reliably, other browsers) can silently
-// drop the second and later of several downloads triggered from one tap if
-// they land in the same instant -- the same reason deck.html's own
-// doExport() comment gives for never trying to trigger a download nobody
-// tapped for.
-const EXPORT_DECKS = [
-  {key:'riverbank.latin.v1',   name:'latin',   label:'Latin'},
-  {key:'riverbank.greek.v1',   name:'greek',   label:'Greek'},
-  {key:'riverbank.italian.v1', name:'italian', label:'Italian'},
-  {key:'riverbank.sat.v1',     name:'sat',     label:'SAT'}
-];
-function downloadOneBackup(deckName, obj){
-  const blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='riverbank-'+deckName+'-'+new Date().toISOString().slice(0,10)+'.json';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1500);
-}
-function exportAllBackups(){
-  const note=document.getElementById('exportNote');
-  const found=[];
-  EXPORT_DECKS.forEach(d=>{
-    let raw;
-    try{ raw=localStorage.getItem(d.key); }catch(e){ raw=null; }
-    if(!raw) return;
-    let obj;
-    try{ obj=JSON.parse(raw); }catch(e){ return; }
-    if(!obj||typeof obj!=='object') return;
-    if(obj.settings) obj.settings=Object.assign({},obj.settings,{syncCode:''});   // never let the sync code leave the device inside a backup file
-    found.push({name:d.name,label:d.label,obj:obj});
-  });
-  if(!found.length){
-    note.textContent='Nothing to export yet -- open a language and study a little first.';
+$('btnSaveCode').addEventListener('click', () => {
+  const code = $('fSyncCode').value.trim().toUpperCase();
+  $('fSyncCode').value = code;
+  saveSyncCode(code);
+  $('credStatus').textContent = code ? 'Saved — enter this same code on your other devices.' : 'Cleared.';
+});
+
+// Confirm-before-overwrite (carried over from the old pairing flow's same
+// safeguard) -- only prompts when this device already has a different
+// code set up; first-time setup with nothing configured yet applies with
+// no prompt. Cancel is a genuine no-op: nothing is written.
+$('btnNewCode').addEventListener('click', () => {
+  const cur = loadSyncCode().syncCode;
+  if (cur && !confirm(syncCodeReplaceMessage())){
+    $('credStatus').textContent = 'Left as it was — this device is still using the code it had.';
     return;
   }
-  note.textContent='Saving '+found.length+' file'+(found.length===1?'':'s')+'…';
-  found.forEach((f,i)=>{ setTimeout(()=>downloadOneBackup(f.name,f.obj), i*600); });
-  setTimeout(()=>{
-    note.textContent='Saved '+found.map(f=>f.label).join(', ')+
-      (found.length<EXPORT_DECKS.length ? ' — the others have no data on this device yet.' : '.');
-  }, found.length*600);
-}
-document.getElementById('exportAllBtn').addEventListener('click',exportAllBackups);
+  const code = randomSyncCode();
+  $('fSyncCode').value = code;
+  saveSyncCode(code);
+  $('credStatus').textContent = 'Created — enter this same code on your other devices to link them.';
+});
 </script>
 </body>
 </html>
